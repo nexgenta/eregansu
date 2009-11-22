@@ -1,0 +1,20 @@
+<?php require(dirname(__FILE__) . '/header.php'); ?>
+		<h1><?php echo htmlspecialchars($page_title); ?></h1>
+		<?php echo $loginForm; ?>
+<script type="text/javascript" charset="utf-8">
+$(document).ready(function() {
+	$('#login-auth').chromaHash({bars: 3});
+	$('#login-iri').focus();
+	var i;
+	i = setInterval(function() {
+		if(($('#login-auth').val()))
+		{
+			clearInterval(i);
+			$('#login-auth').trigger('keyup');
+			setInterval(function() { $('#login-auth').trigger('keyup'); }, 750);
+		}
+	}, 100);
+});
+</script>
+
+<?php require(dirname(__FILE__) . '/footer.php'); ?>

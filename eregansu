@@ -1,0 +1,10 @@
+#! /bin/sh
+
+if test x"${PHP_5}" = x"" ; then
+	PHP_5="php"
+fi
+
+dir=`dirname "$0"`
+cd "$dir"
+
+${PHP_5} -f index.php "$@"
