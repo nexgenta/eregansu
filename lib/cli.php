@@ -29,6 +29,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+require_once(dirname(__FILE__) . '/request.php');
 
 class CLIRequest extends Request
 {
