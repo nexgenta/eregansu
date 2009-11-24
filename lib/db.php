@@ -65,6 +65,7 @@ interface IDBCore
 abstract class DBCore implements IDBCore
 {
 	protected $rsClass;
+	public $dbms = 'unknown';
 	
 	public static function connect($iri)
 	{
@@ -328,6 +329,7 @@ class MySQL extends DBCore
 	protected $rsClass = 'MySQLSet';
 	protected $mysql;
 	protected $dbName;
+	public $dbms = 'mysql';
 	
 	public function __construct($params)
 	{
