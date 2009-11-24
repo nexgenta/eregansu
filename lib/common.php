@@ -42,6 +42,13 @@ if(function_exists('mb_internal_encoding')) mb_internal_encoding('UTF-8');
 date_default_timezone_set('UTC');
 putenv('TZ=UTC');
 ini_set('date.timezone', 'UTC');
+function exception_error_handler($errno, $errstr, $errfile, $errline )
+{
+	$e = error_reporting();
+	if(!$errno || ($e & $errno) != $errno) return;
+	throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
+}
+set_error_handler("exception_error_handler");
 
 function is_arrayish($obj)
 {
