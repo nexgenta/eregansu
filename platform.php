@@ -39,7 +39,7 @@ function uses()
 {
 	global $APP_ROOT;
 	
-	static $_lib_modules = array('base32', 'date', 'db', 'form', 'request', 'session', 'execute', 'mime');
+	static $_lib_modules = array('base32', 'date', 'db', 'form', 'request', 'session', 'execute', 'mime', 'uuid');
 	$_modules = func_get_args();
 	foreach($_modules as $_mod)
 	{
@@ -134,3 +134,7 @@ else
 {
 	$app = new DefaultApp;
 }
+
+global $INITIAL_APP;
+
+$INITIAL_APP = $app;
