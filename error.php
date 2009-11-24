@@ -31,6 +31,10 @@
 
 if(!defined('TEMPLATES_PATH')) define('TEMPLATES_PATH', 'templates');
 
+class TerminalErrorException extends Exception
+{
+}
+
 class Error implements IRequestProcessor
 {
 	const BAD_REQUEST = 400;
@@ -66,6 +70,8 @@ class Error implements IRequestProcessor
 	const INSUFFICIENT_STORAGE = 507;
 	const BANDWIDTH_LIMIT_EXCEEDED = 508;
 	const NOT_EXTENDED = 509;
+	
+	public static $throw = false;
 	
 	protected static $titles = array(
 		self::BAD_REQUEST => 'Bad request',
@@ -132,13 +138,13 @@ class Error implements IRequestProcessor
 	
 	public function process($req)
 	{	
-		@header('HTTP/1.0 ' . floor($this->status) . ' ' . $title);
 		$title = $this->statusTitle($this->status);
 		$desc = $this->statusDescription($this->status, $req);
-		if(!in_array('text/html', $req->types) && !in_array('*/*', $req->types))
+		@header('HTTP/1.0 ' . floor($this->status) . ' ' . $title);
+		if(!isset($req->types) || !in_array('text/html', $req->types) && !in_array('*/*', $req->types))
 		{
 			@header('Content-type: text/plain');			
-			echo $title . "\n\n";
+			echo $title . " (" . $this->status . ")\n\n";
 			if($this->detail)
 			{
 				echo $this->detail . "\n";
@@ -147,6 +153,7 @@ class Error implements IRequestProcessor
 			{
 				echo $desc . "\n";
 			}
+			if(self::$throw) throw new TerminalErrorException($title, $this->status);
 			exit(1);
 		}
 		if(isset($req->data['errorSkin']) && isset($req->siteRoot) && file_exists($req->siteRoot . 'templates/' . $req->data['errorSkin'] . '/error.php'))
