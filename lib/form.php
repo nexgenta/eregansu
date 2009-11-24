@@ -123,9 +123,6 @@ class Form implements ArrayAccess
 				case 'hidden':
 					$this->renderHidden($buf, $req, $field);
 					break;
-				case 'text':
-					$this->renderText($buf, $req, $field);
-					break;
 				case 'textarea':
 					$this->renderTextArea($buf, $req, $field);
 					break;
@@ -138,6 +135,13 @@ class Form implements ArrayAccess
 				case 'select':
 					$this->renderSelect($buf, $req, $field);
 					break;
+				case 'checkbox':
+					$this->renderCheckbox($buf, $req, $field);
+					break;
+				default:
+					$this->renderText($buf, $req, $field);
+					break;
+					
 			}
 		}
 		if(count($this->actions))
@@ -248,7 +252,7 @@ class Form implements ArrayAccess
 		}
 		if(isset($info['label']) && (!empty($info['after']) || !empty($info['contains'])))
 		{
-			if($empty($info['contains']))
+			if(empty($info['contains']))
 			{
 				$aft .= '<label for="' . $info['htmlId'] . '">';
 			}
@@ -271,7 +275,15 @@ class Form implements ArrayAccess
 	protected function renderText(&$buf, $req, $info)
 	{
 		$this->renderVisible($buf, $req, $info,
-			'<input id="' . $info['htmlId'] . '" type="text" name="' . $info['htmlName'] . '" value="' . htmlspecialchars($info['value']) . '"' . $info['htmlSuffix'] . ' />');
+			'<input id="' . $info['htmlId'] . '" type="' . $info['type'] . '" name="' . $info['htmlName'] . '" value="' . htmlspecialchars($info['value']) . '"' . $info['htmlSuffix'] . ' />');
+	}
+
+	protected function renderCheckbox(&$buf, $req, $info)
+	{
+		if(!isset($info['checkValue'])) $info['checkValue'] = 1;
+		$checked = (strcmp($info['checkValue'], $info['value']) ? '' : ' checked="checked"');
+		$this->renderVisible($buf, $req, $info,
+			'<input id="' . $info['htmlId'] . '" type="checkbox" name="' . $info['htmlName'] . '" value="' . _e($info['checkValue']) . '"' . $checked . $info['htmlSuffix'] . ' />');
 	}
 
 	protected function renderTextArea(&$buf, $req, $info)
