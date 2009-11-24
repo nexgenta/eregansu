@@ -47,9 +47,9 @@ interface IDBCore
 	public function vquery($query, $params);
 	public function query($query);
 	public function exec($query);
-	public function getOne($query);
-	public function getRow($query);
-	public function getAll($query);
+	public function value($query);
+	public function row($query);
+	public function rows($query);
 	public function insert($table, $kv);
 	public function update($table, $kv, $clause);
 	public function quoteObject($name);
@@ -150,7 +150,7 @@ abstract class DBCore implements IDBCore
 		return null;
 	}
 
-	public function getOne($query)
+	public function value($query)
 	{
 		$row = null;
 		$params = func_get_args();
@@ -171,7 +171,7 @@ abstract class DBCore implements IDBCore
 		return null;
 	}
 
-	public function getRow($query)
+	public function row($query)
 	{
 		$row = null;
 		$params = func_get_args();
@@ -185,7 +185,7 @@ abstract class DBCore implements IDBCore
 		return $row;
 	}
 
-	public function getAll($query)
+	public function rows($query)
 	{
 		$rows = null;
 		$params = func_get_args();
@@ -315,7 +315,7 @@ class DBDataSet
 	public function next()
 	{
 		if($this->EOF) return false;
-		if(!$this->getRow())
+		if(!$this->row())
 		{
 			$this->EOF = true;
 			return null;
@@ -379,7 +379,7 @@ class MySQL extends DBCore
 		}
 	}
 		
-	public function getRow($query)
+	public function row($query)
 	{
 		$row = null;
 		$params = func_get_args();
@@ -440,7 +440,7 @@ class MySQL extends DBCore
 
 class MySQLSet extends DBDataSet
 {
-	protected function getRow()
+	protected function row()
 	{
 		return ($this->fields = mysql_fetch_assoc($this->resource));
 	}
