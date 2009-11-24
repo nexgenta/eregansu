@@ -114,11 +114,11 @@ class Router extends Routable
 		return null;
 	}
 	
-	public function process($req)
+	public function locateRoute($req)
 	{
 		global $APP_ROOT;
 		
-		parent::process($req);
+		if(!isset($this->sapi[$req->sapi])) return null;
 		$routes = $this->sapi[$req->sapi];
 		if(isset($req->data['routes']))
 		{
@@ -137,6 +137,7 @@ class Router extends Routable
 		}
 		if(isset($routes[$k]))
 		{
+			$route = $routes[$k];
 			if(is_array($req->data))
 			{
 				$data = $req->data;
@@ -146,17 +147,17 @@ class Router extends Routable
 				unset($data['routes']);
 				unset($data['crumbName']);
 				unset($data['class']);
-				$data = array_merge($data, $routes[$k]);
+				$data = array_merge($data, $route);
 			}
 			else
 			{
-				$data = $routes[$k];
+				$data = $route;
 			}
 			$data['key'] = $k;
 			$req->data = $data;
 			if($consume)
 			{
-				if(!empty($routes[$k]['adjustBase']))
+				if(!empty($data['adjustBase']))
 				{
 					$req->consumeForApp();
 				}
@@ -165,130 +166,132 @@ class Router extends Routable
 					$req->consume();
 				}
 			}
-			if(isset($routes[$k]['require']))
+			return $data;
+		}
+		return null;
+	}
+	
+	public function process($req)
+	{
+		parent::process($req);
+		$route = $this->locateRoute($req);
+		if($route)
+		{
+			if(isset($route['require']))
 			{
-				$perms = $routes[$k]['require'];
-				if(!is_array($perms))
-				{
-					$perms = ($perms ? array($perms) : array());
-				}
-				if(in_array('*/*', $req->types) || in_array('text/html', $req->types))
-				{
-					$match = true;
-					foreach($perms as $perm)
-					{
-						if(!isset($req->session->user) || !isset($req->session->user['perms']) || !in_array($perm, $req->session->user['perms']))
-						{
-							$match = false;
-						}
-					}
-					if(!$match)
-					{
-						if($req->session->user)
-						{
-							$p = new Error(Error::FORBIDDEN);
-							return $p->process($req);
-						}
-						else
-						{
-							$iri = (defined('LOGIN_IRI') ? LOGIN_IRI : $req->root . 'login');
-							return $req->redirect($iri . '?redirect=' . str_replace(';', '%3b', urlencode($req->uri)));
-						}
-					}
-				}
-				else
-				{
-					$success = false;
-					if(isset($_SERVER['PHP_AUTH_USER']) && isset($_SERVER['PHP_AUTH_PW']))
-					{
-						uses('auth');
-						$iri = $_SERVER['PHP_AUTH_USER'];
-						$scheme = null;
-						if(($engine = Auth::authEngineForToken($iri, $scheme)))
-						{
-							if(($user = $engine->verifyToken($req, $scheme, $iri, $_SERVER['PHP_AUTH_PW'])))
-							{
-								$req->beginTransientSession();
-								$req->session->user = $user;
-								$success = true;
-							}
-						}
-					}
-					if(!$success)
-					{
-						header('WWW-Authenticate: basic realm="' . $req->hostname . '"');
-						$p = new Error(Error::AUTHORIZATION_REQUIRED);
-						return $p->process($req);
-					}
-				}
+				if(!($this->authoriseRoute($req, $route))) return false;
 			}
-			if(!empty($routes[$k]['adjustBase']))
-			{
-				if(isset($routes[$k]['name']))
-				{
-					$APP_ROOT .= $routes[$k]['name'] . '/';
-				}
-				else if(substr($k, 0, 1) != '_')
-				{
-					$APP_ROOT .= $k . '/';
-				}
-			}
-			if(isset($routes[$k]['file']))
-			{
-				$f = $routes[$k]['file'];
-				if(isset($routes[$k]['name']) && empty($routes[$k]['adjustBase']))
-				{
-					$f = $routes[$k]['name'] . '/' . $f;
-				}
-				if(substr($f, 0, 1) != '/')
-				{
-					if(!empty($routes[$k]['fromRoot']))
-					{
-						$f = APPS_ROOT . $f;
-					}
-					else
-					{
-						$f = $APP_ROOT . $f;
-					}
-				}
-				require_once($f);
-			}
-			$target = new $routes[$k]['class']();
-			if(!$target instanceof IRequestProcessor)
-			{
-				return $this->error(Error::ROUTE_NOT_PROCESSOR, $req);
-			}
+			if(!($target = $this->routeInstance($req, $route))) return false;
 			return $target->process($req);
 		}
 		return $this->unmatched($req);
 	}
 	
+	protected function authoriseRoute($req, $route)
+	{
+		$perms = $route['require'];
+		if(!is_array($perms))
+		{
+			$perms = ($perms ? array($perms) : array());
+		}
+		if(in_array('*/*', $req->types) || in_array('text/html', $req->types))
+		{
+			$match = true;
+			foreach($perms as $perm)
+			{
+				if(!isset($req->session->user) || !isset($req->session->user['perms']) || !in_array($perm, $req->session->user['perms']))
+				{
+					$match = false;
+				}
+			}
+			if(!$match)
+			{
+				if($req->session->user)
+				{
+					$p = new Error(Error::FORBIDDEN);
+					return $p->process($req);
+				}
+				else
+				{
+					$iri = (defined('LOGIN_IRI') ? LOGIN_IRI : $req->root . 'login');
+					return $req->redirect($iri . '?redirect=' . str_replace(';', '%3b', urlencode($req->uri)));
+				}
+			}
+		}
+		else
+		{
+			$success = false;
+			if(isset($_SERVER['PHP_AUTH_USER']) && isset($_SERVER['PHP_AUTH_PW']))
+			{
+				uses('auth');
+				$iri = $_SERVER['PHP_AUTH_USER'];
+				$scheme = null;
+				if(($engine = Auth::authEngineForToken($iri, $scheme)))
+				{
+					if(($user = $engine->verifyToken($req, $scheme, $iri, $_SERVER['PHP_AUTH_PW'])))
+					{
+						$req->beginTransientSession();
+						$req->session->user = $user;
+						$success = true;
+					}
+				}
+			}
+			if(!$success)
+			{
+				header('WWW-Authenticate: basic realm="' . $req->hostname . '"');
+				$p = new Error(Error::AUTHORIZATION_REQUIRED);
+				return $p->process($req);
+			}
+		}
+		return true;
+	}
+	
+	public function routeInstance($req, $route)
+	{
+		global $APP_ROOT;
+		
+		if(!empty($route['adjustBase']))
+		{
+			if(isset($route['name']))
+			{
+				$APP_ROOT .= $route['name'] . '/';
+			}
+			else if(substr($route['key'], 0, 1) != '_')
+			{
+				$APP_ROOT .= $route['key'] . '/';
+			}
+		}
+		if(isset($route['file']))
+		{
+			$f = $route['file'];
+			if(isset($route['name']) && empty($route['adjustBase']))
+			{
+				$f = $route['name'] . '/' . $f;
+			}
+			if(substr($f, 0, 1) != '/')
+			{
+				if(!empty($route['fromRoot']))
+				{
+					$f = APPS_ROOT . $f;
+				}
+				else
+				{
+					$f = $APP_ROOT . $f;
+				}
+			}
+			require_once($f);
+		}
+		$target = new $route['class']();
+		if(!$target instanceof IRequestProcessor)
+		{
+			return $this->error(Error::ROUTE_NOT_PROCESSOR, $req);
+		}
+		return $target;		
+	}
+	
 	protected function unmatched($req)
 	{
 		return $this->error(Error::ROUTE_NOT_MATCHED, $req);	
-	}
-}
-
-/* Route requests to a particular app based upon a domain name */
-class HostnameRouter extends Router
-{
-	public function __construct()
-	{
-		global $HOSTNAME_ROUTES, $CLI_ROUTES;
-		
-		parent::__construct();
-		
-		$this->sapi['http'] = $HOSTNAME_ROUTES;
-		$this->sapi['cli'] = $CLI_ROUTES;
-	}
-	
-	protected function getRouteName($req, &$consume)
-	{
-		if($req->sapi == 'http')
-		{
-			return $req->hostname;
-		}
-		return parent::getRouteName($req, $consume);
 	}
 }
 
@@ -317,18 +320,43 @@ class DefaultApp extends App
 {
 	public function __construct()
 	{
-		global $HTTP_ROUTES, $CLI_ROUTES;
+		global $HTTP_ROUTES, $CLI_ROUTES, $MQ_ROUTES;
 		
 		$this->sapi['http'] = $HTTP_ROUTES;
 		$this->sapi['cli'] = $CLI_ROUTES;
+		$this->sapi['mq'] = $MQ_ROUTES;
 	}
 }
+
+/* Route requests to a particular app based upon a domain name */
+class HostnameRouter extends DefaultApp
+{
+	public function __construct()
+	{
+		global $HOSTNAME_ROUTES;
+		
+		parent::__construct();
+		
+		$this->sapi['http'] = $HOSTNAME_ROUTES;
+	}
+	
+	protected function getRouteName($req, &$consume)
+	{
+		if($req->sapi == 'http')
+		{
+			return $req->hostname;
+		}
+		return parent::getRouteName($req, $consume);
+	}
+}
+
 
 class Proxy extends Router
 {
 	public $request;
 	protected $supportedTypes = array();
 	protected $supportedMethods = array('GET','HEAD');
+	protected $noFallThroughMethods = array('GET', 'HEAD', '__CLI__', '__MQ__');
 	protected $object = null;
 	protected $sessionObject = null;
 		
@@ -380,17 +408,15 @@ class Proxy extends Router
 		{
 			return $this->error(Error::METHOD_NOT_IMPLEMENTED);
 		}
-		syslog(LOG_CRIT, get_class($this) . '::process(): ' . $methodName);
-
 		$r = $this->$methodName($type);
-		if($r && ($method != 'GET' && $method != 'HEAD'))
+		if($r && !in_array($method, $this->noFallThroughMethods))
 		{
-			syslog(LOG_CRIT, get_class($this) . '::process(): perform_GET');
-			$this->perform_GET($type);
+			$r = $this->perform_GET($type);
 		}
 		$this->object = null;
 		$this->request = null;
 		$this->sessionObject = null;
+		return $r;
 	}
 	
 	protected function error($code, $req = null, $object = null, $detail = null)
@@ -502,4 +528,11 @@ class Proxy extends Router
 			return $this->sessionObject;
 		}
 	}
+}
+
+/* A helper command-line-only proxy class */
+class CommandLine extends Proxy
+{
+	protected $supportedMethods = array('__CLI__');
+	protected $supportedTypes = array('text/plain');
 }
