@@ -31,9 +31,10 @@
 
 
 if(!defined('PLATFORM_ROOT')) define('PLATFORM_ROOT', realpath(dirname(__FILE__)) . '/');
+if(!defined('CONFIG_ROOT')) define('CONFIG_ROOT', realpath(dirname(__FILE__) . '/../config') . '/');
 
-require_once(PLATFORM_ROOT . '../config/config.php');
-require_once(PLATFORM_ROOT . '../config/appconfig.php');
+require_once(CONFIG_ROOT . 'config.php');
+require_once(CONFIG_ROOT . 'appconfig.php');
 
 function uses()
 {
