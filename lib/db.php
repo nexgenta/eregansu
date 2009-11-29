@@ -95,8 +95,11 @@ abstract class DBCore implements IDBCore
 		{
 			case 'mysql':
 				return new MySQL($iri);
+			case 'ldap':
+				require_once(dirname(__FILE__) . '/ldap.php');
+				return new LDAP($iri);
 			default:
-				throw new DBException('Unsupported database connection scheme "' . $iri['scheme'] . '"', 'FAIL', null);
+				throw new DBException(0, 'Unsupported database connection scheme "' . $iri['scheme'] . '"', null);
 		}
 	}
 	
