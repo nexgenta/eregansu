@@ -35,10 +35,12 @@ class Form implements ArrayAccess
 	protected $actions = array();
 	protected $name = 'form';
 	public $action = null;
-	public $errors = 0;
+	public $errorCount = 0;
 	public $method = 'POST';
 	public $prefix;
-	
+	public $notices = array();
+	public $errors = array();
+
 	public function __construct($name)
 	{
 		$this->name = $name;
@@ -48,7 +50,7 @@ class Form implements ArrayAccess
 	public function checkSubmission($req)
 	{
 		$this->action = null;
-		$this->errors = 0;
+		$this->errorCount = 0;
 		foreach($this->actions as $act)
 		{
 			if(!empty($req->postData[$this->prefix . $act['name']]))
@@ -69,11 +71,11 @@ class Form implements ArrayAccess
 				else if(!empty($f['required']))
 				{
 					$f['error'] = true;
-					$this->errors++;
+					$this->errorCount++;
 				}
 			}
 		}
-		if($this->errors)
+		if($this->errorCount)
 		{
 			return false;
 		}
@@ -109,6 +111,24 @@ class Form implements ArrayAccess
 			$htmethod = 'POST';
 		}
 		if(!$multiple) $buf[] = '<form method="' . _e($htmethod) . '" action="' . _e($req->uri) . '">';
+		if(count($this->notices))
+		{
+			$buf[] = '<ul class="notices">';
+			foreach($this->notices as $notice)
+			{
+				$buf[] = '<li>' . _e($notice) . '</li>';
+			}
+			$buf[] = '</ul>';
+		}
+		if(count($this->errors))
+		{
+			$buf[] = '<ul class="errors">';
+			foreach($this->errors as $error)
+			{
+				$buf[] = '<li>' . _e($error) . '</li>';
+			}
+			$buf[] = '</ul>';
+		}
 		$buf[] = '<input type="hidden" name="__name[]" value="' . _e($this->name) . '" />';
 		$buf[] = '<input type="hidden" name="__method" value="' . _e($method) . '" />';
 		if(isset($req->session) && isset($req->session->fieldName))
