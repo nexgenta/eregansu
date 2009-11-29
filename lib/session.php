@@ -193,13 +193,14 @@ class Session
 		$this->open = true;
 	}
 	
-	public function __get($key)
+	public function &__get($key)
 	{
 		if(isset($this->data[$key]))
 		{
 			return $this->data[$key];
 		}
-		return null;
+		$null = null;
+		return $null;
 	}
 	
 	public function __set($key, $value)
