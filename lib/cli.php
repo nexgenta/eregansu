@@ -55,4 +55,13 @@ class CLIRequest extends Request
 	{
 		exit();
 	}
+	
+	protected function beginSession()
+	{
+		$this->beginTransientSession();
+		if($this->sessionInitialised)
+		{
+			call_user_func($this->sessionInitialised, $this, $this->session);
+		}
+	}
 }
