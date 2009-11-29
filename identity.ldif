@@ -1,0 +1,16 @@
+## Sample LDIF for the IdentityDirectory class
+
+dn: dc=localhost
+objectClass: domain
+dc: localhost
+
+dn: cn=ldapadm,dc=localhost
+objectClass: inetOrgPerson
+cn: ldapadm
+uid: ldapadm
+sn: Administrator
+
+dn: ou=users,dc=localhost
+objectClass: top
+objectClass: organizationalUnit
+ou: users
