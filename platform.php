@@ -68,36 +68,36 @@ require_once(PLATFORM_ROOT . 'error.php');
 
 class PlatformEventSink
 {
-	public static function sessionInitialised($req)
+	public static function sessionInitialised($req, $session)
 	{
-		if(isset($req->session->user))
+		if(isset($session->user))
 		{
-			if(empty($req->session->user['ttl']) || $req->session->user['ttl'] < time())
+			if(empty($session->user['ttl']) || $session->user['ttl'] < time())
 			{
 				uses('auth');
-				$req->session->begin();
-				if(($engine = Auth::authEngineForScheme($req->session->user['scheme'])))
+				$session->begin();
+				if(($engine = Auth::authEngineForScheme($session->user['scheme'])))
 				{
-					$engine->refreshUserData($req->session->user);
+					$engine->refreshUserData($session->user);
 				}
 				else
 				{
-					unset($req->session->user);
+					unset($session->user);
 				}
-				$req->session->commit();
+				$session->commit();
 			}
 		}
-/*		else if($req->sapi != 'http')
+		else if($req->sapi != 'http')
 		{
 			uses('auth');
 			$engine = Auth::authEngineForScheme('posix');
 			if(($data = $engine->retrieveUserData('posix', posix_geteuid())))
 			{
-				$req->session->begin();
-				$req->session->user = $data;
-				$req->session->commit();
+				$session->begin();
+				$session->user = $data;
+				$session->commit();
 			}
-		}  */
+		}
 	
 	}
 }
