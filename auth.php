@@ -37,6 +37,7 @@ interface IAuthEngine
 	public function verifyToken($request, $scheme, $remainder, $token);
 	public function refreshUserData(&$data);
 	public function callback($request, $scheme, $remainder);
+	public function retrieveUserData($scheme, $remainder);	
 }
 
 class AuthError extends Exception
@@ -63,7 +64,7 @@ abstract class Auth implements IAuthEngine
 	protected $builtinAuthScheme = false;
 	
 	/* Create an instance of an authentication system given an IRI.
-	 * The instance is returned by the call to Auth::authEngineForIRI().
+	 * The instance is returned by the call to Auth::authEngineForScheme().
 	 * $iri will be modified to strip the scheme (if supplied), which will be
 	 * stored in $scheme. Thus, upon successful return, a fully-qualified
 	 * IRI can be constructed from $scheme . ':' . $iri
@@ -87,19 +88,10 @@ abstract class Auth implements IAuthEngine
 		}
 		return self::authEngineForScheme($scheme);
 	}
-	
-	public function __construct()
-	{
-		if(defined('IDENTITY_IRI'))
-		{
-			require_once(dirname(__FILE__) . '/id.php');
-			$this->id = Identity::getInstance();
-		}
-	}
-	
+		
 	/* Return an instance of an authentication system given a token name
-	 * Analogous to AuthauthEngineForIRI(), except operating on tokens rather
-	 * than APIs. Unlike IRIs, tokens use plings as a separator
+	 * Analogous to Auth::authEngineForIRI(), except operating on tokens rather
+	 * than IRIs. Unlike IRIs, tokens use plings as a separator
 	 * rather than colons, so upon successful return a fully-qualified
 	 * token name can be constructed from $scheme . '!' . $tokenName
 	 */
@@ -140,6 +132,15 @@ abstract class Auth implements IAuthEngine
 		return self::$authEngines[$scheme];
 	}
 	
+	public function __construct()
+	{
+		if(defined('IDENTITY_IRI'))
+		{
+			require_once(dirname(__FILE__) . '/id.php');
+			$this->id = Identity::getInstance();
+		}
+	}
+		
 	/* Given a request, a scheme, the remainder of an IRI and some
 	 * (authentication-system specific) data, return true or false
 	 * depending upon whether authentication was successful or not.
@@ -155,10 +156,16 @@ abstract class Auth implements IAuthEngine
 		return new AuthError($this);
 	}
 	
+	/* Continue a multi-stage login process */
 	public function callback($request, $scheme, $remainder)
 	{
+		return new AuthError($this);
 	}
 	
+	/* Retrieve (creating if they don’t exist, if possible) user details given
+	 * a particular IRI.
+	 *
+	 */
 	protected function createRetrieveUserWithIRI($iri, $data = null)
 	{
 		if(!is_array($iri))
@@ -176,7 +183,7 @@ abstract class Auth implements IAuthEngine
 			}
 			foreach($iri as $i)
 			{
-				if(($uuid = $this->id->createIdentity($i, $data)))
+				if(($uuid = $this->id->createIdentity($i, $data, true)))
 				{
 					return $uuid;
 				}
@@ -189,6 +196,10 @@ abstract class Auth implements IAuthEngine
 		return null;
 	}
 	
+	/* Called periodically by the session-initiated callback in platform.php
+	 * to cause the user details in the session to be updated by the
+	 * authentication and identity layers.
+	 */
 	public function refreshUserData(&$data)
 	{
 		if($this->id)
@@ -200,6 +211,19 @@ abstract class Auth implements IAuthEngine
 			$data['ttl'] = time(0) + 30;	
 		}
 	}
+	
+	/* Given a scheme/remainder pair, retrieve the user details known to
+	 * the authentication layer.
+	 *
+	 * Note that this function will NOT invoke refreshUserData(), above.
+	 * It is the caller’s responsibility to do this if manually associating
+	 * a user with a session.
+	 */
+	public function retrieveUserData($scheme, $remainder)
+	{
+		return null;
+	}
+	
 }
 
 /* Authentication system providing the builtin: scheme, which authenticates
@@ -249,6 +273,18 @@ class BuiltinAuth extends Auth
 		}
 		return new AuthError($this, null, 'Incorrect password (as a token) supplied for user ' . $iri);
 	}
+	
+	public function retrieveUserData($scheme, $remainder)
+	{
+		global $BUILTIN_USERS;
+		
+		if(isset($BUILTIN_USERS[$remainder]))
+		{
+			return $BUILTIN_USERS[$remainder];
+		}
+		return null;
+	}
+
 	
 	public function refreshUserData(&$data)
 	{
