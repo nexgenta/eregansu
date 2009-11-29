@@ -67,7 +67,6 @@ class OpenIDAuth extends Auth
 {
 	public function verifyAuth($request, $scheme, $remainder, $authData, $callbackIRI)
 	{
-		global $pape_policy_uris;
 		if($scheme == 'openid') $scheme = 'https';
 		$iri = $scheme . ':' . $remainder;
 		if(!($normalised = $this->normalise($iri)))
