@@ -29,9 +29,9 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
+if(!defined('INSTANCE_ROOT')) define('INSTANCE_ROOT', (isset($_SERVER['SCRIPT_FILENAME']) ? dirname(realpath($_SERVER['SCRIPT_FILENAME'])) : realpath(dirname(__FILE__ ) . '/..')) . '/');
 if(!defined('PLATFORM_ROOT')) define('PLATFORM_ROOT', realpath(dirname(__FILE__)) . '/');
-if(!defined('CONFIG_ROOT')) define('CONFIG_ROOT', realpath(dirname(__FILE__) . '/../config') . '/');
+if(!defined('CONFIG_ROOT')) define('CONFIG_ROOT', INSTANCE_ROOT . 'config/');
 
 require_once(CONFIG_ROOT . 'config.php');
 require_once(CONFIG_ROOT . 'appconfig.php');
@@ -87,17 +87,28 @@ class PlatformEventSink
 				$req->session->commit();
 			}
 		}
+/*		else if($req->sapi != 'http')
+		{
+			uses('auth');
+			$engine = Auth::authEngineForScheme('posix');
+			if(($data = $engine->retrieveUserData('posix', posix_geteuid())))
+			{
+				$req->session->begin();
+				$req->session->user = $data;
+				$req->session->commit();
+			}
+		}  */
 	
 	}
 }
 
 if(defined('APPS_PATH'))
 {
-	define('APPS_ROOT', dirname(__FILE__) . '/../' . APPS_PATH . '/');
+	define('APPS_ROOT', INSTANCE_ROOT . APPS_PATH . '/');
 }
 else
 {
-	define('APPS_ROOT', dirname(__FILE__) . '/../app/');
+	define('APPS_ROOT', INSTANCE_ROOT . 'app/');
 }
 
 $APP_ROOT = APPS_ROOT;
