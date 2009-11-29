@@ -33,9 +33,25 @@ if(!defined('DEFAULT_AUTH_SCHEME')) define('DEFAULT_AUTH_SCHEME', 'https');
 
 interface IAuthEngine
 {
-	public function verifyAuth($request, $scheme, $iri, $authData);
-	public function verifyToken($request, $scheme, $iri, $token);
-	public function refreshUserData(&$data);	
+	public function verifyAuth($request, $scheme, $remainder, $authData, $callbackIRI);
+	public function verifyToken($request, $scheme, $remainder, $token);
+	public function refreshUserData(&$data);
+	public function callback($request, $scheme, $remainder);
+}
+
+class AuthError extends Exception
+{
+	public $reason;
+	public $engine;
+	
+	public function __construct($engine, $message = null, $reason = null)
+	{
+		if(!strlen($message)) $message = 'Incorrect sign-in name or password';
+		if(!strlen($reason)) $reason = $message;
+		parent::__construct($message);
+		$this->reason = $reason;
+		$this->engine = $engine;
+	}
 }
 
 /* Base class for authentication engines */
@@ -43,6 +59,7 @@ interface IAuthEngine
 abstract class Auth implements IAuthEngine
 {
 	protected static $authEngines = array();
+	protected $id = null;
 	
 	/* Create an instance of an authentication system given an IRI.
 	 * The instance is returned by the call to Auth::authEngineForIRI().
@@ -50,8 +67,9 @@ abstract class Auth implements IAuthEngine
 	 * stored in $scheme. Thus, upon successful return, a fully-qualified
 	 * IRI can be constructed from $scheme . ':' . $iri
 	 */
-	public static function authEngineForIRI(&$iri, &$scheme)
+	public static function authEngineForIRI(&$iri, &$scheme, $defaultScheme = null)
 	{
+		if(!strlen($defaultScheme)) $defaultScheme = DEFAULT_AUTH_SCHEME;
 		$c = strpos($iri, ':');
 		$s = strpos($iri, '/');
 		$a = strpos($iri, '@');
@@ -64,9 +82,18 @@ abstract class Auth implements IAuthEngine
 		}
 		else
 		{
-			$scheme = DEFAULT_AUTH_SCHEME;
+			$scheme = $defaultScheme;
 		}
 		return self::authEngineForScheme($scheme);
+	}
+	
+	public function __construct()
+	{
+		if(defined('IDENTITY_IRI'))
+		{
+			require_once(dirname(__FILE__) . '/id.php');
+			$this->id = Identity::getInstance();
+		}
 	}
 	
 	/* Return an instance of an authentication system given a token name
@@ -94,6 +121,17 @@ abstract class Auth implements IAuthEngine
 				case 'builtin':
 					self::$authEngines[$scheme] = new BuiltinAuth();
 					break;
+				case 'http':
+				case 'https':
+				case 'openid':
+					require_once(dirname(__FILE__) . '/openid.php');
+					$scheme = 'openid';
+					self::$authEngines[$scheme] = new OpenIDAuth();
+					break;
+				case 'posix':
+					require_once(dirname(__FILE__) . '/posix.php');
+					self::$authEngines[$scheme] = new PosixAuth();
+					break;
 				default:
 					return null;
 			}
@@ -105,15 +143,57 @@ abstract class Auth implements IAuthEngine
 	 * (authentication-system specific) data, return true or false
 	 * depending upon whether authentication was successful or not.
 	 */
-	public function verifyAuth($request, $scheme, $remainder, $authData)
+	public function verifyAuth($request, $scheme, $remainder, $authData, $callbackIRI)
 	{
-		return false;
+		return new AuthError($this);
 	}
 	
 	/* Attempt to validate an authentication token for a user */
 	public function verifyToken($request, $scheme, $tokenName, $token)
 	{
-		return false;
+		return new AuthError($this);
+	}
+	
+	public function callback($request, $scheme, $remainder)
+	{
+	}
+	
+	protected function createRetrieveUserWithIRI($iri, $data = null)
+	{
+		if(!is_array($iri))
+		{
+			$iri = array($iri);
+		}
+		if($this->id)
+		{
+			foreach($iri as $i)
+			{
+				if(($uuid = $this->id->uuidFromIRI($i, $data)))
+				{
+					return $uuid;
+				}
+			}
+			foreach($iri as $i)
+			{
+				if(($uuid = $this->id->createIdentity($i, $data)))
+				{
+					return $uuid;
+				}
+			}
+		}
+		return null;
+	}
+	
+	public function refreshUserData(&$data)
+	{
+		if($this->id)
+		{
+			$this->id->refreshUserData($data);
+		}
+		if(!isset($data['ttl']))
+		{
+			$data['ttl'] = time(0) + 30;	
+		}
 	}
 }
 
@@ -122,21 +202,28 @@ abstract class Auth implements IAuthEngine
  */
 class BuiltinAuth extends Auth
 {
-	public function verifyAuth($request, $scheme, $iri, $authData)
+	public function verifyAuth($request, $scheme, $iri, $authData, $callbackIRI)
 	{
 		global $BUILTIN_USERS;
 		
 		if(!isset($BUILTIN_USERS[$iri]))
 		{
-			return false;
+			return new AuthError($this, null, 'User ' . $iri . ' does not exist');
 		}
 		if(!strcmp($BUILTIN_USERS[$iri]['password'], crypt($authData, $BUILTIN_USERS[$iri]['password'])))
 		{
 			$user = $BUILTIN_USERS[$iri];
+			if(!isset($user['scheme'])) $user['scheme'] = $scheme;
+			if(!isset($user['iri'])) $user['iri'] = $scheme . ':' . $iri;
+			if(!($uuid = $this->createRetrieveUserWithIRI($scheme . ':' . $iri, $user)))
+			{
+				return new AuthError($this, 'You cannot log into your account at this time.', 'Identity/authorisation failure');
+			}
+			$user['uuid'] = $uuid;
 			$this->refreshUserData($user);
 			return $user;
 		}
-		return false;
+		return new AuthError($this, null, 'Incorrect password supplied for user ' . $iri);
 	}
 	
 	public function verifyToken($request, $scheme, $iri, $token)
@@ -145,7 +232,7 @@ class BuiltinAuth extends Auth
 		
 		if(!isset($BUILTIN_USERS[$iri]))
 		{
-			return false;
+			return new AuthError($this, null, 'User ' . $iri . ' does not exist');
 		}
 		if(!strcmp($BUILTIN_USERS[$iri]['password'], crypt($token, $BUILTIN_USERS[$iri]['password'])))
 		{
@@ -153,13 +240,14 @@ class BuiltinAuth extends Auth
 			$this->refreshUserData($user);
 			return $user;
 		}
-		return false;	
+		return new AuthError($this, null, 'Incorrect password (as a token) supplied for user ' . $iri);
 	}
 	
 	public function refreshUserData(&$data)
 	{
 		if(!isset($data['scheme'])) $data['scheme'] = 'builtin';
 		$data['iri'] = 'builtin' . ':' . $data['name'];
-		$data['ttl'] = time(0) + 60;
+		$data['ttl'] = time(0) + 1; /* Force rapid refresh when we’re dealing with static config */
+		parent::refreshUserData($data);
 	}
 }
