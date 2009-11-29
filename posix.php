@@ -31,6 +31,7 @@
 
 class PosixAuth extends Auth
 {
+	protected $builtinAuthScheme = false;
 	protected $users = array();
 	
 	public function retrieveUserData($scheme, $uid)

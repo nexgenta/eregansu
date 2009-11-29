@@ -60,6 +60,7 @@ abstract class Auth implements IAuthEngine
 {
 	protected static $authEngines = array();
 	protected $id = null;
+	protected $builtinAuthScheme = false;
 	
 	/* Create an instance of an authentication system given an IRI.
 	 * The instance is returned by the call to Auth::authEngineForIRI().
@@ -181,6 +182,10 @@ abstract class Auth implements IAuthEngine
 				}
 			}
 		}
+		else if(isset($data['uuid']) && $this->builtinAuthScheme)
+		{
+			return $data['uuid'];
+		}
 		return null;
 	}
 	
@@ -202,6 +207,8 @@ abstract class Auth implements IAuthEngine
  */
 class BuiltinAuth extends Auth
 {
+	protected $builtinAuthScheme = true;
+	
 	public function verifyAuth($request, $scheme, $iri, $authData, $callbackIRI)
 	{
 		global $BUILTIN_USERS;
