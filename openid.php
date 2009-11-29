@@ -2,8 +2,6 @@
 
 uses('uuid');
 
-if(!defined('OPENID_ROOT')) define('OPENID_ROOT', INSTANCE_ROOT . 'OpenID/');
-
 /* Eregansu: Simple OpenID consumer
  *
  * Copyright 2009 Mo McRoberts.
