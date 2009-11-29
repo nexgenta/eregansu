@@ -109,7 +109,7 @@ class Request
 		}
 		if($this->sessionInitialised)
 		{
-			call_user_func($this->sessionInitialised, $this);
+			call_user_func($this->sessionInitialised, $this, $this->session);
 		}
 	}
 	
