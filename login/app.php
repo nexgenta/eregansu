@@ -32,17 +32,76 @@
 
 uses('form', 'auth');
 
+if(!defined('DEFAULT_LOGIN_KIND')) define('DEFAULT_LOGIN_KIND', 'openid');
+
 class LoginPage extends Page
 {
 	protected $skin = 'login';
 	protected $templateName = 'login.phtml';
 	protected $loginForm;
 	protected $supportedMethods = array('GET', 'POST');
+	protected $loginKinds = array('openid' => 'OpenID', 'default' => 'E-mail address and password');
+	protected $kind = null;
+	protected $defaultSchemes = array();
+	
+	public function __construct()
+	{
+		parent::__construct();
+		$this->defaultSchemes['openid'] = 'https';
+	}
+	
+	protected function getObject()
+	{
+		if(isset($this->request->params[1]) && isset($this->request->objects[0]) && !strcmp($this->request->params[0], 'return'))
+		{
+			/* Validate and perform callback */
+			$scheme = $this->request->params[1];
+			$token = $this->request->objects[0];
+			if(isset($this->session->loginIRI) && isset($this->session->loginIRI[$token]) && !strcmp($this->session->loginIRI[$token][0], $scheme))
+			{
+				$engine = Auth::authEngineForScheme($scheme);
+				if(!$engine)
+				{
+					$this->loginForm()->errors[] = 'Incorrect sign-in name or password';
+					return true;
+				}
+				if(($udata = $engine->callback($this->request, $scheme, $this->session->loginIRI[$token][1])))
+				{
+					if($udata instanceof Exception)
+					{
+						$this->loginForm()->errors[] = $udata->getMessage();
+					}
+					else
+					{
+						$this->setIdentity($udata);
+					}
+				}
+				else
+				{
+					$this->loginForm()->errors[] = 'Incorrect sign-in name or password';
+				}
+			}
+		}
+		else if(isset($this->request->params[0]))
+		{
+			$this->kind = $this->request->params[0];
+		}
+		return true;
+	}
 	
 	protected function assignTemplate()
 	{
 		parent::assignTemplate();
-		
+
+		if(!isset($this->loginKinds[$this->kind])) $this->kind = null;
+		if($this->kind == null && isset($this->session->loginKind))
+		{
+			$this->kind = $this->session->loginKind;
+		}
+		if(!isset($this->loginKinds[$this->kind])) $this->kind = DEFAULT_LOGIN_KIND;
+		$this->session->begin();
+		$this->session->loginKind = $this->kind;
+		$this->session->commit();
 		if(!empty($this->session->user))
 		{
 			if(!empty($this->request->query['logout']))
@@ -59,7 +118,13 @@ class LoginPage extends Page
 		{
 			$this->loginForm['redirect'] = $this->request->query['redirect'];
 		}
-		$this->vars['page_type'] = 'login';
+		if(isset($this->defaultSchemes[$this->kind]))
+		{
+			$this->loginForm['defaultScheme'] = $this->defaultSchemes[$this->kind];
+		}
+		$this->vars['loginKinds'] = $this->loginKinds;
+		$this->vars['kind'] = $this->kind;
+		$this->vars['page_type'] = 'login login-' . $this->kind;
 		$this->vars['page_title'] = 'Sign in';
 		$this->vars['loginForm'] = $this->loginForm->render($this->request);
 	}
@@ -89,19 +154,36 @@ class LoginPage extends Page
 		$engine = Auth::authEngineForIRI($iri, $scheme);
 		if(!$engine)
 		{
-			die('No engine for iri');
+			$this->loginForm->errors[] = 'Incorrect sign-in name or password';
 			return false;
 		}
-		$udata = $engine->verifyAuth($this->request, $scheme, $iri, $authData);
+		$sessionToken = md5($this->session->nonce . $iri);
+		$this->session->begin();
+		if(!isset($this->session->loginIRI)) $this->session->loginIRI = array();
+		$this->session->loginIRI[$sessionToken] = array($scheme, $iri);
+		$callback = $this->request->absolutePage . 'return/' . $scheme . '/-/' . $sessionToken;
+		$this->session->commit();
+		$udata = $engine->verifyAuth($this->request, $scheme, $iri, $authData, $callback);
+		if($udata instanceof Exception)
+		{
+			$this->loginForm->errors[] = $udata->getMessage();
+			return false;
+		}
 		if(!$udata)
 		{
-			die('Login failed');
+			$this->loginForm->errors[] = 'Incorrect sign-in name or password';
 			return false;
 		}
-//		syslog(LOG_CRIT, "LoginPage::performSubmission(): Logging in as " . $iri);
+		$this->setIdentity($udata);
+	}
+	
+	protected function setIdentity($userData)
+	{
 		$this->session->begin();
-		$this->session->user = $udata;
-		$this->session->commit();
+		$this->session->user = $userData;
+		unset($this->session->loginIRI);
+		unset($this->session->nonce);
+		$this->session->commit();	
 	}
 	
 	protected function getForms()
@@ -114,8 +196,16 @@ class LoginPage extends Page
 		if(!$this->loginForm)
 		{
 			$this->loginForm = new Form('login');
-			$this->loginForm->field(array('name' => 'iri', 'type' => 'text', 'label' => 'E-mail address:', 'required' => true));
-			$this->loginForm->field(array('name' => 'auth', 'type' => 'password', 'label' => 'Password:', 'required' => true));
+			if($this->kind == 'openid')
+			{
+				$this->loginForm->field(array('name' => 'iri', 'type' => 'text', 'label' => 'OpenID:', 'required' => true));
+				$this->loginForm->field(array('name' => 'auth', 'type' => 'hidden', 'required' => false));
+			}
+			else
+			{
+				$this->loginForm->field(array('name' => 'iri', 'type' => 'text', 'label' => 'E-mail address:', 'required' => true));
+				$this->loginForm->field(array('name' => 'auth', 'type' => 'password', 'label' => 'Password:', 'required' => false));
+			}
 			$this->loginForm->field(array('name' => 'redirect', 'type' => 'hidden'));
 			$this->loginForm->submit('Sign in');
 		}
