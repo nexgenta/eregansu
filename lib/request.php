@@ -76,7 +76,7 @@ class Request
 	protected function __construct()
 	{
 		$this->sapi = php_sapi_name();
-		$this->siteRoot = dirname($_SERVER['SCRIPT_FILENAME']);
+		$this->siteRoot = (defined('INSTANCE_ROOT') ? INSTANCE_ROOT : dirname($_SERVER['SCRIPT_FILENAME']));
 		if(substr($this->siteRoot, -1) != '/') $this->siteRoot .= '/';
 		$this->typeMap['htm'] = 'text/html';
 		$this->typeMap['html'] = 'text/html';
@@ -247,6 +247,10 @@ class Request
 
 class HTTPRequest extends Request
 {
+	public $absoluteBase = null;
+	public $absolutePage = null;
+	public $secure = false;
+	
 	public function __construct()
 	{
 		parent::__construct();
@@ -300,6 +304,10 @@ class HTTPRequest extends Request
 		{
 			$this->hostname = $_SERVER['SERVER_NAME'];
 		}
+		$this->httpBase = 'http://' . $this->hostname . $this->base;
+		$this->httpsBase = 'https://' . $this->hostname . $this->base;
+		$this->absoluteBase = ($this->secure ? $this->httpsBase : $this->httpBase);
+		$this->absolutePage = $this->absoluteBase;
 		if(is_array($_POST) && count($_POST))
 		{
 			if(get_magic_quotes_gpc())
@@ -317,6 +325,26 @@ class HTTPRequest extends Request
 		}
 	}
 	
+	public function consume()
+	{
+		$r = parent::consume();
+		$this->httpBase = 'http://' . $this->hostname . $this->base;
+		$this->httpsBase = 'https://' . $this->hostname . $this->base;
+		$this->absoluteBase = ($this->secure ? $this->httpsBase : $this->httpBase);
+		$this->absolutePage = ($this->secure ? 'https://' : 'http://') . $this->hostname . $this->pageUri;
+		return $r;
+	}
+
+	public function consumeForApp()
+	{
+		$r = parent::consumeForApp();
+		$this->httpBase = 'http://' . $this->hostname . $this->base;
+		$this->httpsBase = 'https://' . $this->hostname . $this->base;
+		$this->absoluteBase = ($this->secure ? $this->httpsBase : $this->httpBase);
+		$this->absolutePage = ($this->secure ? 'https://' : 'http://') . $this->hostname . $this->pageUri;
+		return $r;
+	}
+		
 	protected function stripslashes_deep($value)
 	{
 	    $value = is_array($value) ?
