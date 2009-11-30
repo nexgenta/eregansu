@@ -43,7 +43,6 @@ class PosixAuth extends Auth
 				return null;
 			}
 			$uid = $info['uid'];
-			return false;
 		}
 		$uid = intval($uid);
 		if($uid < 0)
