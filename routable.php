@@ -36,7 +36,8 @@ class Routable implements IRequestProcessor
 	protected $modelClass = null;
 	protected $modelArgs = null;
 	protected $crumbName = null;
-
+	protected $crumbClass = null;
+	
 	public function __construct()
 	{
 		if($this->modelClass)
@@ -55,8 +56,8 @@ class Routable implements IRequestProcessor
 	{
 		if($this->crumbName !== null)
 		{
-			$req->addCrumb($this->crumbName);
-		}	
+			$req->addCrumb(array('name' => $this->crumbName, 'class' => $this->crumbClass));
+		}
 	}
 	
 	protected function error($code, $req = null, $object = null, $detail = null)
