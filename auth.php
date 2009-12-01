@@ -232,18 +232,29 @@ abstract class Auth implements IAuthEngine
 class BuiltinAuth extends Auth
 {
 	protected $builtinAuthScheme = true;
+	protected $users = array();
 	
-	public function verifyAuth($request, $scheme, $iri, $authData, $callbackIRI)
+	public function __construct()
 	{
 		global $BUILTIN_USERS;
 		
-		if(!isset($BUILTIN_USERS[$iri]))
+		parent::__construct();
+		if(isset($BUILTIN_USERS) && is_array($BUILTIN_USERS))
+		{
+			$this->users = $BUILTIN_USERS;
+		}
+	}
+	
+	
+	public function verifyAuth($request, $scheme, $iri, $authData, $callbackIRI)
+	{
+		if(!isset($this->users[$iri]))
 		{
 			return new AuthError($this, null, 'User ' . $iri . ' does not exist');
 		}
-		if(!strcmp($BUILTIN_USERS[$iri]['password'], crypt($authData, $BUILTIN_USERS[$iri]['password'])))
+		if(!strcmp($this->users[$iri]['password'], crypt($authData, $this->users[$iri]['password'])))
 		{
-			$user = $BUILTIN_USERS[$iri];
+			$user = $this->users[$iri];
 			if(!isset($user['scheme'])) $user['scheme'] = $scheme;
 			if(!isset($user['iri'])) $user['iri'] = $scheme . ':' . $iri;
 			if(!($uuid = $this->createRetrieveUserWithIRI($scheme . ':' . $iri, $user)))
@@ -259,15 +270,13 @@ class BuiltinAuth extends Auth
 	
 	public function verifyToken($request, $scheme, $iri, $token)
 	{
-		global $BUILTIN_USERS;
-		
-		if(!isset($BUILTIN_USERS[$iri]))
+		if(!isset($this->users[$iri]))
 		{
 			return new AuthError($this, null, 'User ' . $iri . ' does not exist');
 		}
-		if(!strcmp($BUILTIN_USERS[$iri]['password'], crypt($token, $BUILTIN_USERS[$iri]['password'])))
+		if(!strcmp($this->users[$iri]['password'], crypt($token, $this->users[$iri]['password'])))
 		{
-			$user = $BUILTIN_USERS[$iri];
+			$user = $this->users[$iri];
 			$this->refreshUserData($user);
 			return $user;
 		}
@@ -276,16 +285,13 @@ class BuiltinAuth extends Auth
 	
 	public function retrieveUserData($scheme, $remainder)
 	{
-		global $BUILTIN_USERS;
-		
-		if(isset($BUILTIN_USERS[$remainder]))
+		if(isset($this->users[$remainder]))
 		{
-			return $BUILTIN_USERS[$remainder];
+			return $this->users[$remainder];
 		}
 		return null;
 	}
 
-	
 	public function refreshUserData(&$data)
 	{
 		if(!isset($data['scheme'])) $data['scheme'] = 'builtin';
