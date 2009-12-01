@@ -132,6 +132,15 @@ abstract class DBCore implements IDBCore
 		return false;
 	}
 
+	public function vexec($query, $params)
+	{
+		if($this->vquery($query, $params))
+		{
+			return true;
+		}
+		return false;
+	}
+
 	/* $rs = $inst->query('SELECT * FROM `sometable` WHERE `field` = ? AND `otherfield` = ?', $something, 27); */
 	public function query($query)
 	{
@@ -158,7 +167,26 @@ abstract class DBCore implements IDBCore
 		$row = null;
 		$params = func_get_args();
 		array_shift($params);
-		if(($r =  $this->vquery($query, $params)))
+		if(($r = $this->vquery($query, $params)))
+		{
+			$rs = new $this->rsClass($this, $r);
+			$row = $rs->next();
+			$rs = null;
+			if($row)
+			{
+				foreach($row as $v)
+				{
+					return $v;
+				}
+			}
+		}
+		return null;
+	}
+
+	public function valueArray($query, $params)
+	{
+		$row = null;
+		if(($r = $this->vquery($query, $params)))
 		{
 			$rs = new $this->rsClass($this, $r);
 			$row = $rs->next();
