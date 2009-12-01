@@ -34,6 +34,7 @@ class Page extends Proxy
 {
 	public $tpl;
 	
+	protected $title;
 	protected $templateName;
 	protected $vars = array();
 	protected $skin = null;
@@ -108,6 +109,7 @@ class Page extends Proxy
 		$this->vars['session'] = $this->session;
 		$this->vars['crumb'] =& $this->request->crumb;
 		$this->vars['backRef'] =& $this->request->backRef;
+		$this->vars['page_title'] = $this->title;
 		if($this->session)
 		{
 			$this->vars['qusid'] = $this->session->qusid;
