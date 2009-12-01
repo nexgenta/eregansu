@@ -219,7 +219,7 @@ class Request
 	}
 
 	/* addCrumb($array); addCrumb($name, [$link]); */
-	public function addCrumb($info, $link = null, $key = null)
+	public function addCrumb($info, $key = null)
 	{
 		if($this->lastRef)
 		{
@@ -227,11 +227,11 @@ class Request
 		}
 		if(!is_array($info))
 		{
-			if($link === null)
-			{
-				$link = $this->pageUri;
-			}
-			$info = array('name' => $info, 'link' => $link);
+			$info = array('name' => $info);
+		}
+		if(!isset($info['link']))
+		{
+			$info['link'] = $this->pageUri;
 		}
 		if($key === null)
 		{
