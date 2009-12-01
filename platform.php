@@ -33,6 +33,8 @@ if(!defined('INSTANCE_ROOT')) define('INSTANCE_ROOT', (isset($_SERVER['SCRIPT_FI
 if(!defined('PLATFORM_ROOT')) define('PLATFORM_ROOT', realpath(dirname(__FILE__)) . '/');
 if(!defined('CONFIG_ROOT')) define('CONFIG_ROOT', INSTANCE_ROOT . 'config/');
 
+require_once(PLATFORM_ROOT . 'lib/common.php');
+
 require_once(CONFIG_ROOT . 'config.php');
 require_once(CONFIG_ROOT . 'appconfig.php');
 
@@ -60,7 +62,6 @@ interface IRequestProcessor
 	public function process($req);
 }
 
-require_once(PLATFORM_ROOT . 'lib/common.php');
 require_once(PLATFORM_ROOT . 'routable.php');
 require_once(PLATFORM_ROOT . 'page.php');
 require_once(PLATFORM_ROOT . 'template.php');
