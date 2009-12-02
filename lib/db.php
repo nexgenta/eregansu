@@ -364,6 +364,10 @@ class MySQL extends DBCore
 	
 	public function __construct($params)
 	{
+		if(isset($params['port']))
+		{
+			$params['host'] .= ':' . $params['port'];
+		}
 		if(!($this->mysql = mysql_connect($params['host'], $params['user'], $params['pass'])))
 		{
 			$this->raiseError(null);
