@@ -30,7 +30,7 @@
  */
 
 
-function execute($prog, $args)
+function execute($prog, $args = null)
 {
 	$result = array('status' => -1, 'stdout' => null, 'stderr' => null);
 	$spec = array(
@@ -41,11 +41,17 @@ function execute($prog, $args)
 	$pipes = array();
 	
 	$cmdline = escapeshellcmd($prog);
-	foreach($args as $arg)
+	if(is_array($args))
 	{
-		$cmdline .= ' ' . escapeshellarg($arg);
+		foreach($args as $arg)
+		{
+			$cmdline .= ' ' . escapeshellarg($arg);
+		}
 	}
-	
+	else if(strlen($args))	
+	{
+		$cmdline .= $args;
+	}
 	$proc = proc_open($cmdline, $spec, $pipes);
 	if(is_resource($pipes[1]))
 	{
