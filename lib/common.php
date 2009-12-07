@@ -49,6 +49,7 @@ function exception_error_handler($errno, $errstr, $errfile, $errline )
 	if($errno & (E_ERROR|E_PARSE|E_CORE_ERROR|E_COMPILE_ERROR|E_USER_ERROR|E_RECOVERABLE_ERROR))
 	{
 		throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
+		exit();
 	}
 	return false;
 }
@@ -59,9 +60,43 @@ function is_arrayish($obj)
 	return is_array($obj) || (is_object($obj) && $obj instanceof Traversable);
 }
 
-require_once(dirname(__FILE__) . '/request.php');
-require_once(dirname(__FILE__) . '/session.php');
+$AUTOLOAD_SUBST = array();
+$AUTOLOAD_SUBST['${lib}'] = dirname(__FILE__);
 
+$AUTOLOAD = array();
+$AUTOLOAD['base32'] = dirname(__FILE__) . '/base32.php';
+$AUTOLOAD['clirequest'] = dirname(__FILE__) . '/cli.php';
+$AUTOLOAD['dbcore'] = dirname(__FILE__) . '/dbcore.php';
+$AUTOLOAD['form'] = dirname(__FILE__) . '/form.php';
+$AUTOLOAD['mime'] = dirname(__FILE__) . '/mime.php';
+$AUTOLOAD['request'] = dirname(__FILE__) . '/request.php';
+$AUTOLOAD['session'] = dirname(__FILE__) . '/session.php';
+$AUTOLOAD['uuid'] = dirname(__FILE__) . '/uuid.php';
+
+if(function_exists('spl_autoload_register'))
+{
+	spl_autoload_register('autoload_handler');
+}
+else
+{
+	function __autoload($name)
+	{
+		return autoload_handler($name);
+	}
+}
+
+function autoload_handler($name)
+{
+	global $AUTOLOAD, $AUTOLOAD_SUBST;
+	
+	if(isset($AUTOLOAD[strtolower($name)]))
+	{
+		$path = str_replace(array_keys($AUTOLOAD_SUBST), array_values($AUTOLOAD_SUBST), $AUTOLOAD[strtolower($name)]);
+		require_once($path);
+		return true;
+	}
+	return false;
+}
 
 function e($str)
 {
