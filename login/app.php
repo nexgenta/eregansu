@@ -40,7 +40,7 @@ class LoginPage extends Page
 	protected $templateName = 'login.phtml';
 	protected $loginForm;
 	protected $supportedMethods = array('GET', 'POST');
-	protected $loginKinds = array('openid' => 'OpenID', 'default' => 'E-mail address and password');
+	protected $loginKinds = array('openid' => 'an OpenID', 'default' => 'an E-mail address and password');
 	protected $kind = null;
 	protected $defaultSchemes = array();
 	
@@ -114,19 +114,23 @@ class LoginPage extends Page
 		}
 		$this->useChromaHash();
 		$this->loginForm();
+		$urlparams = array();
 		if(isset($this->request->query['redirect']))
 		{
 			$this->loginForm['redirect'] = $this->request->query['redirect'];
+			$urlparams[] = 'redirect=' . urlencode($this->request->query['redirect']);
 		}
 		if(isset($this->defaultSchemes[$this->kind]))
 		{
 			$this->loginForm['defaultScheme'] = $this->defaultSchemes[$this->kind];
 		}
+		$urlparams[] = 'sid=' . urlencode($this->session->sid);		
 		$this->vars['loginKinds'] = $this->loginKinds;
 		$this->vars['kind'] = $this->kind;
 		$this->vars['page_type'] = 'login login-' . $this->kind;
 		$this->vars['page_title'] = 'Sign in';
 		$this->vars['loginForm'] = $this->loginForm->render($this->request);
+		$this->vars['urlparams'] = implode(';', $urlparams);
 	}
 	
 	protected function redirect()

@@ -1,6 +1,19 @@
 <?php require(dirname(__FILE__) . '/header.php'); ?>
 		<h1><?php echo htmlspecialchars($page_title); ?></h1>
 		<?php echo $loginForm; ?>
+		<?php
+		
+if(count($loginKinds) > 1)
+{
+	$list = array();
+	foreach($loginKinds as $k => $name)
+	{
+		if($k == $kind) continue;
+		$list[] = '<a class="' . _e($k) . '" href="' . _e($request->pageUri . $k . '?' . $urlparams) . '">' . $name . '</a>';
+	}
+	echo '<p class="sign-in-with">Sign in with ' . implode(', ', $list) . ' instead</p>';
+}
+?>
 <script type="text/javascript" charset="utf-8">
 $(document).ready(function() {
 	$('#login-auth').chromaHash({bars: 3});

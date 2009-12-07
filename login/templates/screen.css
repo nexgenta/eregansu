@@ -18,6 +18,9 @@ html {
 body {
 	height: 100%;
 }
+a:link, a:visited {
+	color: #000;
+}
 #surround {
 	position: absolute;
 	top: 30%;
@@ -80,4 +83,10 @@ input[type="submit"] {
 	-moz-border-radius: 3px;
 	-webkit-box-shadow: 0 0 6px rgba(0,0,0,0.5);
 	-moz-box-shadow: 0 0 6px rgba(0,0,0,0.5);
+}
+p.sign-in-with {
+	font-size: 85%;
+	margin: 0;
+	padding: 1.5em 8px 8px 8px;
+	color: #444;
 }
