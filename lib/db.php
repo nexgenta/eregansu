@@ -37,8 +37,29 @@ class DBException extends Exception
 	{
 		$this->errMsg = $errMsg;
 		$this->query = $query;
-		parent::__construct($errMsg . ' while executing: ' . $query, $errCode);
+		if(strlen($query))
+		{
+			parent::__construct($errMsg . ' while executing: ' . $query, $errCode);
+		}
+		else
+		{
+			parent::__construct($errMsg, $errCode);
+		}
 	}
+}
+
+/* Database errors relating to connection and configuration (rather than
+ * malformed queries, data integrity, and so on. These exceptions may be
+ * caught and considered transient in some circumstances, but should not
+ * generally cause an automatic immediate retry.
+ */
+class DBSystemException extends DBException
+{
+}
+
+/* Database errors relating to connections and authentication */
+class DBNetworkException extends DBSystemException
+{
 }
 
 interface IDBCore
@@ -65,13 +86,18 @@ interface IDBCore
 abstract class DBCore implements IDBCore
 {
 	protected $rsClass;
+	protected $params;
 	public $dbms = 'unknown';
 	
-	public static function connect($iri)
+	public static function connect($iristr)
 	{
-		if(!is_array($iri))
+		if(is_array($iristr))
 		{
-			$iri = parse_url($iri);
+			$iri = $iristr;
+		}
+		else
+		{
+			$iri = parse_url($iristr);
 		}
 		if(!isset($iri['dbname']))
 		{
@@ -88,8 +114,19 @@ abstract class DBCore implements IDBCore
 		}
 		if(!isset($iri['scheme']))
 		{
-			print_r($iri);
-			die();
+			/* XXX if $iristr is already an array, this will fail */
+			throw new DBException(0, 'Connection IRI ' . $iristr . ' has no scheme', null);
+			return;
+		}
+		$iri['options'] = array();
+		if(isset($iri['query']) && strlen($iri['query']))
+		{
+			$q = explode(';', str_replace('&', ';', $iri['query']));
+			foreach($q as $qv)
+			{
+				$kv = explode('=', $qv, 2);
+				$iri['options'][urldecode($kv[0])] = urldecode($kv[1]);
+			}
 		}
 		switch($iri['scheme'])
 		{
@@ -100,6 +137,31 @@ abstract class DBCore implements IDBCore
 				return new LDAP($iri);
 			default:
 				throw new DBException(0, 'Unsupported database connection scheme "' . $iri['scheme'] . '"', null);
+		}
+	}
+	
+	public function __construct($params)
+	{
+		$this->params = $params;
+		if(isset($this->params['options']['autoconnect']))
+		{
+			$auto = strtolower($this->params['options']['autoconnect']);
+		}
+		else
+		{
+			$auto = true;
+		}
+		if(!strcmp($auto, 'no') || !strcmp($auto, 'false') || empty($auto))
+		{
+			$this->params['options']['autoconnect'] = false;
+		}
+		else
+		{
+			$this->params['options']['autoconnect'] = true;
+		}
+		if($this->params['options']['autoconnect'])
+		{
+			$this->autoconnect();
 		}
 	}
 	
@@ -234,9 +296,9 @@ abstract class DBCore implements IDBCore
 		return $rows;
 	}
 	
-	protected function reportError($errcode, $errmsg, $sqlString)
+	protected function reportError($errcode, $errmsg, $sqlString, $class = 'DBException')
 	{
-		throw new DBException($errcode, $errmsg, $sqlString);
+		throw new $class($errcode, $errmsg, $sqlString);
 	}
 	
 	public function insert($table, $kv)
@@ -367,16 +429,22 @@ class MySQL extends DBCore
 		if(isset($params['port']))
 		{
 			$params['host'] .= ':' . $params['port'];
+			unset($params['port']);
 		}
-		if(!($this->mysql = mysql_connect($params['host'], $params['user'], $params['pass'])))
+		parent::__construct($params);
+	}
+
+	protected function autoconnect()
+	{
+		if(!($this->mysql = mysql_connect($this->params['host'], $this->params['user'], $this->params['pass'])))
 		{
 			$this->raiseError(null);
 		}
-		if(!mysql_select_db($params['dbname'], $this->mysql))
+		if(!mysql_select_db($this->params['dbname'], $this->mysql))
 		{
 			$this->raiseError(null);
 		}
-		$this->dbName = $params['dbname'];
+		$this->dbName = $this->params['dbname'];
 		$this->execute("SET NAMES 'utf8'");
 		$this->execute("SET sql_mode='ANSI'");
 		$this->execute("SET storage_engine='InnoDB'");
@@ -385,6 +453,8 @@ class MySQL extends DBCore
 	
 	protected function execute($sql)
 	{
+		if(!$this->mysql) $this->autoconnect();
+//		echo "[$sql]\n";
 		$r = mysql_query($sql, $this->mysql);
 		if($r === false)
 		{
@@ -395,7 +465,30 @@ class MySQL extends DBCore
 	
 	protected function raiseError($query)
 	{
-		return $this->reportError(mysql_errno($this->mysql), mysql_error($this->mysql), $query);
+		static $neterrors = array(1042, 1043, 1044, 1045, 1129, 1130, 1133, 1152, 1153, 1154, 1155, 1156, 1157, 1158, 1159, 1160, 1162, 1184, 1370, 1203, 1226, 1227, 1251, 1275, 1301, 1317, 1637, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2009, 2010, 2011, 2012, 2013, 2015, 2020, 2021, 2024, 2025, 2027, 2028, 2036, 2037, 2038, 2039, 2040, 2041, 2042, 2043, 2044, 2045, 2046, 2049, 2055);
+		static $syserrors = array(1000, 1001, 1004, 1005, 1006, 1009, 1010, 1011, 1012, 1013, 1014, 1015, 1016, 1017, 1018, 1019, 1021, 1023, 1024, 1025, 1026, 1030, 1033, 1035, 1037, 1039, 1041, 1053, 1078, 1080, 1081, 1082, 1085, 1086, 1098, 1126, 1127, 1135, 1187, 1189, 1190, 1194, 1197, 1199, 1200, 1201, 1202, 1218, 1219, 1236, 1254, 1255, 1256, 1257, 1258, 1259, 1274, 1282, 1285, 1289, 1290, 1296, 1297, 1340, 1341, 1342, 1343, 1344, 1346, 1371, 1374, 1375, 1376, 1377, 1378, 1379, 1380, 1383, 1388, 1389, 1430, 1431, 1432, 1436, 1501, 1524, 1528, 1529, 1533, 1541, 1545, 1547, 1549, 1570, 1573, 1602, 1623, 1627, 1639, 1640);
+		$class = 'DBException';
+		if($this->mysql)
+		{
+			$errcode = mysql_errno($this->mysql);
+			$errstr = mysql_error($this->mysql);
+		}
+		else
+		{
+			$errcode = mysql_errno();
+			$errstr = mysql_error();			
+		}
+		if(in_array($errcode, $neterrors))
+		{
+			$class = 'DBNetworkException';
+			$this->mysql = null;
+		}
+		else if(in_array($errcode, $syserrors))
+		{
+			$class = 'DBSystemException';
+			$this->mysql = null;
+		}
+		return $this->reportError($errcode, $errstr, $query, $class);
 	}
 	
 	public function quoteRef(&$string)
@@ -428,6 +521,7 @@ class MySQL extends DBCore
 	
 	public function insertId()
 	{
+		if(!$this->mysql) return null;
 		return mysql_insert_id($this->mysql);
 	}
 
@@ -439,7 +533,7 @@ class MySQL extends DBCore
 		}
 		catch(DBException $e)
 		{
-			if($e->code == 1213)
+			if($e->code == 1213 || $e->code == 1205)
 			{
 				/* 1213 (ER_LOCK_DEADLOCK) Transaction deadlock. You should rerun the transaction. */
 				return false;
@@ -469,6 +563,7 @@ class MySQL extends DBCore
 
 	public function quoteTable($name)
 	{
+		if(!$this->dbName) $this->autoconnect();
 		return '"' . $this->dbName . '"."' . $name . '"';
 	}
 }
