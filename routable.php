@@ -29,6 +29,10 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+interface IRequestProcessor
+{
+	public function process(Request $req);
+}
 
 class Routable implements IRequestProcessor
 {
@@ -46,13 +50,13 @@ class Routable implements IRequestProcessor
 		}
 	}
 	
-	public function process($req)
+	public function process(Request $req)
 	{
 		if(isset($req->data['crumbName'])) $this->crumbName = $req->data['crumbName'];
 		$this->addCrumb($req);
 	}
 	
-	protected function addCrumb($req)
+	protected function addCrumb(Request $req)
 	{
 		if($this->crumbName !== null)
 		{
@@ -60,7 +64,7 @@ class Routable implements IRequestProcessor
 		}
 	}
 	
-	protected function error($code, $req = null, $object = null, $detail = null)
+	protected function error($code, Request $req = null, $object = null, $detail = null)
 	{
 		$page = new Error($code);
 		$page->object = $object;
@@ -74,7 +78,7 @@ class Redirect extends Routable
 	protected $target = '';
 	protected $useBase = true;
 	
-	public function process($req)
+	public function process(Request $req)
 	{
 		$targ = $this->target;
 		if(substr($targ, 0, 1) == '/')
@@ -105,7 +109,7 @@ class Router extends Routable
 		parent::__construct();
 	}
 	
-	protected function getRouteName($req, &$consume)
+	protected function getRouteName(Request $req, &$consume)
 	{
 		if(isset($req->params[0]))
 		{
@@ -115,7 +119,7 @@ class Router extends Routable
 		return null;
 	}
 	
-	public function locateRoute($req)
+	public function locateRoute(Request $req)
 	{
 		global $APP_ROOT;
 		
@@ -148,6 +152,7 @@ class Router extends Routable
 				unset($data['routes']);
 				unset($data['crumbName']);
 				unset($data['class']);
+				unset($data['_routes']);
 				$data = array_merge($data, $route);
 			}
 			else
@@ -155,6 +160,7 @@ class Router extends Routable
 				$data = $route;
 			}
 			$data['key'] = $k;
+			$data['_routes'] = $routes;
 			$req->data = $data;
 			if($consume)
 			{
@@ -172,7 +178,7 @@ class Router extends Routable
 		return null;
 	}
 	
-	public function process($req)
+	public function process(Request $req)
 	{
 		parent::process($req);
 		$route = $this->locateRoute($req);
@@ -188,7 +194,7 @@ class Router extends Routable
 		return $this->unmatched($req);
 	}
 	
-	protected function authoriseRoute($req, $route)
+	protected function authoriseRoute(Request $req, $route)
 	{
 		$perms = $route['require'];
 		if(!is_array($perms))
@@ -247,10 +253,14 @@ class Router extends Routable
 		return true;
 	}
 	
-	public function routeInstance($req, $route)
+	public function routeInstance(Request $req, $route)
 	{
 		global $APP_ROOT;
 		
+		if(!is_array($route))
+		{
+			return $this->error(Error::NOT_IMPLEMENTED, $req);		
+		}
 		if(!empty($route['adjustBase']))
 		{
 			if(isset($route['name']))
@@ -282,6 +292,10 @@ class Router extends Routable
 			}
 			require_once($f);
 		}
+		if(!isset($route['class']) || !class_exists($route['class']))
+		{
+			return $this->error(Error::NOT_IMPLEMENTED, $req);
+		}
 		$target = new $route['class']();
 		if(!$target instanceof IRequestProcessor)
 		{
@@ -290,7 +304,7 @@ class Router extends Routable
 		return $target;		
 	}
 	
-	protected function unmatched($req)
+	protected function unmatched(Request $req)
 	{
 		return $this->error(Error::ROUTE_NOT_MATCHED, $req);	
 	}
@@ -304,10 +318,26 @@ class App extends Router
 	public function __construct()
 	{
 		parent::__construct();
-		$this->routes['login'] = array('file' => PLATFORM_ROOT . 'login/app.php', 'class' => 'LoginPage', 'fromRoot' => true);
+		if(!isset($this->routes['login']))
+		{
+			$this->routes['login'] = array('file' => PLATFORM_ROOT . 'login/app.php', 'class' => 'LoginPage', 'fromRoot' => true);
+		}
+		$help = array('file' => PLATFORM_ROOT . 'cli.php', 'class' => 'CliHelp', 'fromRoot' => true);
+		if(!isset($this->sapi['cli']['__DEFAULT__']))
+		{
+			$this->sapi['cli']['__DEFAULT__'] = $help;
+		}
+		if(!isset($this->sapi['cli']['__NONE__']))
+		{
+			$this->sapi['cli']['__NONE__'] = $help;
+		}
+		if(!isset($this->sapi['cli']['help']))
+		{
+			$this->sapi['cli']['help'] = $help;
+		}
 	}
 	
-	public function process($req)
+	public function process(Request $req)
 	{
 		$this->parent = $req->app;
 		$req->app = $this;
@@ -326,6 +356,19 @@ class DefaultApp extends App
 		$this->sapi['http'] = $HTTP_ROUTES;
 		$this->sapi['cli'] = $CLI_ROUTES;
 		$this->sapi['mq'] = $MQ_ROUTES;
+		$help = array('file' => PLATFORM_ROOT . 'cli.php', 'class' => 'CliHelp', 'fromRoot' => true);
+		if(!isset($this->sapi['cli']['__DEFAULT__']))
+		{
+			$this->sapi['cli']['__DEFAULT__'] = $help;
+		}
+		if(!isset($this->sapi['cli']['__NONE__']))
+		{
+			$this->sapi['cli']['__NONE__'] = $help;
+		}
+		if(!isset($this->sapi['cli']['help']))
+		{
+			$this->sapi['cli']['help'] = $help;
+		}
 	}
 }
 
@@ -341,7 +384,7 @@ class HostnameRouter extends DefaultApp
 		$this->sapi['http'] = $HOSTNAME_ROUTES;
 	}
 	
-	protected function getRouteName($req, &$consume)
+	protected function getRouteName(Request $req, &$consume)
 	{
 		if($req->sapi == 'http')
 		{
@@ -361,7 +404,7 @@ class Proxy extends Router
 	protected $object = null;
 	protected $sessionObject = null;
 		
-	protected function unmatched($req)
+	protected function unmatched(Request $req)
 	{
 		$this->request = $req;
 		$method = $req->method;
@@ -420,7 +463,7 @@ class Proxy extends Router
 		return $r;
 	}
 	
-	protected function error($code, $req = null, $object = null, $detail = null)
+	protected function error($code, Request $req = null, $object = null, $detail = null)
 	{
 		if(!$req)
 		{
@@ -532,8 +575,31 @@ class Proxy extends Router
 }
 
 /* A helper command-line-only proxy class */
-class CommandLine extends Proxy
+interface ICommandLine
+{
+	function main($args);
+}
+
+abstract class CommandLine extends Proxy implements ICommandLine
 {
 	protected $supportedMethods = array('__CLI__');
 	protected $supportedTypes = array('text/plain');
+	
+	protected function perform___CLI__()
+	{
+		if(!($this->checkargs($this->request->params)))
+		{
+			return false;
+		}
+		if(0 == $this->main($this->request->params))
+		{
+			return true;
+		}
+		return false;
+	}
+	
+	protected function checkargs(&$args)
+	{
+		return true;
+	}
 }

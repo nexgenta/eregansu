@@ -35,6 +35,9 @@ if(!defined('CONFIG_ROOT')) define('CONFIG_ROOT', INSTANCE_ROOT . 'config/');
 
 require_once(PLATFORM_ROOT . 'lib/common.php');
 
+$AUTOLOAD_SUBST['${instance}'] = INSTANCE_ROOT;
+$AUTOLOAD_SUBST['${platform}'] = PLATFORM_ROOT;
+
 require_once(CONFIG_ROOT . 'config.php');
 require_once(CONFIG_ROOT . 'appconfig.php');
 
@@ -57,11 +60,8 @@ function uses()
 	}
 }
 
-interface IRequestProcessor
-{
-	public function process($req);
-}
-
+require_once(PLATFORM_ROOT.  'lib/request.php');
+require_once(PLATFORM_ROOT . 'lib/session.php');
 require_once(PLATFORM_ROOT . 'routable.php');
 require_once(PLATFORM_ROOT . 'page.php');
 require_once(PLATFORM_ROOT . 'template.php');
@@ -110,6 +110,16 @@ if(defined('APPS_PATH'))
 else
 {
 	define('APPS_ROOT', INSTANCE_ROOT . 'app/');
+}
+
+$AUTOLOAD_SUBST['${apps}'] = APPS_ROOT;
+
+if(isset($VFS) && is_array($VFS))
+{
+	foreach($VFS as $scheme => $class)
+	{
+		stream_wrapper_register($scheme, $class);
+	}
 }
 
 $APP_ROOT = APPS_ROOT;

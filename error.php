@@ -136,7 +136,7 @@ class Error implements IRequestProcessor
 		}
 	}
 	
-	public function process($req)
+	public function process(Request $req)
 	{	
 		$title = $this->statusTitle($this->status);
 		$desc = $this->statusDescription($this->status, $req);
@@ -183,7 +183,7 @@ class Error implements IRequestProcessor
 		exit(1);
 	}
 	
-	protected function errorTemplate($request, $skin, $title, $desc)
+	protected function errorTemplate(Request $request, $skin, $title, $desc)
 	{
 		error_reporting(0);
 		$templates_iri = $request->root . 'templates/';
@@ -203,7 +203,7 @@ class Error implements IRequestProcessor
 		return 'Error';		
 	}
 	
-	protected function statusDescription($code, $req)
+	protected function statusDescription($code, Request $req)
 	{
 		$method = $req->method;
 		if(isset($req->postData['__method'])) $method = $req->postData['__method'];
