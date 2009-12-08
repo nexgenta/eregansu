@@ -130,6 +130,15 @@ class Request
 				$ext = $x[count($x) - 1];
 			}
 		}
+		foreach($this->objects as $k => $p)
+		{
+			$x = explode('.', $p);
+			if(count($x) > 1)
+			{
+				$this->objects[$k] = $x[0];
+				$ext = $x[count($x) - 1];
+			}
+		}
 		if($ext !== null)
 		{
 			if(isset($this->typeMap[$ext]))
