@@ -504,6 +504,8 @@ class Proxy extends Router
 				return $this->perform_GET_YAML();
 			case 'application/atom+xml':
 				return $this->perform_GET_Atom();
+			case 'text/plain':
+				return $this->perform_GET_Text();
 		}	
 	}
 	
@@ -511,11 +513,23 @@ class Proxy extends Router
 	{
 		header('Content-type: text/xml; charset=UTF-8');
 	}
+	
+	protected function perform_GET_Text()
+	{
+		header('Content-type: text/plain; charset=UTF-8');
+	}
 
 	protected function perform_GET_JSON()
 	{
 		header('Content-type: application/json');
-		echo json_encode($this->object);
+		if(isset($this->object))
+		{
+			echo json_encode($this->object);
+		}
+		else if(isset($this->objects))
+		{
+			echo json_encode($this->objects);
+		}
 	}
 
 	protected function perform_GET_RDF()
