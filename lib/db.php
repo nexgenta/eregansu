@@ -422,6 +422,7 @@ class MySQL extends DBCore
 	protected $rsClass = 'MySQLSet';
 	protected $mysql;
 	protected $dbName;
+	protected $forceNewConnection = false;
 	public $dbms = 'mysql';
 	
 	public function __construct($params)
@@ -436,7 +437,7 @@ class MySQL extends DBCore
 
 	protected function autoconnect()
 	{
-		if(!($this->mysql = mysql_connect($this->params['host'], $this->params['user'], $this->params['pass'])))
+		if(!($this->mysql = mysql_connect($this->params['host'], $this->params['user'], $this->params['pass'], $this->forceNewConnection)))
 		{
 			$this->raiseError(null);
 		}
@@ -482,11 +483,13 @@ class MySQL extends DBCore
 		{
 			$class = 'DBNetworkException';
 			$this->mysql = null;
+			$this->forceNewConnection = true;
 		}
 		else if(in_array($errcode, $syserrors))
 		{
 			$class = 'DBSystemException';
 			$this->mysql = null;
+			$this->forceNewConnection = true;
 		}
 		return $this->reportError($errcode, $errstr, $query, $class);
 	}
