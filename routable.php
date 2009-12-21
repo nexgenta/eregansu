@@ -598,14 +598,21 @@ abstract class CommandLine extends Proxy implements ICommandLine
 {
 	protected $supportedMethods = array('__CLI__');
 	protected $supportedTypes = array('text/plain');
+	protected $args;
 	
-	protected function perform___CLI__()
+	protected function getObject()
 	{
-		if(!($this->checkargs($this->request->params)))
+		$this->args = $this->request->params;
+		if(!($this->checkargs($this->args)))
 		{
 			return false;
 		}
-		if(0 == $this->main($this->request->params))
+		return true;
+	}
+	
+	protected function perform___CLI__()
+	{
+		if(0 == $this->main($this->args))
 		{
 			return true;
 		}
