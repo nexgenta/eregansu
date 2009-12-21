@@ -33,19 +33,15 @@ if(!defined('INSTANCE_ROOT')) define('INSTANCE_ROOT', (isset($_SERVER['SCRIPT_FI
 if(!defined('PLATFORM_ROOT')) define('PLATFORM_ROOT', realpath(dirname(__FILE__)) . '/');
 if(!defined('CONFIG_ROOT')) define('CONFIG_ROOT', INSTANCE_ROOT . 'config/');
 
-require_once(PLATFORM_ROOT . 'lib/common.php');
-
-$AUTOLOAD_SUBST['${instance}'] = INSTANCE_ROOT;
-$AUTOLOAD_SUBST['${platform}'] = PLATFORM_ROOT;
-
-require_once(CONFIG_ROOT . 'config.php');
-require_once(CONFIG_ROOT . 'appconfig.php');
-
+/* Define our version of uses() before including the core library - this will
+ * take precedence.
+ */
+ 
 function uses()
 {
 	global $APP_ROOT;
+	static $_lib_modules = array('base32', 'cli', 'date', 'db', 'execute', 'form', 'ldap', 'mime', 'request', 'session', 'url', 'uuid');
 	
-	static $_lib_modules = array('base32', 'date', 'db', 'form', 'request', 'session', 'execute', 'mime', 'uuid');
 	$_modules = func_get_args();
 	foreach($_modules as $_mod)
 	{
@@ -60,6 +56,18 @@ function uses()
 	}
 }
 
+/* Initialise the core library */
+require_once(PLATFORM_ROOT . 'lib/common.php');
+
+/* Allow ${instance} and ${platform} to be used in $AUTOLOAD paths */
+$AUTOLOAD_SUBST['${instance}'] = INSTANCE_ROOT;
+$AUTOLOAD_SUBST['${platform}'] = PLATFORM_ROOT;
+
+/* Load the application-wide and per-instance configurations */
+require_once(CONFIG_ROOT . 'config.php');
+require_once(CONFIG_ROOT . 'appconfig.php');
+
+/* Load the initial set of modules */
 require_once(PLATFORM_ROOT.  'lib/request.php');
 require_once(PLATFORM_ROOT . 'lib/session.php');
 require_once(PLATFORM_ROOT . 'routable.php');
@@ -67,6 +75,10 @@ require_once(PLATFORM_ROOT . 'page.php');
 require_once(PLATFORM_ROOT . 'template.php');
 require_once(PLATFORM_ROOT . 'error.php');
 
+/* Our global event sink: at the moment just used to implement a callback from
+ * the request class which fires when the session has been initialised.
+ */
+ 
 class PlatformEventSink
 {
 	public static function sessionInitialised($req, $session)
@@ -112,18 +124,21 @@ else
 	define('APPS_ROOT', INSTANCE_ROOT . 'app/');
 }
 
+/* Allow ${apps} to be used in $AUTOLOAD paths */
 $AUTOLOAD_SUBST['${apps}'] = APPS_ROOT;
+/* Initial $APP_ROOT is the top-level apps directory */
+$APP_ROOT = APPS_ROOT;
 
+/* Register VFS/stream wrappers */
 if(isset($VFS) && is_array($VFS))
 {
 	foreach($VFS as $scheme => $class)
 	{
-		stream_wrapper_register($scheme, $class);
+		stream_wrapper_register($scheme, $class, STREAM_IS_URL);
 	}
 }
 
-$APP_ROOT = APPS_ROOT;
-
+/* Create an instance of the request class */
 if(defined('REQUEST_CLASS'))
 {
 	if(defined('REQUEST_PATH'))
@@ -137,9 +152,11 @@ else
 	$request = Request::requestForScheme();
 }
 
+/* XXX: Why isn’t this part of the constructor? */
 $request->init();
 $request->sessionInitialised = array('PlatformEventSink', 'sessionInitialised');
 
+/* Create the app instance */
 if(defined('APP_CLASS'))
 {
 	if(defined('APP_NAME'))
@@ -157,6 +174,10 @@ else
 {
 	$app = new DefaultApp;
 }
+
+/* Maintain a reference to the initial application so that, e.g., MQ
+ * despatchers can funnel new requests through it.
+ */
 
 global $INITIAL_APP;
 
