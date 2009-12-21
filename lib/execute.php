@@ -30,14 +30,21 @@
  */
 
 
-function execute($prog, $args = null)
+function execute($prog, $args = null, $captureOutput = true)
 {
 	$result = array('status' => -1, 'stdout' => null, 'stderr' => null);
-	$spec = array(
-			0 => array('pipe', 'r'),
-			1 => array('pipe', 'w'),
-			2 => array('pipe', 'w'),
-	);
+	if($captureOutput)
+	{
+		$spec = array(
+				0 => array('pipe', 'r'),
+				1 => array('pipe', 'w'),
+				2 => array('pipe', 'w'),
+		);
+	}
+	else
+	{
+		$spec = array();
+	}
 	$pipes = array();
 	
 	$cmdline = escapeshellcmd($prog);
@@ -53,18 +60,34 @@ function execute($prog, $args = null)
 		$cmdline .= $args;
 	}
 	$proc = proc_open($cmdline, $spec, $pipes);
-	if(is_resource($pipes[1]))
+	if(!$captureOutput)
 	{
-		$result['stdout'] = stream_get_contents($pipes[1]);
+		while(true)
+		{
+			$info = proc_get_status($proc);
+			if(empty($info['running']))
+			{
+				$result['status'] = $info;
+				break;
+			}
+			usleep(250);
+		}
 	}
-	if(is_resource($pipes[2]))
+	else
 	{
-		$result['stderr'] = stream_get_contents($pipes[2]);
+		if(isset($pipes[1]) && is_resource($pipes[1]))
+		{
+			$result['stdout'] = stream_get_contents($pipes[1]);
+		}
+		if(isset($pipes[2]) && is_resource($pipes[2]))
+		{
+			$result['stderr'] = stream_get_contents($pipes[2]);
+		}
+		if(isset($pipes[0]) && is_resource($pipes[0])) fclose($pipes[0]);
+		if(isset($pipes[1]) && is_resource($pipes[1])) fclose($pipes[1]);
+		if(isset($pipes[2]) && is_resource($pipes[2])) fclose($pipes[2]);
+		$result['status'] = proc_get_status($proc);
 	}
-	if(is_resource($pipes[0])) fclose($pipes[0]);
-	if(is_resource($pipes[1])) fclose($pipes[1]);
-	if(is_resource($pipes[2])) fclose($pipes[2]);
-	$result['status'] = proc_get_status($proc);
 	proc_close($proc);
 	return $result;
 }
