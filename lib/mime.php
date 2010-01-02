@@ -150,6 +150,7 @@ abstract class MIME
 	 * specifies the preferred extension
 	 */
 	/**
+	 * @cond INTERNAL
 	 * @internal
 	 * @hideinitializer
 	 */
@@ -192,8 +193,8 @@ abstract class MIME
 	protected static $extMap;
 	
 	/**
-	 * @internal
 	 * @hideinitializer
+	 * @internal
 	 */
 	protected static $prefix = array(
 		'plain' => 'text',
@@ -218,4 +219,7 @@ abstract class MIME
 		'vorbis' => 'Ogg Vorbis',
 		'theora' => 'Ogg Theora',
 	);
+	/**
+	 * @endcond
+	 */
 }
