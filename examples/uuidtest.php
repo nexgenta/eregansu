@@ -1,5 +1,10 @@
 <?php
 
+/**
+ * @file examples/uuidtest.php
+ * @brief Sample demonstrating the UUID class
+ */
+
 require_once(dirname(__FILE__) . '/../lib/common.php');
 
 uses('uuid');
