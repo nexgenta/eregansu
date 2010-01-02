@@ -30,6 +30,7 @@
 /**
  * @file lib/uuid.php
  * @brief Implements the UUID class
+ * @author Mo McRoberts <mo.mcroberts@nexgenta.com>
  *
  * The \c uuid module provides facilities for generating and manipulating UUIDs,
  * implemented by way of the UUID class.
@@ -41,6 +42,7 @@
 
 /**
  * @class UUID
+ * @since 1.0
  * @brief Abstract class containing UUID manipulation facilities
  *
  * @note Instances of the UUID class are never created; all methods are static.
