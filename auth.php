@@ -29,6 +29,10 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @framework Eregansu
+ */
+
 if(!defined('DEFAULT_AUTH_SCHEME')) define('DEFAULT_AUTH_SCHEME', 'https');
 
 interface IAuthEngine
