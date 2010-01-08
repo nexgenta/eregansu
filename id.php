@@ -31,6 +31,10 @@ uses('model', 'uuid');
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @framework Eregansu
+ */
+
 /* Note regarding the difference between this functionality and that in
  * auth.php:
  *

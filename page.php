@@ -29,6 +29,9 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @framework Eregansu
+ */
 
 class Page extends Proxy
 {

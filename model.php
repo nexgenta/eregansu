@@ -29,6 +29,10 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @framework Eregansu
+ */
+
 uses('db');
 
 class Model

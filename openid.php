@@ -62,7 +62,11 @@ uses('uuid');
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
- 
+
+/**
+ * @framework Eregansu
+ */
+
 class OpenIDAuth extends Auth
 {
 	public function verifyAuth($request, $scheme, $remainder, $authData, $callbackIRI)
