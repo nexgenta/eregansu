@@ -1,8 +1,6 @@
 <?php
 
-/* Eregansu: Process spawning
- *
- * Copyright 2009 Mo McRoberts.
+/* Copyright 2009, 2010 Mo McRoberts.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -29,6 +27,11 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file lib/execute.php
+ * @brief Process spawning support
+ * @author Mo McRoberts <mo.mcroberts@nexgenta.com>
+ */
 
 function execute($prog, $args = null, $captureOutput = true)
 {
