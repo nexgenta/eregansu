@@ -27,6 +27,20 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @framework EregansuCore Eregansu Core Library
+ * @author Mo McRoberts <mo.mcroberts@nexgenta.com>
+ * @year 2010
+ * @copyright Mo McRoberts
+ * @include uses('db');
+ * @sourcebase http://github.com/nexgenta/eregansu/blob/master/
+ * @since Available in Eregansu 1.0 and later. 
+ */
+
+/**
+ * LDAP database support.
+ */
+
 class LDAP extends DBCore
 {
 	protected $rsClass = 'LDAPSet';
