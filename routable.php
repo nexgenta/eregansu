@@ -29,6 +29,10 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @framework Eregansu
+ */
+
 interface IRequestProcessor
 {
 	public function process(Request $req);
@@ -314,6 +318,36 @@ class App extends Router
 {
 	public $parent;
 	public $skin;
+
+	protected static $initialApp = null;
+
+	public static function initialApp()
+	{
+		global $APP_ROOT;
+	
+		if(self::$initialApp)
+		{
+			return self::$initialApp;
+		}
+		if(defined('APP_CLASS'))
+		{
+			if(defined('APP_NAME'))
+			{
+				$APP_ROOT .= APP_NAME . '/';
+			}
+			if(defined('APP_CLASS_PATH'))
+			{
+				require_once($APP_ROOT . APP_CLASS_PATH);
+			}
+			$appClass = APP_CLASS;
+			self::$initialApp = new $appClass;
+		}
+		else
+		{
+			self::$initialApp = new DefaultApp;
+		}
+		return self::$initialApp;
+	}
 
 	public function __construct()
 	{
