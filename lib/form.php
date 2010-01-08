@@ -1,8 +1,6 @@
 <?php
 
-/* Eregansu: HTML form generation and handling
- *
- * Copyright 2009 Mo McRoberts.
+/* Copyright 2009, 2010 Mo McRoberts
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -29,11 +27,25 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @framework EregansuCore Eregansu Core Library
+ * @author Mo McRoberts <mo.mcroberts@nexgenta.com>
+ * @year 2009, 2010
+ * @copyright Mo McRoberts
+ * @include uses('form');
+ * @sourcebase http://github.com/nexgenta/eregansu/blob/master/
+ * @since Available in Eregansu 1.0 and later. 
+ */
+ 
+/**
+ * HTML form generation and handling
+ */
+
 class Form implements ArrayAccess
 {
-	protected $fields = array();
-	protected $actions = array();
-	protected $name = 'form';
+	protected $fields = array(); /**< @internal */
+	protected $actions = array(); /**< @internal */
+	protected $name = 'form'; /**< @internal */
 	public $action = null;
 	public $errorCount = 0;
 	public $method = 'POST';
@@ -197,6 +209,9 @@ class Form implements ArrayAccess
 		return implode("\n", $buf);
 	}
 	
+	/**
+	 * @internal
+	 */
 	protected function preprocess(&$info)
 	{
 		if(!isset($info['value']))
@@ -249,6 +264,9 @@ class Form implements ArrayAccess
 		
 	}
 	
+	/**
+	 * @internal
+	 */
 	protected function renderVisible(&$buf, $req, $info, $el)
 	{
 		$class = 'field field-' . $info['type'];
@@ -287,17 +305,26 @@ class Form implements ArrayAccess
 		$buf[] = '</div>';
 	}
 	
+	/**
+	 * @internal
+	 */	
 	protected function renderHidden(&$buf, $req, $info)
 	{
 		$buf[] = '<input id="' . $info['htmlId'] . '" type="hidden" name="' . $info['name'] . '" value="' . htmlspecialchars($info['value']) . '"' . $info['htmlSuffix'] . ' />';
 	}
 	
+	/**
+	 * @internal
+	 */	
 	protected function renderText(&$buf, $req, $info)
 	{
 		$this->renderVisible($buf, $req, $info,
 			'<input id="' . $info['htmlId'] . '" type="' . $info['type'] . '" name="' . $info['htmlName'] . '" value="' . htmlspecialchars($info['value']) . '"' . $info['htmlSuffix'] . ' />');
 	}
 
+	/**
+	 * @internal
+	 */
 	protected function renderCheckbox(&$buf, $req, $info)
 	{
 		if(!isset($info['checkValue'])) $info['checkValue'] = 1;
@@ -306,24 +333,36 @@ class Form implements ArrayAccess
 			'<input id="' . $info['htmlId'] . '" type="checkbox" name="' . $info['htmlName'] . '" value="' . _e($info['checkValue']) . '"' . $checked . $info['htmlSuffix'] . ' />');
 	}
 
+	/**
+	 * @internal
+	 */
 	protected function renderTextArea(&$buf, $req, $info)
 	{
 		$this->renderVisible($buf, $req, $info,
 			'<textarea id="' . $info['htmlId'] . '" type="text" name="' . $info['htmlName'] . '">' . htmlspecialchars($info['value']) . '</textarea>' . $info['htmlSuffix']);
 	}
 
+	/**
+	 * @internal
+	 */
 	protected function renderPassword(&$buf, $req, $info)
 	{
 		$this->renderVisible($buf, $req, $info,
 			'<input id="' . $info['htmlId'] . '" type="password" name="' . $info['htmlName'] . '" value="' . htmlspecialchars($info['value']) . '"' . $info['htmlSuffix'] . ' />');
 	}
 
+	/**
+	 * @internal
+	 */
 	protected function renderLabel(&$buf, $req, $info)
 	{
 		$this->renderVisible($buf, $req, $info,
 			'<p>' . htmlspecialchars($info['value']) . '</p>');
 	}
 	
+	/**
+	 * @internal
+	 */
 	protected function renderSelect(&$buf, $req, $info)
 	{
 		$sbuf = array('<select id="' . $info['htmlId'] . '" name="' . $info['htmlName'] . '">');
@@ -337,6 +376,9 @@ class Form implements ArrayAccess
 		$this->renderVisible($buf, $req, $info, implode("\n", $sbuf));
 	}
 	
+	/**
+	 * @internal
+	 */
 	public function offsetExists($ofs)
 	{
 		foreach($this->fields as $f)
@@ -350,6 +392,9 @@ class Form implements ArrayAccess
 		return false;
 	}
 	
+	/**
+	 * @internal
+	 */
 	public function offsetGet($ofs)
 	{
 		foreach($this->fields as $f)
@@ -372,6 +417,9 @@ class Form implements ArrayAccess
 		return null;
 	}
 	
+	/**
+	 * @internal
+	 */
 	public function offsetSet($ofs, $value)
 	{
 		foreach($this->fields as $k => $f)
@@ -384,6 +432,9 @@ class Form implements ArrayAccess
 		}	
 	}
 	
+	/**
+	 * @internal
+	 */
 	public function offsetUnset($ofs)
 	{
 	}
