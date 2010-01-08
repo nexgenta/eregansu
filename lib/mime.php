@@ -30,23 +30,22 @@
  */
 
 /**
- * @file lib/mime.php
- * @brief Support for MIME types
+ * @framework EregansuCore Eregansu Core Library
  * @author Mo McRoberts <mo.mcroberts@nexgenta.com>
- *
- * The \c mime module provides facilities for mapping file extensions to
- * MIME types and vice versa and obtaining human-readable descriptions
- * from MIME types.
- *
- * To make use of the MIME class, include \c 'mime' in your uses() call.
+ * @year 2010
+ * @copyright Mo McRoberts
+ * @include uses('mime');
+ * @sourcebase http://github.com/nexgenta/eregansu/blob/master/
+ * @since Available in Eregansu 1.0 and later. 
+ * @example mimetest.php	 
  */
 
 /**
- * @class MIME
- * @since 1.0
- * @brief MIME type support
+ * The \c{MIME} class provides facilities for mapping file extensions to
+ * MIME types and vice versa and obtaining human-readable descriptions
+ * from MIME types.
  *
- * @note Instances of the MIME class are never created; all methods are static.
+ * <note>Instances of the \c{MIME} class are never created; all methods are static.</note>
  */
 abstract class MIME
 {
@@ -54,17 +53,16 @@ abstract class MIME
 	 * @fn string extForType($type)
 	 * @brief Return the preferred file extension for a specified MIME type
 	 *
-	 * MIME::extForType() returns the preferred file extension, if any, for a
+	 * \m{MIME::extForType} returns the preferred file extension, if any, for a
 	 * given MIME type. For example, the preferred extension string for the
-	 * <code>'text/plain'</code> type is <code>'.txt'</code>.
+	 * \l{text/plain} type is \l{.txt}.
 	 *
 	 * If a file extension mapping exists, it will be returned with a leading
 	 * dot. If no file extension mapping exists, an empty string will be
 	 * returned.
 	 *
 	 * @param[in] string $type The MIME type to resolve to an extension
-	 * @returns The preferred file extension for \p $type, or an empty string if no mapping exists.
-	 * @example mimetest.php	 
+	 * @return string The preferred file extension for \p{$type}, or an empty string if no mapping exists.
 	 */
 	public static function extForType($type)
 	{
@@ -74,21 +72,19 @@ abstract class MIME
 	}
 	
 	/**
-	 * @fn string typeForExt($ext)
 	 * @brief Return the MIME type matching a specified file extension
 	 *
-	 * MIME::typeForExt() attempts to resolve a file extension to a MIME
+	 * \m{MIME::typeForExt} attempts to resolve a file extension to a MIME
 	 * type.
 	 *
-	 * The file extension, \p $ext, may be specified with or without a
+	 * The file extension, \p{$ext}, may be specified with or without a
 	 * leading dot.
 	 *
-	 * If the file extension could not be mapped to a MIME type, \c null
+	 * If the file extension could not be mapped to a MIME type, \c{null}
 	 * is returned.
 	 *
 	 * @param[in] string $ext The file extension to resolve to a MIME type
-	 * @returns The MIME type matching \p $ext, if it could be resolved, or \c null otherwise.
-	 * @example mimetest.php	 
+	 * @return string The MIME type matching \p{$ext}, if it could be resolved, or \c{null} otherwise.
 	 */
 	public static function typeForExt($ext)
 	{
@@ -98,16 +94,15 @@ abstract class MIME
 	}
 	
 	/**
-	 * @fn string description($type)
 	 * @brief Return a human-readable description of a MIME type
 	 * 
-	 * MIME::description() returns a human-readable description of a specified
-	 * MIME type. For example, the description for <code>'video/mp4'</code>
-	 * might be <code>'MPEG 4 video'</code>.
+	 * \m{MIME::description} returns a human-readable description of a specified
+	 * MIME type.
+	 *
+	 * For example, the description for \l{video/mp4} might be \l{MPEG 4 video}.
 	 *
 	 * @param[in] string $type The MIME type to obtain a description for
-	 * @returns A human-readable description for \p $type
-	 * @example mimetest.php	 
+	 * @return string A human-readable description for \p{$type}
 	 */
 	public static function description($type)
 	{
@@ -150,9 +145,7 @@ abstract class MIME
 	 * specifies the preferred extension
 	 */
 	/**
-	 * @cond INTERNAL
 	 * @internal
-	 * @hideinitializer
 	 */
 	protected static $map = array(
 		'htm' => 'text/html',
@@ -193,7 +186,6 @@ abstract class MIME
 	protected static $extMap;
 	
 	/**
-	 * @hideinitializer
 	 * @internal
 	 */
 	protected static $prefix = array(
@@ -219,7 +211,4 @@ abstract class MIME
 		'vorbis' => 'Ogg Vorbis',
 		'theora' => 'Ogg Theora',
 	);
-	/**
-	 * @endcond
-	 */
 }
