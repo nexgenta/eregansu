@@ -1,6 +1,6 @@
 <?php
 
-/* Copyright 2009 Mo McRoberts.
+/* Copyright 2009, 2010 Mo McRoberts.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -27,6 +27,139 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @framework EregansuCore Eregansu Core Library
+ * @author Mo McRoberts <mo.mcroberts@nexgenta.com>
+ * @year 2010
+ * @copyright Mo McRoberts
+ * @include require_once('lib/common.php');
+ * @sourcebase http://github.com/nexgenta/eregansu/blob/master/
+ * @since Available in Eregansu 1.0 and later. 
+ */
+
+/**
+ * @module lib/common.php
+ * @brief Entry-point of the Eregansu Core Library.
+ *
+ * The Eregansu Core Library provides support facilities and base classes used by
+ * the Eregansu Platform. When included, this file performs a number of initialisation
+ * tasks:
+ * 
+ * - Sets a default umask
+ * - Enables error reporting
+ * - Disables magic quotes, to the extent possible
+ * - Sets the default character set to UTF-8
+ * - Sets the default timezone to UTC
+ * - Disables session auto-start
+ * - Installs an error handler which throws exceptions
+ * - Installs a class auto-load handler
+ * - Defines the e(), _e(), is_arrayish() and uses() functions
+ *
+ * Applications built upon the Eregansu Platform need not include lib/common.php directly.
+ * However, an application just wishing to make use of the facilities provided by the
+ * Core Library may include lib/common.php as part of its initialisation.
+ */
+
+/**
+ * @brief Determine whether an object or array is traversable as an array
+ *
+ * The \f{is_arrayish} function is analogous to PHP’s \f{is_array} function, except
+ * that it also returns \c{true} if \p{$var} is an instance of a class implementing
+ * the \c{Traversable} interface.
+ *
+ * @param[in] mixed $var A variable to test
+ * @return bool \c{true} if \p{$var} can be traversed using \f{foreach}, \c{false} otherwise
+ */
+function is_arrayish($var)
+{
+	return is_array($var) || (is_object($var) && $var instanceof Traversable);
+}
+
+/**
+ * @brief HTML-escape a string and output it
+ *
+ * \f{e} accepts a string and outputs it after ensuring any characters which have special meaning
+ * in XML or HTML documents are properly escaped.
+ *
+ * @param[in] string $str The string to HTML-escape
+ */
+function e($str)
+{
+	echo htmlspecialchars($str);
+}
+
+/**
+ * @brief HTML-escape a string and return it.
+ *
+ * \f{_e} accepts a string and returns it after ensuring any characters which have special meaning
+ * in XML or HTML documents are properly escaped. The resultant string is suitable for inclusion
+ * in attribute values or element contents.
+ *
+ * @param[in] string $str The string to HTML-escape
+ * @return string The escaped version of \p{$str}
+ */
+ 
+function _e($str)
+{
+	return htmlspecialchars($str);
+}
+
+if(!function_exists('uses')) {
+
+	/**
+	 * @brief Include one or more Eregansu modules
+	 *
+	 * The \f{uses} function loads one or more Eregansu modules. You can specify as
+	 * many modules as are needed, each as a separate parameter.
+	 *
+	 * @param[in] string $module,... The name of a module to require. For example, \l{base32}.
+	 */
+
+	function uses($module)
+	{
+		$_modules = func_get_args();
+		foreach($_modules as $_mod)
+		{
+			require_once(dirname(__FILE__) . '/' . $_mod . '.php');
+		}	
+	}
+
+}
+
+/**
+ * @brief Callback handler invoked by PHP when an undefined classname is referenced
+ * @internal
+ */
+function autoload_handler($name)
+{
+	global $AUTOLOAD, $AUTOLOAD_SUBST;
+	
+	if(isset($AUTOLOAD[strtolower($name)]))
+	{
+		$path = str_replace(array_keys($AUTOLOAD_SUBST), array_values($AUTOLOAD_SUBST), $AUTOLOAD[strtolower($name)]);
+		require_once($path);
+		return true;
+	}
+	return false;
+}
+
+/**
+ * @brief Callback invoked by PHP when an error occurs
+ * @internal
+ */
+
+function exception_error_handler($errno, $errstr, $errfile, $errline)
+{
+	$e = error_reporting();
+	if(!$errno || ($e & $errno) != $errno) return;
+	if($errno & (E_ERROR|E_PARSE|E_CORE_ERROR|E_COMPILE_ERROR|E_USER_ERROR|E_RECOVERABLE_ERROR))
+	{
+		throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
+		exit();
+	}
+	return false;
+}
+
 umask(007);
 error_reporting(E_ALL|E_STRICT|E_RECOVERABLE_ERROR);
 ini_set('display_errors', 'On');
@@ -42,27 +175,66 @@ if(function_exists('mb_internal_encoding')) mb_internal_encoding('UTF-8');
 date_default_timezone_set('UTC');
 putenv('TZ=UTC');
 ini_set('date.timezone', 'UTC');
-function exception_error_handler($errno, $errstr, $errfile, $errline )
+set_error_handler('exception_error_handler');
+if(!defined('INSTANCE_ROOT'))
 {
-	$e = error_reporting();
-	if(!$errno || ($e & $errno) != $errno) return;
-	if($errno & (E_ERROR|E_PARSE|E_CORE_ERROR|E_COMPILE_ERROR|E_USER_ERROR|E_RECOVERABLE_ERROR))
-	{
-		throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
-		exit();
-	}
-	return false;
+	define('INSTANCE_ROOT', (isset($_SERVER['SCRIPT_FILENAME']) ? dirname(realpath($_SERVER['SCRIPT_FILENAME'])) : realpath(dirname(__FILE__ ) . '/../../')) . '/');
 }
-set_error_handler("exception_error_handler");
-
-function is_arrayish($obj)
+if(!defined('PLATFORM_ROOT'))
 {
-	return is_array($obj) || (is_object($obj) && $obj instanceof Traversable);
+	define('PLATFORM_ROOT', realpath(dirname(__FILE__)) . '/../');
+} 
+if(!defined('CONFIG_ROOT'))
+{
+	define('CONFIG_ROOT', INSTANCE_ROOT . 'config/');
 }
+if(defined('APPS_PATH'))
+{
+	define('APPS_ROOT', INSTANCE_ROOT . APPS_PATH . '/');
+}
+else
+{
+	define('APPS_ROOT', INSTANCE_ROOT . 'app/');
+}
+$APP_ROOT = APPS_ROOT;
 
+/**
+ * @var $AUTOLOAD_SUBST
+ * @brief Substitutions used by the class auto-loader
+ *
+ * $AUTOLOAD_SUBST is an associative array of substitutions which are applied to
+ * paths in $AUTOLOAD when the class auto-loader is invoked.
+ *
+ * By default it contains the following substitutions:
+ *
+ * - \c ${lib} The filesystem path to the Eregansu Core Library
+ * - \c ${instance} The value of the INSTANCE_ROOT definition
+ * - \c ${platform} The value of the PLATFORM_ROOT definition
+ * - \c ${apps} The value of the APPS_ROOT definition
+ * - \c ${app} The filesystem path of the current application
+ */
 $AUTOLOAD_SUBST = array();
 $AUTOLOAD_SUBST['${lib}'] = dirname(__FILE__);
+$AUTOLOAD_SUBST['${instance}'] = INSTANCE_ROOT;
+$AUTOLOAD_SUBST['${platform}'] = PLATFORM_ROOT;
+$AUTOLOAD_SUBST['${apps}'] = APPS_ROOT;
+$AUTOLOAD_SUBST['${app}'] =& $APP_ROOT;
 
+/**
+ * @var $AUTOLOAD
+ * @brief Mapping of class names to paths used by the class auto-loader
+ *
+ * $AUTOLOAD is an associative array, where the keys are all-lowercase
+ * class names and the values are filesystem paths (which may contain
+ * substitutions as per $AUTOLOAD_SUBST).
+ *
+ * When the class auto-loader is invoked, it checks the contents of
+ * $AUTOLOAD and if a match is found the specified file is loaded.
+ *
+ * The $AUTOLOAD array is initialised with the classes which make up
+ * the Eregansu Core Library.
+ */
+ 
 $AUTOLOAD = array();
 $AUTOLOAD['base32'] = dirname(__FILE__) . '/base32.php';
 $AUTOLOAD['clirequest'] = dirname(__FILE__) . '/cli.php';
@@ -85,36 +257,4 @@ else
 	}
 }
 
-function autoload_handler($name)
-{
-	global $AUTOLOAD, $AUTOLOAD_SUBST;
-	
-	if(isset($AUTOLOAD[strtolower($name)]))
-	{
-		$path = str_replace(array_keys($AUTOLOAD_SUBST), array_values($AUTOLOAD_SUBST), $AUTOLOAD[strtolower($name)]);
-		require_once($path);
-		return true;
-	}
-	return false;
-}
-
-function e($str)
-{
-	echo htmlspecialchars($str);
-}
-function _e($str)
-{
-	return htmlspecialchars($str);
-}
-
-if(!function_exists('uses'))
-{
-	function uses()
-	{
-		$_modules = func_get_args();
-		foreach($_modules as $_mod)
-		{
-			require_once(dirname(__FILE__) . '/' . $_mod . '.php');
-		}	
-	}
-}
+$VFS = array();
