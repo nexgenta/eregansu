@@ -1,6 +1,6 @@
 <?php
 
-/* Copyright 2009 Mo McRoberts.
+/* Copyright 2009, 2010 Mo McRoberts.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -27,16 +27,50 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @framework EregansuCore Eregansu Core Library
+ * @author Mo McRoberts <mo.mcroberts@nexgenta.com>
+ * @year 2009, 2010
+ * @copyright Mo McRoberts
+ * @include uses('uuid');
+ * @sourcebase http://github.com/nexgenta/eregansu/blob/master/
+ * @since Available in Eregansu 1.0 and later. 
+ */
+ 
+/**
+ * Abstract class implementing base-32 encoding and decoding
+ *
+ * <note>Instances of the Base32 class are never created; all methods are static.</note>
+ */
 abstract class Base32
 {
+	/**
+	 * @brief Maps numerical values to base-32 digits
+	 * @internal
+	 * @hideinitializer
+	 */
 	protected static $alphabet = array(
 		'0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
 		'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'j', 'k',
 		'l', 'm', 'n', 'p', 'q', 'r', 's', 't', 'u', 'v',
 		'w', 'x',
 	);
+	/**
+	 * @brief Maps base-32 digits to numerical values
+	 * @internal
+	 */
 	protected static $ralphabet;
 	
+	/**
+	 * @brief Encode an integer as base-32
+	 * @task Encoding and decoding base-32 values
+	 *
+	 * Encodes an integer as a base-32 value, that is, a value where each digit
+	 * has 32 possible values (0-9, a-x).
+	 *
+	 * @param[in] int $input The number to encode
+	 * @return string A string containing \p{$input} encoded as base-32
+	 */
 	public static function encode($input)
 	{
 		$output = '';
@@ -50,6 +84,17 @@ abstract class Base32
 		return $output;
 	}
 	
+	/**
+	 * @fn int decode($input)
+	 * @brief Decode a base-32 string and return the value as an integer
+	 * @task Encoding and decoding base-32 values
+	 *
+	 * Accepts a base-32-encoded string as encoded by \m{Base32::encode} and
+	 * returns its integer value.
+	 *
+	 * @param[in] string $input A base-32 encoded value
+	 * @return int The integer value represented by \p{$input}
+	 */
 	public static function decode($input)
 	{
 		if(!self::$ralphabet)
@@ -61,7 +106,6 @@ abstract class Base32
 		for($n = 0; $n < $l; $n++)
 		{
 			$c = $input[$n];
-			echo "c = $c, l = $n, output = $output\n";
 			$output *= 32;
 			if(isset(self::$ralphabet[$c]))
 			{
@@ -72,7 +116,6 @@ abstract class Base32
 				return false;
 			}
 		}
-		echo "c = $c, l = $l, output = $output\n";
 		return $output;
 	}
 }
