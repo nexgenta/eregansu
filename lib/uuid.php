@@ -1,5 +1,16 @@
 <?php
 
+/**
+ * @framework EregansuCore Eregansu Core Library
+ * @author Mo McRoberts <mo.mcroberts@nexgenta.com>
+ * @year 2010
+ * @copyright Mo McRoberts
+ * @include uses('uuid');
+ * @sourcebase http://github.com/nexgenta/eregansu/blob/master/
+ * @since Available in Eregansu 1.0 and later. 
+ * @example uuidtest.php
+ */
+
 /* Copyright 2010 Mo McRoberts.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,24 +39,15 @@
  */
 
 /**
- * @file lib/uuid.php
- * @brief Implements the UUID class
- * @author Mo McRoberts <mo.mcroberts@nexgenta.com>
- *
- * The \c uuid module provides facilities for generating and manipulating UUIDs,
- * implemented by way of the UUID class.
- *
- * To make use of the UUID class, include \c 'uuid' in your uses() call.
- *
- * @example uuidtest.php
- */
-
-/**
- * @class UUID
- * @since 1.0
+ * @abstract
  * @brief Abstract class containing UUID manipulation facilities
  *
- * @note Instances of the UUID class are never created; all methods are static.
+ * The \class{UUID} class contains facilities for generating and manipulating
+ * Universally Unique Identifiers (UUIDs), according to 
+ * <html:a href="http://www.ietf.org/rfc/rfc4122.txt">RFC 4122</html:a> (equivalent to
+ * ITU-T Rec. X.667, ISO/IEC 9834-8:2005).
+ *
+ * <note>Instances of the UUID class are never created; all methods are static.</note>
  */ 
 abstract class UUID
 {
@@ -69,24 +71,24 @@ abstract class UUID
 	const DN = '6ba7b814-9dad-11d1-80b4-00c04fd430c8'; /**< Namespace UUID for X.500 DNs */
 	
 	/**
-	 * @fn string generate($kind = self::RANDOM, $namespace = null, $name = null)
 	 * @brief Generate a new UUID
+	 * @task Generating UUIDs
 	 *
-	 * UUID::generate() generates a new UUID according to <a href="http://www.ietf.org/rfc/rfc4122.txt">RFC 4122</a> (equivalent to
+	 * \m{UUID::generate} generates a new UUID according to <html:a href="http://www.ietf.org/rfc/rfc4122.txt">RFC 4122</html:a> (equivalent to
 	 * ITU-T Rec. X.667, ISO/IEC 9834-8:2005).
 	 *
-	 * If the kind of UUID specified by \p $kind cannot be generated because it is
-	 * not supported, a random (v4) UUID will be generated instead (in other words,
-	 * the \p $kind parameter is a hint).
+	 * If the kind of UUID specified by \p{$kind} cannot be generated
+	 * because it is not supported, a random (v4) UUID will be generated instead (in other
+	 * words, the \p{$kind} parameter is a hint).
 	 *
-	 * If the kind of UUID specified by \p $kind cannot be generated because one or
-	 * both of \p $namespace and \p $name are not valid, an error occurs and \p null
-	 * is returned.
+	 * If the kind of UUID specified by \p{$kind} cannot be generated
+	 * because one or both of \p{$namespace} and \p{$name}
+	 * are not valid, an error occurs and \c{null} is returned.
 	 *
-	 * @param[in] int $kind The kind of UUID to generate.
-	 * @param[in] string $namespace For MD5 (v3) and SHA1 (v5) UUIDs, the namespace which contains \p $name.
-	 * @param[in] string $name For MD5 (v3) and SHA1 (v5) UUIDs, the identifier used to generate the UUID.
-	 * @returns A new UUID composed as a string, or \c null if an error occurs.
+	 * @param[in,optional] int $kind The kind of UUID to generate.
+	 * @param[in,optional] string $namespace For MD5 (v3) and SHA1 (v5) UUIDs, the namespace which contains \p{$name}.
+	 * @param[in,optional] string $name For MD5 (v3) and SHA1 (v5) UUIDs, the identifier used to generate the UUID.
+	 * @return string A new UUID, or \c{null} if an error occurs.
 	 * @example uuidtest.php
 	 */
 	public static function generate($kind = self::RANDOM, $namespace = null, $name = null)
@@ -109,14 +111,14 @@ abstract class UUID
 	}
 	
 	/**
-	 * @fn string nil()
 	 * @brief Return the null UUID as a string
+	 * @task Generating UUIDs
 	 *
-	 * UUID::nil() returns a string containing the null UUID.
+	 * \m{UUID::nil} returns a string containing the null UUID.
 	 *
-	 * It is the equivalent of calling \c UUID::generate(UUID::NONE);
+	 * It is the equivalent of calling <code>\m{UUID::generate}(\c{UUID::NONE});</code>
 	 *
-	 * @returns The null UUID as a string. i.e., <code>'00000000-0000-0000-0000-000000000000'</code>.
+	 * @return string The null UUID. i.e., \l{00000000-0000-0000-0000-000000000000}.
 	 * @example uuidtest.php	 
 	 */
 	public static function nil()
@@ -125,18 +127,18 @@ abstract class UUID
 	}
 	
 	/**
-	 * @fn string canonical($uuid)
 	 * @brief Return the canonical form of a UUID string (i.e., no braces, no dashes, all lower-case)
+	 * @task Manipulating UUIDs
 	 *
-	 * UUID::canonical() accepts a string representation of a UUID (for example, as returned by
-	 * UUID::generate()) and returns the canonical form of the UUID: that is, all-lowercase, and with
+	 * \m{UUID::canonical} accepts a string representation of a UUID (for example, as returned by
+	 * \m{UUID::generate}) and returns the canonical form of the UUID: that is, all-lowercase, and with
 	 * any braces and dashes removed.
 	 *
-	 * For example, the canonical form of the UUID string <code>'{EAE58635-B826-42A9-9B03-3A3AC8A2CC29}'</code>
-	 * would be <code>'eae58635b82642a99b033a3ac8a2cc29'</code>.
+	 * For example, the canonical form of the UUID string <literal>{EAE58635-B826-42A9-9B03-3A3AC8A2CC29}</literal>
+	 * would be \l{eae58635b82642a99b033a3ac8a2cc29'}.
 	 *
 	 * @param[in] string $uuid A string representation of a UUID.
-	 * @returns A string containing the canonical form of the UUID, or \c null if \p $uuid is not a valid UUID string.
+	 * @return string The canonical form of the UUID, or \c{null} if \p{$uuid} is not a valid UUID string.
 	 * @example uuidtest.php
 	 */
 	public static function canonical($uuid)
@@ -149,16 +151,16 @@ abstract class UUID
 	}
 	
 	/**
-	 * @fn string iri($uuid)
 	 * @brief Formats a UUID as an IRI
+	 * @task Manipulating UUIDs
 	 *
-	 * UUID::iri() converts a string representation of a UUID to an IRI
+	 * \m{UUID::iri} converts a string representation of a UUID to an IRI
 	 * (Internationalized Resource Identifier), specifically a UUID URN.
 	 *
-	 * For example, the NULL UUID converted to an IRI would be <code>'urn:uuid:00000000-0000-0000-0000-000000000000'</code>.
+	 * For example, the null UUID converted to an IRI would be \l{urn:uuid:00000000-0000-0000-0000-000000000000}.
 	 *
 	 * @param[in] string $uuid A string representation of a UUID
-	 * @returns A string containing the IRI representation of \p $uuid, or \c null if \p $uuid is not a valid UUID string.
+	 * @return string The IRI representation of \p{$uuid}, or \c{null} if \p{$uuid} is not a valid UUID string.
 	 * @example uuidtest.php
 	 */
 	public static function iri($uuid)
@@ -171,26 +173,26 @@ abstract class UUID
 	}
 	
 	/**
-	 * @fn array parse($uuid)
 	 * @brief Parse a string containing a UUID and return an array representing its value.
+	 * @task Manipulating UUIDs
 	 *
-	 * UUID::parse() converts a string representation of a UUID to an array. The
+	 * \m{UUID::parse} converts a string representation of a UUID to an array. The
 	 * array contains the following members:
 	 *
-	 * - \c time_low
-	 * - \c time_mid
-	 * - \c time_hi_and_version
-	 * - \c clock_seq_hi_and_reserved
-	 * - \c clock_seq_low
-	 * - \c node
-	 * - \c version
-	 * - \c variant
+	 * - \v{time_low}
+	 * - \v{time_mid}
+	 * - \v{time_hi_and_version}
+	 * - \v{clock_seq_hi_and_reserved}
+	 * - \v{clock_seq_low}
+	 * - \v{node}
+	 * - \v{version}
+	 * - \v{variant}
 	 *
-	 * The \c version member contains a UUID version number, for example UUID::RANDOM.
-	 * The \c variant member specifies the UUID variant, for example UUID::DCE.
+	 * The \v{version} member contains a UUID version number, for example \c{UUID::RANDOM}.
+	 * The \v{variant} member specifies the UUID variant, for example \c{UUID::DCE}.
 	 *
 	 * @param[in] string $uuid A string representation of a UUID.
-	 * @returns An array representing the supplied UUID, or \c null if an error occurs.
+	 * @return array An array representing the supplied UUID, or \c{null} if an error occurs.
 	 * @example uuidtest.php
 	 */
 	public static function parse($uuid)
@@ -227,14 +229,14 @@ abstract class UUID
 	}
 	
 	/**
-	 * @fn string unparse($info)
 	 * @brief Constructs a UUID string given an array as returned by UUID::parse()
+	 * @task Manipulating UUIDs
 	 *
-	 * UUID::unparse() accepts an array representation of a UUID as returned by
-	 * UUID::parse() and returns a string representation of the same UUID.
+	 * \m{UUID::unparse} accepts an array representation of a UUID as returned by
+	 * \m{UUID::parse} and returns a string representation of the same UUID.
 	 *
 	 * @param[in] array $info An array representation of a UUID
-	 * @returns A string representing the supplied UUID
+	 * @return string A string representing the supplied UUID
 	 * @example uuidtest.php
 	 */
 	public static function unparse($info)
