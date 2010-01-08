@@ -29,13 +29,26 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @framework EregansuCore Eregansu Core Library
+ * @author Mo McRoberts <mo.mcroberts@nexgenta.com>
+ * @year 2010
+ * @copyright Mo McRoberts
+ * @sourcebase http://github.com/nexgenta/eregansu/blob/master/
+ * @since Available in Eregansu 1.0 and later. 
+ */
+
 require_once(dirname(__FILE__) . '/request.php');
 
+/**
+ * @class CLIRequest
+ * @brief Implementation of the Request class for command-line (<code>cli</code>) requests.
+ */
 class CLIRequest extends Request
 {
-	public function __construct()
+	protected function init()
 	{
-		parent::__construct();
+		parent::init();
 		$this->method = '__CLI__';
 		$this->params = $_SERVER['argv'];
 		array_shift($this->params);
