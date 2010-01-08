@@ -2,7 +2,7 @@
 
 /* Eregansu: Encapsulation of a request
  *
- * Copyright 2009 Mo McRoberts.
+ * Copyright 2009, 2010 Mo McRoberts.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -28,41 +28,89 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+ 
+/**
+ * @framework EregansuCore Eregansu Core Library
+ * @author Mo McRoberts <mo.mcroberts@nexgenta.com>
+ * @year 2010
+ * @copyright Mo McRoberts
+ * @include uses('request');
+ * @sourcebase http://github.com/nexgenta/eregansu/blob/master/
+ * @since Available in Eregansu 1.0 and later. 
+ */
 
-class Request
+/** 
+ * @brief Encapsulation of a request from a client.
+ *
+ * The Request class and its descendants represents a single request from a user
+ * agent of some kind. The \C{Request} class itself is abstract: descendants of \C{Request}
+ * are used to represent the various different kinds of request which can be
+ * represented, depending upon the current SAPI. For example, an HTTP request
+ * from a web browser is represented as an instance of the \C{HTTPRequest} class. 
+ *
+ * Upon initialisation of the platform, a \C{Request} class instance is instantiated by
+ * calling \m{requestForSAPI} with no arguments, and the resulting instance is stored
+ * in the \v{$request} global variable.
+ */
+abstract class Request
 {
-	public $sapi;
-	public $data = array();
-	public $method;
-	public $uri;
-	public $uriArray;
-	public $self;
-	public $selfArray;
-	public $root;
-	public $params;
-	public $objects;
-	public $page;
-	public $base;
-	public $pageUri;
-	public $types; /* Accepted content types, in order of preference */
-	public $contentType; /* Type of the body of the request, if any */
-	public $app;
-	public $hostname;
+	public $sapi; /**< The name of the server API (SAPI) */
+	public $data = array(); /**< Application-defined per-request storage */
+	public $method; /**< The request method (e.g., GET, POST, PUT, etc). */
+	public $uri; /**< The URI of the request (for example, /foo) */
+	public $uriArray; /**< The value of the $uri property, exploded as an array of path components */
+	public $self; /**< The full path to the top-level PHP script (i.e., the same value as $_SERVER['PHP_SELF']) */
+	public $selfArray; /**< The value of the $self property, exploded as an array of path components */
+	public $root; /**< The URI of the application root */
+	public $params; /**< The array of parameters, if any, included in the request */
+	public $objects; /**< The array of objects, if any, included in the request */
+	public $page; /**< The array of path elements which make up the current page relative to the application root */
+	public $base; /**< The URI of the current application base */
+	public $pageUri; /**< The URI of the current page */
+	public $types; /**< Accepted MIME types, in order of preference */
+	public $contentType; /**< MIME type of the body of the request, if any */
+	public $app; /**< The current application instance, if any */
+	public $hostname; /**< The server hostname associated with the request, if any */
 	public $postData = null;
-	public $query = array();
-	public $crumb = array();
-	public $backRef = null;
-	public $lastRef = null;
+	public $query = array(); /**< An array of key-value pairs which make up the query parameters */
+	public $crumb = array(); /**< An array of breadcrumb elements which may be presented to the user */
+	public $backRef = null; /**< A reference to the last-but-one entry in the $crumb array */
+	public $lastRef = null; /**< A reference to the last entry in the $crumb array */
 
-	/* Callbacks */
-	public $sessionInitialised;
+	public $sessionInitialised; /**< A <a href="http://www.php.net/callback">callback</a> which if specified is invoked when the \P{$session} associated with the request is initialised. */
 	
 	protected $session;
 	protected $typeMap = array();
 	
-	public static function requestForScheme()
+	/**
+	 * Return an instance of a Request class for a specified SAPI.
+	 *
+	 * Requests are encapsulated as one of several descendants of the \C{Request}
+	 * class, depending upon the SAPI in use.
+	 *
+	 * If no SAPI name is specified when calling \m{requestForSAPI}, the current
+	 * SAPI name as identified by PHP (using \f{php_sapi_name}) will be used.
+	 * Additionally, if \c{REQUEST_CLASS} is defined and no SAPI name is specified, an instance
+	 * of the class named by \c{REQUEST_CLASS} will be created instead of the default for the
+	 * current SAPI.
+	 *
+	 * @param[in,optional] string $sapi The name of the SAPI to return an instance for
+	 * @return Request An instance of a request class
+	 */
+	public static function requestForSAPI($sapi = null)
 	{
-		$sapi = php_sapi_name();
+		if($sapi === null)
+		{
+			if(defined('REQUEST_CLASS'))
+			{
+				if(defined('REQUEST_CLASS_PATH'))
+				{
+					require_once(APPS_ROOT . REQUEST_CLASS_PATH);
+				}
+				return new REQUEST_CLASS;
+			}
+			$sapi = php_sapi_name();
+		}
 		switch($sapi)
 		{
 			case 'cli':
@@ -73,11 +121,24 @@ class Request
 		}
 	}
 
+	/**
+	 * Default constructor for request classes
+	 * @internal
+	 */
 	protected function __construct()
 	{
 		$this->sapi = php_sapi_name();
 		$this->siteRoot = (defined('INSTANCE_ROOT') ? INSTANCE_ROOT : dirname($_SERVER['SCRIPT_FILENAME']));
 		if(substr($this->siteRoot, -1) != '/') $this->siteRoot .= '/';
+		$this->init();
+		$this->determineTypes();
+	}
+
+	/**
+	 * @internal
+	 */	
+	protected function init()
+	{
 		$this->typeMap['htm'] = 'text/html';
 		$this->typeMap['html'] = 'text/html';
 		$this->typeMap['xml'] = 'text/xml';
@@ -88,36 +149,38 @@ class Request
 		$this->typeMap['json'] = 'application/json';
 		$this->typeMap['yaml'] = 'application/x-yaml';
 		$this->typeMap['txt'] = 'text/plain';
-		$this->typeMap['text'] = 'text/plain';
+		$this->typeMap['text'] = 'text/plain';		
 	}
-
-	public function init()
-	{
-		$this->determineTypes();
-	}
-	
+		
+	/**
+	 * Initialise the $session property of the request class to be a new instance
+	 * of the default session class.
+	 * Invokes the $sessionInitialised callback if it is defined.
+	 * @internal
+	 */
+	 
 	protected function beginSession()
 	{
-		if(defined('SESSION_CLASS'))
-		{	
-			$name = SESSION_CLASS;
-			$this->session = new $name($this);
-		}
-		else
-		{
-			$this->session = new Session($this);
-		}
+		$this->session = Session::sessionForRequest($this);
 		if($this->sessionInitialised)
 		{
 			call_user_func($this->sessionInitialised, $this, $this->session);
 		}
 	}
 	
+	/**
+	 * Initialise the $session property of the request class to be a new
+	 * TransientSession instance.
+	 * @internal
+	 */
 	public function beginTransientSession()
 	{
 		$this->session = new TransientSession($this);
 	}
 	
+	/**
+	 * @internal
+	 */
 	protected function determineTypes($acceptHeader = null)
 	{
 		$ext = null;
@@ -152,6 +215,10 @@ class Request
 					$this->types = array($this->typeMap[$ext]);
 				}
 			}
+			else
+			{
+				$this->types = array('application/x-unknown');
+			}
 			return;
 		}
 		$accept = explode(',', $acceptHeader);
@@ -176,6 +243,24 @@ class Request
 		$this->types = array_values($types);
 	}
 	
+	/**
+	 * @brief Consume the first request parameter as the name of a page.
+	 *
+	 * Moves the first parameter from \P{Request::$params} to the \P{Request::$page} array and
+	 * returns it.
+	 *
+	 * This has the effect of indicating that the first element of \P{Request::$params} is the
+	 * name of a page or matches some other kind of defined route.
+	 *
+	 * For example, the \C{Router} class will call \m{Request::consume} when the first element of
+	 * \P{Request::$params} matches one of its routes and the \l{adjustBase} property of the
+	 * route is unset or \c{false}.
+	 *
+	 * As a result of calling \m{Request::consume}, \P{Request::$pageUri} will be updated
+	 * accordingly.
+	 *
+	 * @return string The first request parameter, or \c{null} if \P{Request::$params} is empty.
+	 */
 	public function consume()
 	{
 		if(($p = array_shift($this->params)) !== null)
@@ -193,6 +278,11 @@ class Request
 		return $p;
 	}
 
+	/**
+	 * Move the first parameter from the request to the base array.
+	 *
+	 * @return string The first request parameter
+	 */
 	public function consumeForApp()
 	{
 		if(($p = array_shift($this->params)) !== null)
@@ -209,6 +299,9 @@ class Request
 		}
 	}
 	
+	/**
+	 * @internal
+	 */
 	public function __get($name)
 	{
 		if($name == 'session')
@@ -221,13 +314,33 @@ class Request
 		}
 	}
 	
+	/**
+	 * @internal
+	 */
 	public function __isset($name)
 	{
 		if($name == 'session') return true;
 		return false;
 	}
 
-	/* addCrumb($array); addCrumb($name, [$link]); */
+	/**
+	 * @brief Add an element to the breadcrumb array.
+	 *
+	 * \m{Request::addCrumb} adds a new element to the breadcrumb array (\P{Request::$crumb}), optionally with an associated key.
+	 * The \p{$info} parameter may be either the name of the current page or an array containing at
+	 * least a \l{name} element. The \l{link} element of the array is used as the URI associated
+	 * with this entry in the breadcrumb. If the \l{link} element is absent, or the \p{$info} parameter
+	 * was a string, it is set to the value of the \P{Request::$pageUri} property.
+	 *
+	 * If $key is specified, the breadcrumb information is associated with the given value. Subsequent
+	 * calls to \m{addCrumb} specifying the same value for \p{$key} will overwrite the previously-specified
+	 * information (preserving the original order).
+	 *
+	 * If \p{$key} is not specified, a numeric key will be generated automatically.
+	 *
+	 * @param[in] mixed $info Either the name of the current page as should be presented to a user, or an array containing breadcrumb information.
+	 * @param[in,optional] string $key An optional key which the breadcrumb information will be associated with.
+	 */
 	public function addCrumb($info, $key = null)
 	{
 		if($this->lastRef)
@@ -254,15 +367,21 @@ class Request
 	}	
 }
 
+/**
+ * @package EregansuCore
+ * @since Eregansu 1.0 or later
+ *
+ * Implements the Request class for HTTP requests
+ */
 class HTTPRequest extends Request
 {
 	public $absoluteBase = null;
 	public $absolutePage = null;
 	public $secure = false;
 	
-	public function __construct()
+	protected function init()
 	{
-		parent::__construct();
+		parent::init();
 	 	/* Use a single sapi value for all of the different HTTP-based PHP SAPIs */		
 		$this->sapi = 'http';
 		$this->method = strtoupper($_SERVER['REQUEST_METHOD']);
