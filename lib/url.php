@@ -37,8 +37,28 @@
  * wrapper class doesn’t have an entry in $VFS.
  */
  
-class URL
+abstract class URL
 {
+	protected static $registered = false;
+	
+	public static function register()
+	{
+		global $VFS;
+		
+		if(self::$registered)
+		{
+			return;
+		}
+		if(isset($VFS) && is_array($VFS))
+		{
+			foreach($VFS as $scheme => $class)
+			{
+				stream_wrapper_register($scheme, $class, STREAM_IS_URL);
+			}
+		}
+		self::$registered = true;		
+	}
+	
 	public static function parse($url)
 	{
 		$match = array();
@@ -53,10 +73,11 @@ class URL
 		return parse_url($url);
 	}
 
-	function urlcopy($source, $dest, $context = null)
+	public static function copy($source, $dest, $context = null)
 	{
 		global $VFS;
 		
+		self::register();
 		if(($info = @self::parse($source)) && isset($info['scheme']) && strlen($info['scheme']) && isset($VFS[$info['scheme']]))
 		{
 			$inst = new $VFS[$info['scheme']];
@@ -82,7 +103,8 @@ class URL
 	public static function readlink($path, $context = null)
 	{
 		global $VFS;
-		
+
+		self::register();		
 		if(($info = @self::parse($path)) && isset($info['scheme']) && strlen($info['scheme']) && isset($VFS[$info['scheme']]))
 		{
 			$inst = new $VFS[$info['scheme']];
@@ -99,6 +121,7 @@ class URL
 	{
 		global $VFS;
 		
+		self::register();		
 		if(($info = @self::parse($path)) && isset($info['scheme']) && strlen($info['scheme']) && isset($VFS[$info['scheme']]))
 		{
 			$inst = new $VFS[$info['scheme']];
