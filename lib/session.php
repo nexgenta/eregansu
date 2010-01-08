@@ -29,15 +29,31 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* Configuration defines:
+/**
+ * @class Session
+ * @brief Session handling
  *
- *   SESSION_PARAM_NAME         Name of the URL parameter containing session ID
- *   SESSION_FIELD_NAME         Name of the form field containing session ID
- *   SESSION_COOKIE_NAME        Name of the HTTP cookie containing session ID
- *   SESSION_COOKIE_DOMAIN      Name of the DNS domain used when setting cookie
+ * The Session class implements basic session handling, based in part upon
+ * PHP‘s own session support.
  *
- * Additionally, as this implementation is based upon PHP’s built-in session
- * module, its configuration settings will also apply here.
+ * The Session class overloads property access, such that values stored against
+ * the session are represented as properties of the Session class.
+ *
+ * Before making changes to session data, you must call Session::begin(). When
+ * changes have been completed, you must call Session::commit() to write the
+ * session data back to the underlying storage (for example, files on disk).
+ *
+ * The Request class implements automatic support for the Session class: a
+ * session is lazily attached (using Session::sessionForRequest()) when the
+ * Request::$session property is first accessed.
+ *
+ * The following named constants may be defined prior to a session being attached
+ * which affect the behaviour of the Session class:
+ *
+ * - \c SESSION_COOKIE_NAME: The name of the session cookie (defaults to \c sid)
+ * - \c SESSION_COOKIE_DOMAIN: The domain name used for the session cookie (defaults to being unset)
+ * - \c SESSION_PARAM_NAME: The name of the URL parameter which may contain a session ID (defaults to \c sid)
+ * - \c SESSION_FIELD_NAME: The name of the form field which may contain a session ID (defaults to \c sid)
  */
 
 class Session
@@ -48,26 +64,60 @@ class Session
 	protected $cookieName = 'sid';
 	protected $cookiePath = '/';
 	protected $hostname = null;
-	protected $open = false;
+	protected $open = 0;
 	protected $id = null;
 	
-	public function __construct($req)
+	/**
+	 * @fn Session sessionForRequest($request)
+	 * @brief Return a Session instance associated with a a given request
+	 *
+	 * @param[in] Request $request The request which should be attached to the session
+	 * @returns An instance of the Sesssion class (or one of its descendants)
+	 */
+	public static function sessionForRequest($request)
 	{
-//		syslog(LOG_CRIT, "---- Session::__construct(" . $_SERVER["REQUEST_URI"] . ") -----");
+		if(defined('SESSION_CLASS'))
+		{	
+			$name = SESSION_CLASS;
+			return new $name($request);
+		}
+		return new Session($request);
+	}
+	
+	/**
+	 * @fn __construct($request)
+	 * @internal
+	 */
+	protected function __construct($request)
+	{
 		if(defined('SESSION_PARAM_NAME')) $this->paramName = SESSION_PARAM_NAME;
 		if(defined('SESSION_FIELD_NAME')) $this->fieldName = SESSION_FIELD_NAME;
 		if(defined('SESSION_COOKIE_NAME')) $this->cookieName = SESSION_COOKIE_NAME;
 		if(defined('SESSION_COOKIE_DOMAIN')) $this->hostname = SESSION_COOKIE_DOMAIN;
-		$this->init($req);
+		$this->init($request);
 	}
 	
+	/**
+	 * @internal
+	 */
+/*	public function __destruct()
+	{
+		syslog(LOG_CRIT, "Session::__destruct(): open = " . $this->open . ", id = " . $this->id);			
+	} */
+	
+	/**
+	 * @fn void init($req)
+	 * @internal
+	 * @brief Determine a session ID from a request, and either attach to the previous session or create a new one
+	 * @param[in] Request $req The request to attach the session to and to attempt to determine a session ID from
+	 */
 	protected function init($req)
 	{
 		ini_set('session.auto_start', 0);
 		ini_set('session.name', 'eregansu');
 		ini_set('session.use_cookies', 0);
 		ini_set('session.use_trans_sid', 0);
-	
+
 		$sid = null;
 		if(strlen($this->cookieName) && isset($_COOKIE[$this->cookieName]))
 		{
@@ -88,6 +138,13 @@ class Session
 		$this->beginSession($sid);
 	}
 	
+	/**
+	 * @fn bool sessionExists($id)
+	 * @internal
+	 * @brief Check whether the session identified by \p $id already exists
+	 * @param[in] string $id The session ID to check for
+	 * @returns \c true if the session identified by \p $id exists, \c false
+	 */
 	protected function sessionExists($id)
 	{
 		if(!strlen($id)) return false;
@@ -103,6 +160,12 @@ class Session
 		return false;
 	}
 	
+	/**
+	 * @fn void beginSession($id)
+	 * @internal
+	 * @param[in] string $id The session ID retrieved from the request, or \c null if it could not be determined
+	 * @brief Initialises the Session instance optionally given the ID of an existing session
+	 */
 	protected function beginSession($id)
 	{
 		if(!$this->sessionExists($id))
@@ -120,7 +183,7 @@ class Session
 			$id = session_id();
 		}
 		$this->id = $id;
-		$this->open = true;
+		$this->open = 1;
 		$_SESSION['sid'] = $id;
 //		syslog(LOG_CRIT, "Session::beginSession(): id = " . $this->id);		
 		$this->data =& $_SESSION;
@@ -154,26 +217,52 @@ class Session
 		}
 	}
 	
+	/**
+	 * @fn void commit()
+	 * @brief Commit changes to the session data
+	 *
+	 * Session::commit() stores any changes which have been made to the session
+	 * data so that they will be available when future requests attach to the
+	 * session.
+	 *
+	 * @see Session::begin()
+	 */
 	public function commit()
 	{
+//		syslog(LOG_CRIT, "Session::commit(): open = " . $this->open . ", id = " . $this->id);
 		if($this->open)
 		{
-//			syslog(LOG_CRIT, "Session::commit(): id = " . $this->id);		
-			session_write_close();
-			$this->setCookie();
+			$this->open--;
+			if(!$this->open)
+			{
+//				syslog(LOG_CRIT, "Session::commit(): Writing changes");
+				session_write_close();
+				$this->setCookie();
+			}
 		}
 		else
 		{
 //			syslog(LOG_CRIT, "Session::commit(): Attempt to commit when session is closed");
 		}
-		$this->open = false;
 	}
 	
+	/**
+	 * @fn void begin()
+	 * @brief Open the session data, so that changes can be made to it
+	 *
+	 * Session::begin() prepares the session data for modifications. Once the
+	 * modifications have been completed, you should call Session::commit().
+	 *
+	 * Session::begin() and Session::commit() are re-entrant: provided every
+	 * call to Session::begin() has a matching call to Session::commit(), all
+	 * except the outermost calls to Session::begin() and Session::commit() will
+	 * have no effect.
+	 */
 	public function begin()
 	{
+//		syslog(LOG_CRIT, "Session::begin(): open = " . $this->open . ", id = " . $this->id);
 		if(!$this->open)
 		{
-//			syslog(LOG_CRIT, "Session::begin(): id = " . $this->id);
 			session_id($this->id);
 			session_start();
 			$this->data =& $_SESSION;
@@ -190,9 +279,12 @@ class Session
 		{
 			syslog(LOG_CRIT, "Session::open(): Attempt to open when session is open");		
 		} */
-		$this->open = true;
+		$this->open++;
 	}
 	
+	/**
+	 * @internal
+	 */
 	public function &__get($key)
 	{
 		if(isset($this->data[$key]))
@@ -203,22 +295,35 @@ class Session
 		return $null;
 	}
 	
+	/**
+	 * @internal
+	 */
 	public function __set($key, $value)
 	{
 		$this->data[$key] = $value;
 	}
 	
+	/**
+	 * @internal
+	 */
 	public function __isset($key)
 	{
 		return isset($this->data[$key]);
 	}
 	
+	/**
+	 * @internal
+	 */
 	public function __unset($key)
 	{
 		unset($this->data[$key]);
 	}
 }
 
+/**
+ * @class TransientSession
+ * @brief Descendant of the Session class which has no persistent storage capabilities.
+ */
 class TransientSession extends Session
 {
 	protected function init($req)
