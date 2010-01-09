@@ -356,19 +356,6 @@ class App extends Router
 		{
 			$this->routes['login'] = array('file' => PLATFORM_ROOT . 'login/app.php', 'class' => 'LoginPage', 'fromRoot' => true);
 		}
-		$help = array('file' => PLATFORM_PATH . 'cli.php', 'class' => 'CliHelp', 'fromRoot' => true);
-		if(!isset($this->sapi['cli']['__DEFAULT__']))
-		{
-			$this->sapi['cli']['__DEFAULT__'] = $help;
-		}
-		if(!isset($this->sapi['cli']['__NONE__']))
-		{
-			$this->sapi['cli']['__NONE__'] = $help;
-		}
-		if(!isset($this->sapi['cli']['help']))
-		{
-			$this->sapi['cli']['help'] = $help;
-		}
 	}
 	
 	public function process(Request $req)
@@ -402,6 +389,10 @@ class DefaultApp extends App
 		if(!isset($this->sapi['cli']['help']))
 		{
 			$this->sapi['cli']['help'] = $help;
+		}
+		if(!isset($this->sapi['cli']['setup']))
+		{
+			$this->sapi['cli']['setup'] = array('file' => PLATFORM_PATH . 'cli.php', 'class' => 'CliSetup', 'fromRoot' => true);
 		}
 	}
 }
