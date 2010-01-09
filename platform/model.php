@@ -40,9 +40,10 @@ class Model
 	protected static $instances = array();
 	public $db;
 		
-	public static function getInstance($args = null, $className = null)
+	public static function getInstance($args = null, $className = null, $defaultDbIri = null)
 	{
 		if(is_null($args)) $args = array();
+		if(!isset($args['db'])) $args['db'] = $defaultDbIri;
 		if(!$className) return null;
 		if(!isset(self::$instances[$className]))
 		{
