@@ -47,11 +47,11 @@ function uses()
 	{
 		if(in_array($_mod, $_lib_modules))
 		{
-			require_once(PLATFORM_ROOT . 'lib/' . $_mod . '.php');
+			require_once(PLATFORM_LIB . $_mod . '.php');
 		}
 		else
 		{
-			require_once(PLATFORM_ROOT . 'platform/' . $_mod . '.php');
+			require_once(PLATFORM_PATH . $_mod . '.php');
 		}
 	}
 }
@@ -64,13 +64,14 @@ require_once(CONFIG_ROOT . 'config.php');
 require_once(CONFIG_ROOT . 'appconfig.php');
 
 /* Load the initial set of modules */
-require_once(PLATFORM_ROOT.  'lib/request.php');
-require_once(PLATFORM_ROOT . 'lib/session.php');
-require_once(PLATFORM_ROOT . 'lib/url.php');
-require_once(PLATFORM_ROOT . 'platform/routable.php');
-require_once(PLATFORM_ROOT . 'platform/page.php');
-require_once(PLATFORM_ROOT . 'platform/template.php');
-require_once(PLATFORM_ROOT . 'platform/error.php');
+require_once(PLATFORM_LIB . 'request.php');
+require_once(PLATFORM_LIB . 'session.php');
+require_once(PLATFORM_LIB . 'url.php');
+
+require_once(PLATFORM_PATH . 'routable.php');
+require_once(PLATFORM_PATH . 'page.php');
+require_once(PLATFORM_PATH . 'template.php');
+require_once(PLATFORM_PATH . 'error.php');
 
 /* Our global event sink: at the moment just used to implement a callback from
  * the request class which fires when the session has been initialised.

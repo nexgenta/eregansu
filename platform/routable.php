@@ -356,7 +356,7 @@ class App extends Router
 		{
 			$this->routes['login'] = array('file' => PLATFORM_ROOT . 'login/app.php', 'class' => 'LoginPage', 'fromRoot' => true);
 		}
-		$help = array('file' => PLATFORM_ROOT . 'cli.php', 'class' => 'CliHelp', 'fromRoot' => true);
+		$help = array('file' => PLATFORM_PATH . 'cli.php', 'class' => 'CliHelp', 'fromRoot' => true);
 		if(!isset($this->sapi['cli']['__DEFAULT__']))
 		{
 			$this->sapi['cli']['__DEFAULT__'] = $help;
@@ -390,7 +390,7 @@ class DefaultApp extends App
 		$this->sapi['http'] = $HTTP_ROUTES;
 		$this->sapi['cli'] = $CLI_ROUTES;
 		$this->sapi['mq'] = $MQ_ROUTES;
-		$help = array('file' => PLATFORM_ROOT . 'cli.php', 'class' => 'CliHelp', 'fromRoot' => true);
+		$help = array('file' => PLATFORM_PATH . 'cli.php', 'class' => 'CliHelp', 'fromRoot' => true);
 		if(!isset($this->sapi['cli']['__DEFAULT__']))
 		{
 			$this->sapi['cli']['__DEFAULT__'] = $help;

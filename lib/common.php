@@ -182,8 +182,16 @@ if(!defined('INSTANCE_ROOT'))
 }
 if(!defined('PLATFORM_ROOT'))
 {
-	define('PLATFORM_ROOT', realpath(dirname(__FILE__)) . '/../');
+	define('PLATFORM_ROOT', realpath(dirname(__FILE__) . '/..') . '/');
 } 
+if(!defined('PLATFORM_LIB'))
+{
+	define('PLATFORM_LIB', PLATFORM_ROOT . 'lib/');
+}
+if(!defined('PLATFORM_PATH'))
+{
+	define('PLATFORM_PATH', PLATFORM_ROOT . 'platform/');
+}
 if(!defined('CONFIG_ROOT'))
 {
 	define('CONFIG_ROOT', INSTANCE_ROOT . 'config/');
@@ -214,9 +222,9 @@ $APP_ROOT = APPS_ROOT;
  * - \c ${app} The filesystem path of the current application
  */
 $AUTOLOAD_SUBST = array();
-$AUTOLOAD_SUBST['${lib}'] = dirname(__FILE__);
+$AUTOLOAD_SUBST['${lib}'] = PLATFORM_LIB;
 $AUTOLOAD_SUBST['${instance}'] = INSTANCE_ROOT;
-$AUTOLOAD_SUBST['${platform}'] = PLATFORM_ROOT;
+$AUTOLOAD_SUBST['${platform}'] = PLATFORM_PATH;
 $AUTOLOAD_SUBST['${apps}'] = APPS_ROOT;
 $AUTOLOAD_SUBST['${app}'] =& $APP_ROOT;
 
