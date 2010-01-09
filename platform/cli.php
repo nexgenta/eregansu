@@ -2,7 +2,7 @@
 
 /* Eregansu: Additional command-line support
  *
- * Copyright 2009 Mo McRoberts.
+ * Copyright 2009, 2010 Mo McRoberts.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,5 +51,47 @@ class CliHelp extends CommandLine
 			if(!isset($info['description'])) continue;
 			echo sprintf("  %-25s  %s\n", $cmd, $info['description']);
 		}
+	}
+}
+
+/* For each registered module, perform any necessary database schema updates */
+class CliSetup extends CommandLine
+{
+	public function main($args)
+	{
+		global $SETUP_MODULES, $APP_ROOT;
+		
+		if(!isset($SETUP_MODULES) || !is_array($SETUP_MODULES) || !count($SETUP_MODULES))
+		{
+			echo "setup: No modules are configured\n";
+			exit(1);
+		}
+		$root = $APP_ROOT;
+		foreach($SETUP_MODULES as $mod)
+		{
+			if(isset($mod['name']))
+			{
+				$APP_ROOT = APPS_ROOT . $mod['name'] . '/';
+			}
+			if(isset($mod['file']))
+			{
+				require_once($APP_ROOT . $mod['file']);
+			}
+			$cl = $mod['class'];
+			$module = $cl::getInstance();
+			if(!$module)
+			{
+				echo "*** Failed to retrieve module instance ($cl)\n";
+				exit(1);
+			}
+			echo ">>> Updating schema of " . $module->moduleId . "\n";
+			if(!$module->setup())
+			{
+				echo "*** Schema update of " . $module->moduleId . " to " . $module->latestVersion . " failed\n";
+				exit(1);
+			}
+			$APP_ROOT = $root;
+		}
+		echo ">>> Module setup completed successfully.\n";
 	}
 }

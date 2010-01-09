@@ -1,6 +1,6 @@
 <?php
 
-/* Copyright 2009 Mo McRoberts.
+/* Copyright 2009, 2010 Mo McRoberts.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -87,6 +87,7 @@ abstract class DBCore implements IDBCore
 {
 	protected $rsClass;
 	protected $params;
+	protected $schema;
 	public $dbms = 'unknown';
 	
 	public static function connect($iristr)
@@ -388,6 +389,20 @@ abstract class DBCore implements IDBCore
 		$name = '"' . $name . '"';
 	}
 
+	public function &__get($name)
+	{
+		$nothing = null;
+		if($name == 'schema')
+		{
+			if(!$this->schema)
+			{
+				require_once(dirname(__FILE__) . '/dbschema.php');
+				$this->schema = DBSchema::schemaForConnection($this);
+			}
+			return $this->schema;
+		}
+		return $nothing;
+	}
 }
 
 /* while(($row = $rs->next())) { ... } */
