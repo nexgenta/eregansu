@@ -73,10 +73,10 @@ class Identity extends Model
 	public $writeable = true;
 	public $allowAutomaticCreation = false;
 	
-	public static function getInstance($args = null, $className = null)
+	public static function getInstance($args = null, $className = null, $defaultDbIri = null)
 	{
 		if(null === $args) $args = array();
-		if(!isset($args['db'])) $args['db'] = IDENTITY_IRI;
+		if(!isset($args['db'])) $args['db'] = ($defaultDbIri ? $defaultDbIri : IDENTITY_IRI);
 		if(null === $className)
 		{
 			if(!strncmp($args['db'], 'file:', 5))
