@@ -51,7 +51,7 @@ function uses()
 		}
 		else
 		{
-			require_once(PLATFORM_ROOT . $_mod . '.php');
+			require_once(PLATFORM_ROOT . 'platform/' . $_mod . '.php');
 		}
 	}
 }
@@ -67,11 +67,10 @@ require_once(CONFIG_ROOT . 'appconfig.php');
 require_once(PLATFORM_ROOT.  'lib/request.php');
 require_once(PLATFORM_ROOT . 'lib/session.php');
 require_once(PLATFORM_ROOT . 'lib/url.php');
-require_once(PLATFORM_ROOT . 'routable.php');
-require_once(PLATFORM_ROOT . 'page.php');
-require_once(PLATFORM_ROOT . 'template.php');
-require_once(PLATFORM_ROOT . 'error.php');
-
+require_once(PLATFORM_ROOT . 'platform/routable.php');
+require_once(PLATFORM_ROOT . 'platform/page.php');
+require_once(PLATFORM_ROOT . 'platform/template.php');
+require_once(PLATFORM_ROOT . 'platform/error.php');
 
 /* Our global event sink: at the moment just used to implement a callback from
  * the request class which fires when the session has been initialised.
