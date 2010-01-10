@@ -63,26 +63,26 @@ class MySQLTable extends DBTable
 		$spec = '"' . $info['name'] . '" ';
 		switch($info['type'])
 		{
-			case DBTable::CHAR:
+			case DBType::CHAR:
 				$spec .= 'CHAR(' . $info['sizeValues'] . ')';
 				break;
-			case DBTable::INT:
-				$spec .= 'BIGINT';
-				if($info['flags'] & DBTable::UNSIGNED)
+			case DBType::INT:
+				$spec .= ($info['flags'] & DBCol::BIG ? 'BIGINT' : 'INT');
+				if($info['flags'] & DBCol::UNSIGNED)
 				{
 					$spec .= ' UNSIGNED';
 				}
 				break;
-			case DBTable::VARCHAR:
+			case DBType::VARCHAR:
 				$spec .= 'VARCHAR(' . $info['sizeValues'] . ')';
 				break;
-			case DBTable::DATE:
+			case DBType::DATE:
 				$spec .= 'DATE';
 				break;
-			case DBTable::DATETIME:
+			case DBType::DATETIME:
 				$spec .= 'DATETIME';
 				break;
-			case DBTable::ENUM:
+			case DBType::ENUM:
 				$list = array();
 				foreach($info['sizeValues'] as $v)
 				{
@@ -90,7 +90,7 @@ class MySQLTable extends DBTable
 				}
 				$spec .= 'ENUM(' . implode(', ', $list) . ')';
 				break;
-			case DBTable::SET:
+			case DBType::SET:
 				$list = array();
 				foreach($info['sizeValues'] as $v)
 				{
@@ -98,28 +98,28 @@ class MySQLTable extends DBTable
 				}
 				$spec .=  'SET(' . implode(', ', $list) . ')';
 				break;
-			case DBTable::SERIAL:
+			case DBType::SERIAL:
 				$spec .= 'BIGINT UNSIGNED';
 				$info['flags'] |= DBTable::NOT_NULL;
 				break;
-			case DBTable::BOOL:
+			case DBType::BOOL:
 				$spec .= 'ENUM(\'N\',\'Y\')';
 				break;
-			case DBTable::UUID:
+			case DBType::UUID:
 				$spec .= 'VARCHAR(36)';
 				break;
-			case DBTable::TEXT:
-				$spec .= 'TEXT';
+			case DBType::TEXT:
+				$spec .=  ($info['flags'] & DBCol::BIG ? 'LONGTEXT' : 'TEXT');
 				break;
 			default:
 				trigger_error('MySQLTable: Unsupported column type ' . $info['type'], E_USER_NOTICE);
 				return false;
 		}
-		if($info['flags'] & DBTable::NOT_NULL)
+		if($info['flags'] & DBCol::NOT_NULL)
 		{
 			$spec .= ' NOT NULL';
 		}
-		if($info['type'] == DBTable::SERIAL)
+		if($info['type'] == DBType::SERIAL)
 		{
 			$spec .= ' AUTO_INCREMENT';
 		}

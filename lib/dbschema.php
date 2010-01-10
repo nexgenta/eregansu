@@ -34,6 +34,29 @@ abstract class DBIndex
 	const INDEX = 3;
 }
 
+abstract class DBType
+{
+	const CHAR = 1;
+	const INT = 2;
+	const VARCHAR = 3;
+	const DATE = 4;
+	const DATETIME = 5;
+	const ENUM = 6;
+	const SET = 7;
+	const SERIAL = 8;
+	const BOOL = 9;
+	const UUID = 10;
+	const TEXT = 11;
+}
+
+abstract class DBCol
+{
+	const NULLS = 0;
+	const NOT_NULL = 1;
+	const UNSIGNED = 2;
+	const BIG = 4; /* Use largest available field width (e.g., BIGINT vs INT, LONGTEXT vs TEXT) */
+}
+
 abstract class DBSchema
 {
 	public $db; /* Associated database connection */
@@ -91,24 +114,6 @@ abstract class DBTable
 	const CREATE_IF_NEEDED = 1; /* Create it if it doesn't exist; no-op otherwise */
 	const CREATE_ALWAYS = 2; /* Always create, dropping if necessary */
 	
-	/* Column types */
-	const CHAR = 1;
-	const INT = 2;
-	const VARCHAR = 3;
-	const DATE = 4;
-	const DATETIME = 5;
-	const ENUM = 6;
-	const SET = 7;
-	const SERIAL = 8;
-	const BOOL = 9;
-	const UUID = 10;
-	const TEXT = 11;
-	
-	/* Column flags */
-	const NULLS = 0;
-	const NOT_NULL = 1;
-	const UNSIGNED = 2;
-
 	public $schema;
 	public $name;
 	public $options;
@@ -160,6 +165,43 @@ abstract class DBTable
 			'default' => $defaultValue,
 			'comment' => $comment,
 		);
+		switch($type)
+		{
+			case DBType::CHAR:
+				if(empty($info['sizeValues'])) $info['sizeValues'] = 1;
+				if(!is_int($info['sizeValues']))
+				{
+					trigger_error('DBTable::columnWithSpec: the size of a CHAR column must be an integer or null', E_USER_NOTICE);
+					return false;
+				}
+				break;
+			case DBType::VARCHAR:
+				if(!is_int($info['sizeValues']))
+				{
+					trigger_error('DBTable::columnWithSpec: the size of a VARCHAR column must be an integer', E_USER_NOTICE);
+					return false;
+				}
+				break;
+			case DBType::ENUM:
+			case DBType::SET:
+				if(!is_array($info['sizeValues']) || !count($info['sizeValues'])
+				{
+					trigger_error('DBTable::columnWithSpec: an array of values must be specified for ' . ($type == DBType::ENUM ? 'an ENUM' : 'a SET') . ' column', E_USER_NOTICE);
+					return false;
+				}
+			case DBType::DATE:
+			case DBType::DATETIME:
+			case DBType::UUID:
+			case DBType::BOOL:
+			case DBType::SERIAL:
+			case DBType::INT:
+			case DBType::TEXT:
+				$info['sizeValues'] = null;
+				break;
+			default:
+				trigger_error('DBTable: Unsupported column type ' . $info['type'], E_USER_NOTICE);
+				return false;
+		}
 		if(!$this->nativeColumnSpec($info))
 		{
 			return false;
