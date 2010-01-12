@@ -5,6 +5,11 @@ if test x"${PHP_5}" = x"" ; then
 fi
 
 dir=`dirname "$0"`
+if test -d "$dir/platform" && test -f "$dir/platform/platform.php" ; then
+	echo "found $dir/platform"
+elif test -d ./platform ; then
+	dir=`pwd`
+fi
 cd "$dir"
 
 if test -r index.php ; then
