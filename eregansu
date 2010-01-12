@@ -7,4 +7,14 @@ fi
 dir=`dirname "$0"`
 cd "$dir"
 
-${PHP_5} -f index.php "$@"
+if test -r index.php ; then
+	exec ${PHP_5} -f index.php "$@"
+fi
+
+if test -r platform/index.setup.php ; then
+	echo ">>> index.php does not exist, running 'eregansu setup'" >&2
+	exec ${PHP_5} -f platform/index.setup.php
+fi
+
+echo "$0: cannot find index.php or platform/index.setup.php" >&2
+exit 1
