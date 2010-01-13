@@ -5,7 +5,7 @@ require_once(dirname(__FILE__) . '/dbschema.php');
 class MySQLSchema extends DBSchema
 {
 	protected $tableClass = 'MySQLTable';
-
+	
 	public function moduleVersion($moduleId)
 	{
 		try
@@ -46,18 +46,66 @@ class MySQLSchema extends DBSchema
 		}
 		return $ver;
 	}
+	
+	/* Return the list of databases accessible by this connection */
+	public function databases()
+	{
+		$list = array();
+		$rows = $this->db->rows('SHOW DATABASES');
+		foreach($rows as $r)
+		{
+			$list[] = $r['Database'];
+		}
+		sort($list);
+		return $list;
+	}
+	
+	/* Return the list of database schema for a database */
+	public function schemata($dbName)
+	{
+		return null;
+	}
+	
+	/* Return the list of tables in a database (within a schema, if supported) */
+	public function tables($dbName, $schemaName)
+	{
+		$list = array();
+		$rows = $this->db->rows('SHOW FULL TABLES FROM "' . $dbName . '" WHERE "Table_type" = ?', 'BASE TABLE');
+		foreach($rows as $r)
+		{
+			$r = array_values($r);
+			$list[] = $r[0];
+		}
+		sort($list);
+		return $list;
+	}
+
+	/* Return the list of views in a database (within a schema, if supported) */
+	public function views($dbName, $schemaName)
+	{
+		return $this->db->column('SHOW FULL TABLES FROM "' . $dbName . '" WHERE "Table_type" = ?', 'VIEW');
+	}
+	
 }
 
 class MySQLTable extends DBTable
 {
 	protected $nativeCreateOptions = array(
-		'engine' => 'ENGINE=InnoDB',
-		'charset' => 'DEFAULT CHARSET=utf8',
-		'collate' => 'DEFAULT COLLATE=utf8_general_ci',
+		'ENGINE' => 'InnoDB',
+		'DEFAULT COLLATE' => 'utf8_general_ci',
 	);
 	
 	protected function retrieve()
 	{
+		$table = $this->schema->db->row('SELECT * FROM "INFORMATION_SCHEMA"."TABLES" WHERE "TABLE_CATALOG" IS NULL AND "TABLE_SCHEMA" = ? AND "TABLE_NAME" = ?', $this->schema->db->dbName, $this->name);
+		$this->nativeCreateOptions['ENGINE'] = $table['ENGINE'];
+		$this->nativeCreateOptions['DEFAULT COLLATE'] = $table['TABLE_COLLATION'];
+		$this->nativeCreateOptions['COMMENT'] = $table['TABLE_COMMENT'];
+		$info = $this->schema->db->rows('SELECT * FROM "INFORMATION_SCHEMA"."COLUMNS" WHERE "TABLE_CATALOG" IS NULL AND "TABLE_SCHEMA" = ? AND "TABLE_NAME" = ? ORDER BY ORDINAL_POSITION ASC', $this->schema->db->dbName, $this->name);
+		foreach($info as $field)
+		{
+			$this->columns[$field['COLUMN_NAME']] = $this->columnFromNative($field);
+		}
 	}
 	
 	protected function nativeColumnSpec(&$info)
@@ -135,6 +183,111 @@ class MySQLTable extends DBTable
 		}
 		$info['spec'] = $spec;
 		return true;
+	}
+	
+	protected function columnFromNative($native)
+	{
+		$info = array(
+			'name' => $native['COLUMN_NAME'],
+			'type' => null,
+			'sizeValues' => null,
+			'flags' => ($native['IS_NULLABLE'] == 'YES' ? DBCol::NULLS : DBCol::NOT_NULL),
+			'default' => $native['COLUMN_DEFAULT'],
+			'comment' => $native['COLUMN_COMMENT'],
+			'options' => array(),
+			'spec' => '"' . $native['COLUMN_NAME'] . '" ' . $native['COLUMN_TYPE'],
+		);
+		$nt = explode(' ', strtolower($native['COLUMN_TYPE']));
+		switch(strtolower($native['DATA_TYPE']))
+		{
+			case 'char':
+				$info['type'] = DBType::CHAR;
+				$info['sizeValues'] = $native['CHARACTER_MAXIMUM_LENGTH'];
+				break;
+			case 'varchar':
+				$info['type'] = DBType::VARCHAR;
+				$info['sizeValues'] = $native['CHARACTER_MAXIMUM_LENGTH'];
+				break;
+			case 'bigint':
+				$info['flags'] |= DBCol::BIG;
+			case 'int':
+			case 'mediumint':
+			case 'smallint':
+			case 'tinyint':
+				$info['type'] = DBType::INT;
+				break;
+			case 'longtext':
+				$info['flags'] |= DBCol::BIG;
+			case 'mediumtext':
+			case 'text':
+				$info['type'] = DBType::TEXT;
+				break;
+			case 'date':
+				$info['type'] = DBType::DATE;
+				break;
+			case 'datetime':
+			case 'timestamp':
+				$info['type'] = DBType::DATETIME;
+				break;
+			case 'enum':
+				$info['type'] = DBType::ENUM;
+				break;
+			case 'set':
+				$info['type'] = DBType::SET;
+				break;
+			case 'longblob':
+				$info['flags'] |= DBCol::BIG;
+			case 'blob':
+			case 'tinyblob':
+			case 'mediumblob':
+				$info['type'] = DBType::BLOB;
+				break;
+			case 'time':
+				$info['type'] = DBType::TIME;
+				break;
+			case 'binary':
+				$info['type'] = DBType::BINARY;
+				break;
+			case 'varbinary':
+				$info['type'] = DBType::VARBINARY;
+				break;
+		}
+		switch(strtolower($native['DATA_TYPE']))
+		{
+			case 'char':
+			case 'varchar':
+			case 'text':
+			case 'longtext':
+				$info['options']['CHARACTER SET'] = $native['CHARACTER_SET_NAME'];
+				$info['options']['COLLATE'] = $native['COLLATION_NAME'];
+				$info['spec'] .= ' CHARACTER SET ' . $native['CHARACTER_SET_NAME'];
+				$info['spec'] .= ' COLLATE ' . $native['COLLATION_NAME'];
+				break;
+			case 'int':
+			case 'bigint':
+				if(in_array('unsigned', $nt))
+				{
+					$info['flags'] |= DBCol::UNSIGNED;
+				}
+				if($native['EXTRA'] == 'auto_increment')
+				{
+					$info['type'] = DBType::SERIAL;
+				}
+				break;
+		}
+		if($info['flags'] & DBCol::NOT_NULL)
+		{
+			$info['spec'] .= ' NOT NULL';
+		}
+		if($info['default'] !== null)
+		{
+			$info['spec'] .= ' DEFAULT ' . $this->schema->db->quote($info['default']);
+		}
+		if($info['comment'] !== null)
+		{
+			$info['spec'] .= ' COMMENT ' . $this->schema->db->quote($info['comment']);
+		}
+		return $info;
 	}
 
 	public function indexWithSpec($name, $type, $column /* ... */)
