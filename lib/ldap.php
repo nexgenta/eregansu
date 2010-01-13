@@ -37,6 +37,8 @@
  * @since Available in Eregansu 1.0 and later. 
  */
 
+require_once(dirname(__FILE__) . '/db.php');
+
 /**
  * LDAP database support.
  */

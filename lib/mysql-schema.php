@@ -1,5 +1,7 @@
 <?php
 
+require_once(dirname(__FILE__) . '/dbschema.php');
+
 class MySQLSchema extends DBSchema
 {
 	protected $tableClass = 'MySQLTable';
