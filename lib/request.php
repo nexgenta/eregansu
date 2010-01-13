@@ -299,6 +299,11 @@ abstract class Request
 		}
 	}
 	
+	public function consumeObject()
+	{
+		return array_shift($this->objects);
+	}
+	
 	/**
 	 * @internal
 	 */
