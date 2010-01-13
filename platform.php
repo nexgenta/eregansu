@@ -69,7 +69,7 @@ if(isset($argv[1]) && ($argv[1] == 'setup' || $argv[1] == 'install'))
 		}
 		if($argv[1] == 'install')
 		{
-			$argv[1] = 'setup';
+			$argv[1] = $_SERVER['argv'][1] = 'setup';
 		}
 	}
 }
