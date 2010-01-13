@@ -88,6 +88,8 @@ abstract class DBCore implements IDBCore
 	protected $rsClass;
 	protected $params;
 	protected $schema;
+	protected $dbName;
+	protected $schemaName;
 	public $dbms = 'unknown';
 	
 	public static function connect($iristr)
@@ -100,6 +102,10 @@ abstract class DBCore implements IDBCore
 		{
 			$iri = parse_url($iristr);
 		}
+		if(!isset($iri['path']))
+		{
+			$iri['path'] = null;
+		}		
 		if(!isset($iri['dbname']))
 		{
 			$iri['dbname'] = null;
@@ -401,6 +407,14 @@ abstract class DBCore implements IDBCore
 			}
 			return $this->schema;
 		}
+		if($name == 'dbName')
+		{
+			return $this->dbName;
+		}
+		if($name == 'schemaName')
+		{
+			return $this->schemaName;
+		}
 		return $nothing;
 	}
 }
@@ -436,7 +450,6 @@ class MySQL extends DBCore
 {
 	protected $rsClass = 'MySQLSet';
 	protected $mysql;
-	protected $dbName;
 	protected $forceNewConnection = false;
 	public $dbms = 'mysql';
 	
@@ -456,15 +469,27 @@ class MySQL extends DBCore
 		{
 			$this->raiseError(null);
 		}
-		if(!mysql_select_db($this->params['dbname'], $this->mysql))
+		if(strlen($this->params['dbname']))
 		{
-			$this->raiseError(null);
+			if(!mysql_select_db($this->params['dbname'], $this->mysql))
+			{
+				$this->raiseError(null);
+			}
+			$this->dbName = $this->params['dbname'];
 		}
-		$this->dbName = $this->params['dbname'];
 		$this->execute("SET NAMES 'utf8'");
 		$this->execute("SET sql_mode='ANSI'");
 		$this->execute("SET storage_engine='InnoDB'");
 		$this->execute("SET time_zone='+00:00'");
+	}
+	
+	public function selectDatabase($name)
+	{
+		if(!mysql_select_db($name, $this->mysql))
+		{
+			$this->raiseError(null);
+		}
+		$this->dbName = $name;		
 	}
 	
 	protected function execute($sql)
