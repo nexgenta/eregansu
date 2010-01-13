@@ -59,6 +59,21 @@ function uses()
 /* Initialise the core library */
 require_once(dirname(__FILE__) . '/lib/common.php');
 
+if(isset($argv[1]) && ($argv[1] == 'setup' || $argv[1] == 'install'))
+{
+	if(php_sapi_name() == 'cli')
+	{
+		if($argv[1] == 'install' || !file_exists(CONFIG_ROOT) || !file_exists(CONFIG_ROOT . 'config.php') || !file_exists(CONFIG_ROOT . 'appconfig.php'))
+		{
+			require_once(PLATFORM_ROOT . 'setup/setup.php');
+		}
+		if($argv[1] == 'install')
+		{
+			$argv[1] = 'setup';
+		}
+	}
+}
+
 /* Load the application-wide and per-instance configurations */
 require_once(CONFIG_ROOT . 'config.php');
 require_once(CONFIG_ROOT . 'appconfig.php');
