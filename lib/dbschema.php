@@ -47,6 +47,10 @@ abstract class DBType
 	const BOOL = 9;
 	const UUID = 10;
 	const TEXT = 11;
+	const BLOB = 12;
+	const BINARY = 13;
+	const VARBINARY = 14;
+	const TIME = 15;
 }
 
 abstract class DBCol
@@ -154,6 +158,11 @@ abstract class DBTable
 		return null;
 	}
 	
+	public function columns()
+	{
+		return $this->columns;
+	}
+	
 	public function columnWithSpec($name, $type, $sizeValues, $flags = null, $defaultValue = null, $comment = null)
 	{
 		if($flags == null) $flags = self::NULLS;
@@ -218,6 +227,11 @@ abstract class DBTable
 			}
 		}
 		$this->columns[$name] = $info;
+	}
+	
+	public function indices()
+	{
+		return $this->indices;
 	}
 	
 	/* Query the database schema and populate $this->columns and
