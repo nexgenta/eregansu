@@ -184,7 +184,7 @@ abstract class DBTable
 				break;
 			case DBType::ENUM:
 			case DBType::SET:
-				if(!is_array($info['sizeValues']) || !count($info['sizeValues'])
+				if(!is_array($info['sizeValues']) || !count($info['sizeValues']))
 				{
 					trigger_error('DBTable::columnWithSpec: an array of values must be specified for ' . ($type == DBType::ENUM ? 'an ENUM' : 'a SET') . ' column', E_USER_NOTICE);
 					return false;
