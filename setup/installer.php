@@ -119,7 +119,7 @@ class Installer
 		}
 		if(file_exists($this->appconfig))
 		{
-			echo "--> Skipping application configuration as appconfig.$appname.php already exists\n";
+			echo "--> Skipping application configuration as appconfig." . $this->appname . ".php already exists\n";
 		}
 		else
 		{
