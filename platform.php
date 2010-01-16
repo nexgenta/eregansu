@@ -65,7 +65,7 @@ if(isset($argv[1]) && ($argv[1] == 'setup' || $argv[1] == 'install'))
 	{
 		if($argv[1] == 'install' || !file_exists(CONFIG_ROOT) || !file_exists(CONFIG_ROOT . 'config.php') || !file_exists(CONFIG_ROOT . 'appconfig.php'))
 		{
-			require_once(PLATFORM_ROOT . 'setup/setup.php');
+			require_once(PLATFORM_ROOT . 'install/installer.php');
 		}
 		if($argv[1] == 'install')
 		{

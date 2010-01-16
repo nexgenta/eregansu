@@ -44,6 +44,8 @@ class Installer
 		$this->checkAppName();
 		$this->checkAppConfig();
 		$this->checkAppConfigLink();
+		
+		/* Once this class has been finished, we should return true */
 	}
 	
 	protected function init()
@@ -199,5 +201,12 @@ class Installer
 		flush();
 		return $line;
 	}
+}
+
+$installer = new Installer();
+
+if(!$installer->run())
+{
+	exit(1);
 }
 
