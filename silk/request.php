@@ -33,7 +33,7 @@ class SilkRequest extends HTTPRequest
 {
 	protected $headersWritten = false;
 	protected $socket;
-	protected $cookies;
+	protected $cookies = array();
 	protected $headers = array(
 		'connection' => array('Connection: close'),
 		'content-type' => array('Content-type: text/html; charset=UTF-8'),
