@@ -99,14 +99,14 @@ class LoginPage extends Page
 			$this->kind = $this->session->loginKind;
 		}
 		if(!isset($this->loginKinds[$this->kind])) $this->kind = DEFAULT_LOGIN_KIND;
-		$this->session->begin();
+		$this->session->begin($this->request);
 		$this->session->loginKind = $this->kind;
 		$this->session->commit();
 		if(!empty($this->session->user))
 		{
 			if(!empty($this->request->query['logout']))
 			{
-				$this->session->begin();
+				$this->session->begin($this->request);
 				$this->session->user = null;
 				$this->session->commit();
 			}
@@ -162,7 +162,7 @@ class LoginPage extends Page
 			return false;
 		}
 		$sessionToken = md5($this->session->nonce . $iri);
-		$this->session->begin();
+		$this->session->begin($this->request);
 		if(!isset($this->session->loginIRI)) $this->session->loginIRI = array();
 		$this->session->loginIRI[$sessionToken] = array($scheme, $iri);
 		$callback = $this->request->absolutePage . 'return/' . $scheme . '/-/' . $sessionToken;
@@ -183,7 +183,7 @@ class LoginPage extends Page
 	
 	protected function setIdentity($userData)
 	{
-		$this->session->begin();
+		$this->session->begin($this->request);
 		$this->session->user = $userData;
 		unset($this->session->loginIRI);
 		unset($this->session->nonce);
