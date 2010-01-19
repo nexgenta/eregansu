@@ -67,11 +67,13 @@ class Silk extends CommandLine
 			$read = array_merge($this->servers, $this->inbound);
 			$write = null;
 			$except = null;
-			if(false === socket_select($read, $write, $except, null))
+			if(false === socket_select($read, $write, $except, 1))
 			{
 				echo "silk: select() failed\n";
 				exit(1);
 			}
+			$status = null;
+			while(pcntl_wait($status, WNOHANG) > 0);
 			foreach($read as $socket)
 			{
 //				echo "silk: Activity on $socket\n";
