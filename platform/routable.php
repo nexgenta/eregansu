@@ -249,7 +249,7 @@ class Router extends Routable
 			}
 			if(!$success)
 			{
-				header('WWW-Authenticate: basic realm="' . $req->hostname . '"');
+				$req->header('WWW-Authenticate', 'basic realm="' . $req->hostname . '"');
 				$p = new Error(Error::AUTHORIZATION_REQUIRED);
 				return $p->process($req);
 			}
@@ -298,6 +298,7 @@ class Router extends Routable
 		}
 		if(!isset($route['class']) || !class_exists($route['class']))
 		{
+			$req->err('Class ' . $route['class'] . ' is not implemented in ' . get_class($this) . "\n");
 			return $this->error(Error::NOT_IMPLEMENTED, $req);
 		}
 		$target = new $route['class']();
@@ -446,6 +447,7 @@ class Proxy extends Router
 		if(!in_array($method, $this->supportedMethods))
 		{
 			$req->method = $method;
+			$req->err('Method ' . $method . ' is not supported by ' . get_class($this) . "\n");
 			return $this->error(Error::METHOD_NOT_ALLOWED);
 		}
 		$type = null;
@@ -475,6 +477,7 @@ class Proxy extends Router
 		$methodName = 'perform_' . preg_replace('/[^A-Za-z0-9_]+/', '_', $method);
 		if(!method_exists($this, $methodName))
 		{
+			$req->err('Method ' . $methodName . ' is not implemented by ' . get_class($this) . "\n");
 			return $this->error(Error::METHOD_NOT_IMPLEMENTED);
 		}
 		$r = $this->$methodName($type);
@@ -536,17 +539,18 @@ class Proxy extends Router
 	
 	protected function perform_GET_XML()
 	{
-		header('Content-type: text/xml; charset=UTF-8');
+		$this->request->header('Content-type', 'text/xml; charset=UTF-8');
 	}
 	
 	protected function perform_GET_Text()
 	{
-		header('Content-type: text/plain; charset=UTF-8');
+		$this->request->header('Content-type', 'text/plain; charset=UTF-8');
 	}
 
 	protected function perform_GET_JSON()
 	{
-		header('Content-type: application/json');
+		$this->request->header('Content-type', 'application/json');
+		$this->request->flush();
 		if(isset($this->object))
 		{
 			echo json_encode($this->object);
