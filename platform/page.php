@@ -73,7 +73,7 @@ class Page extends Proxy
 				}
 			}
 //			header('Content-type: text/html');
-			header('Content-type: ' . $type);
+			$this->request->header('Content-type', $type);
 			$skin = $this->skin;
 			if($skin === null && isset($this->request->data['skin']))
 			{
