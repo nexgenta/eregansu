@@ -66,6 +66,7 @@ class Session
 	protected $hostname = null;
 	protected $open = 0;
 	protected $id = null;
+	protected $request = null;
 	
 	/**
 	 * @fn Session sessionForRequest($request)
@@ -135,7 +136,7 @@ class Session
 		{	
 			$sid = $req->query[$this->paramName];
 		}
-		$this->beginSession($sid);
+		$this->beginSession($sid, $req);
 	}
 	
 	/**
@@ -166,7 +167,7 @@ class Session
 	 * @param[in] string $id The session ID retrieved from the request, or \c null if it could not be determined
 	 * @brief Initialises the Session instance optionally given the ID of an existing session
 	 */
-	protected function beginSession($id)
+	protected function beginSession($id, $req = null)
 	{
 		if(!$this->sessionExists($id))
 		{
@@ -179,7 +180,7 @@ class Session
 		$id = session_id();
 		if(!$id)
 		{
-			session_start();
+			@session_start();
 			$id = session_id();
 		}
 		$this->id = $id;
@@ -206,14 +207,14 @@ class Session
 		{
 			$this->data['fieldName'] = $this->fieldName;
 		}
-		$this->commit();
+		$this->commit($req);
 	}
 	
-	protected function setCookie()
+	protected function setCookie($req = null)
 	{
-		if(strlen($this->cookieName))
+		if($req && strlen($this->cookieName))
 		{
-			setcookie($this->cookieName, $this->data['sid'], 0, $this->cookiePath, $this->hostname);
+			$req->setCookie($this->cookieName, $this->data['sid'], 0, $this->cookiePath, $this->hostname);
 		}
 	}
 	
@@ -227,7 +228,7 @@ class Session
 	 *
 	 * @see Session::begin()
 	 */
-	public function commit()
+	public function commit($req = null)
 	{
 //		syslog(LOG_CRIT, "Session::commit(): open = " . $this->open . ", id = " . $this->id);
 		if($this->open)
@@ -235,9 +236,14 @@ class Session
 			$this->open--;
 			if(!$this->open)
 			{
+				if(!$req)
+				{
+					$req = $this->request;
+				}
+				$this->request = null;
 //				syslog(LOG_CRIT, "Session::commit(): Writing changes");
 				session_write_close();
-				$this->setCookie();
+				$this->setCookie($req);
 			}
 		}
 		else
@@ -258,14 +264,15 @@ class Session
 	 * except the outermost calls to Session::begin() and Session::commit() will
 	 * have no effect.
 	 */
-	public function begin()
+	public function begin($req = null)
 	{
 //		syslog(LOG_CRIT, "Session::begin(): open = " . $this->open . ", id = " . $this->id);
 		if(!$this->open)
 		{
 			session_id($this->id);
-			session_start();
+			@session_start();
 			$this->data =& $_SESSION;
+			$this->request = $req;
 /*			if(isset($this->data['sid']))
 			{
 				syslog(LOG_CRIT, "Session::begin(): + sid = " . $this->data['sid']);
@@ -337,15 +344,15 @@ class TransientSession extends Session
 		$this->data['nonce'] = 1;
 	}
 	
-	public function commit()
+	public function commit($req = null)
 	{
 	}
 	
-	public function begin()
+	public function begin($req = null)
 	{
 	}
 	
-	protected function setCookie()
+	protected function setCookie($req = null)
 	{
 	}
 }
