@@ -158,6 +158,7 @@ class Error implements IRequestProcessor
 				echo $desc . "\n";
 			}
 			if(self::$throw) throw new TerminalErrorException($title, $this->status);
+			if($req) $req->abort();
 			exit(1);
 		}
 		if(isset($req->data['errorSkin']) && isset($req->siteRoot) && file_exists($req->siteRoot . 'templates/' . $req->data['errorSkin'] . '/error.php'))
@@ -172,7 +173,10 @@ class Error implements IRequestProcessor
 				$this->errorTemplate($req, DEFAULT_ERROR_SKIN, $title, $desc);
 			}
 		}
-		@header('Content-type: text/html;charset=UTF-8');
+		if($req)
+		{
+			@$req->header('Content-type', 'text/html;charset=UTF-8');
+		}
 		echo '<!DOCTYPE html>' . "\n";
 		echo '<html>';
 		echo '<head>';
@@ -184,6 +188,7 @@ class Error implements IRequestProcessor
 		echo '<p>' . _e($desc)  . '</p>';
 		echo '</body>';
 		echo '</html>';
+		if($req) $req->abort();		
 		exit(1);
 	}
 	
@@ -196,6 +201,7 @@ class Error implements IRequestProcessor
 		$skin_path = $templates_Path . $skin . '/';
 		$detail = $this->detail;
 		require($request->siteRoot . TEMPLATES_PATH . '/' . $skin . '/error.php');
+		$request->abort();
 		exit(1);
 	}
 	
