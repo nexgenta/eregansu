@@ -76,7 +76,8 @@ abstract class Request
 	public $crumb = array(); /**< An array of breadcrumb elements which may be presented to the user */
 	public $backRef = null; /**< A reference to the last-but-one entry in the $crumb array */
 	public $lastRef = null; /**< A reference to the last entry in the $crumb array */
-
+	public $stderr;
+	
 	public $sessionInitialised; /**< A <a href="http://www.php.net/callback">callback</a> which if specified is invoked when the \P{$session} associated with the request is initialised. */
 	
 	protected $session;
@@ -127,6 +128,7 @@ abstract class Request
 	 */
 	protected function __construct()
 	{
+		$this->stderr = fopen('php://stderr', 'w');
 		$this->sapi = php_sapi_name();
 		$this->siteRoot = (defined('INSTANCE_ROOT') ? INSTANCE_ROOT : dirname($_SERVER['SCRIPT_FILENAME']));
 		if(substr($this->siteRoot, -1) != '/') $this->siteRoot .= '/';
@@ -369,7 +371,49 @@ abstract class Request
 			$this->crumb[$key] = $info;			
 		}
 		$this->lastRef = $info;
-	}	
+	}
+	
+	public function write($str)
+	{
+		echo $str;
+	}
+	
+	public function err($str)
+	{
+		fwrite($this->stderr, $str);
+	}
+	
+	public function flush()
+	{
+		flush();
+	}
+	
+	public function header($name, $value, $replace = true)
+	{
+		if($name == 'Status')
+		{
+			header($value);
+		}
+		else
+		{	
+			header($name . ': ' . $value, $replace);
+		}
+	}
+	
+	public function setCookie($name, $value = null, $expires = 0, $path = null, $domain = null, $secure = false, $httponly = false)
+	{
+		setcookie($name, $value, $expires, $path, $domain, $secure, $httponly);
+	}
+	
+	public function complete()
+	{
+		exit(0);
+	}
+
+	public function abort()
+	{
+		exit(1);
+	}
 }
 
 /**
@@ -550,16 +594,17 @@ class HTTPRequest extends Request
 		}
 		if($this->session)
 		{
-			$this->session->commit();
+			$this->session->commit($this);
 		}
 		if($useHTML)
 		{
 			echo '<!DOCTYPE html>' . "\n";
 			echo '<html><head><meta http-equiv="Refresh" content="1;URL=' . htmlspecialchars($uri) . '" /></head><body><p style="font-family: \'Lucida Grande\', Arial, Helvetica; font-size: 10px;"><a style="color: #ccc;" href="' . htmlspecialchars($uri) . '">Please follow this link if you are not automatically redirected.</a></p></body></html>';
-			exit();
+			$this->complete();
 		}
-		header('HTTP/1.0 ' . $status . ' Moved');
-		header('Location: ' . $uri);
-		exit();
+		$this->header('Status', 'HTTP/1.0 ' . $status . ' Moved');
+		$this->header('Location', $uri);
+		$this->flush();
+		$this->complete();
 	}
 }
