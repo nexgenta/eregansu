@@ -395,6 +395,10 @@ class DefaultApp extends App
 		{
 			$this->sapi['cli']['setup'] = array('file' => PLATFORM_PATH . 'cli.php', 'class' => 'CliSetup', 'fromRoot' => true);
 		}
+		if(!isset($this->sapi['cli']['silk']))
+		{
+			$this->sapi['cli']['silk'] = array('file' => PLATFORM_ROOT . 'silk/app.php', 'class' => 'Silk', 'fromRoot' => true);
+		}
 	}
 }
 
