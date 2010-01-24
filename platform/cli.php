@@ -63,8 +63,8 @@ class CliSetup extends CommandLine
 		
 		if(!isset($SETUP_MODULES) || !is_array($SETUP_MODULES) || !count($SETUP_MODULES))
 		{
-			echo "setup: No modules are configured\n";
-			exit(1);
+			echo "setup: No modules are configured, nothing to do.\n";
+			exit(0);
 		}
 		$root = $APP_ROOT;
 		foreach($SETUP_MODULES as $mod)
@@ -78,7 +78,7 @@ class CliSetup extends CommandLine
 				require_once($APP_ROOT . $mod['file']);
 			}
 			$cl = $mod['class'];
-			$module = $cl::getInstance();
+			$module = call_user_func(array($cl, 'getInstance'));
 			if(!$module)
 			{
 				echo "*** Failed to retrieve module instance ($cl)\n";
