@@ -102,6 +102,14 @@ abstract class DBCore implements IDBCore
 		{
 			$iri = parse_url($iristr);
 		}
+		if(!isset($iri['user']))
+		{
+			$iri['user'] = null;
+		}
+		if(!isset($iri['pass']))
+		{
+			$iri['pass'] = null;
+		}
 		if(!isset($iri['path']))
 		{
 			$iri['path'] = null;
