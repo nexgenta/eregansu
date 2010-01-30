@@ -320,17 +320,40 @@ class App extends Router
 	public $parent;
 	public $skin;
 
-	protected static $initialApp = null;
+	protected static $initialApp = array();
 
-	public static function initialApp()
+	public static function initialApp($sapi = null)
 	{
 		global $APP_ROOT;
-	
-		if(self::$initialApp)
+
+		if(!strlen($sapi))
 		{
-			return self::$initialApp;
+			$sapi = php_sapi_name();
 		}
-		if(defined('APP_CLASS'))
+		if(isset(self::$initialApp[$sapi]))
+		{
+			return self::$initialApp[$sapi];
+		}
+		$prefix = str_replace('-', '_', strtoupper($sapi));
+		if(defined($prefix . '_APP_CLASS'))
+		{
+			if(defined($prefix . '_APP_NAME'))
+			{
+				$APP_ROOT .= constant($prefix . '_APP_NAME') . '/';
+			}
+			if(defined($prefix . '_APP_CLASS_PATH'))
+			{
+				require_once($APP_ROOT . constant('_APP_CLASS_PATH'));
+			}
+			$appClass = constant($prefix . '_APP_CLASS');
+			self::$initialApp[$sapi] = $inst = new $appClass;
+			return $inst;
+		}
+		if(isset(self::$initialApp['default']))
+		{
+			return self::$initialApp['default'];
+		}
+		else if(defined('APP_CLASS'))
 		{
 			if(defined('APP_NAME'))
 			{
@@ -341,13 +364,11 @@ class App extends Router
 				require_once($APP_ROOT . APP_CLASS_PATH);
 			}
 			$appClass = APP_CLASS;
-			self::$initialApp = new $appClass;
+			self::$initialApp['default'] = $inst = new $appClass;
+			return $inst;
 		}
-		else
-		{
-			self::$initialApp = new DefaultApp;
-		}
-		return self::$initialApp;
+		self::$initialApp['default'] = $inst = new DefaultApp;
+		return $inst;
 	}
 
 	public function __construct()
