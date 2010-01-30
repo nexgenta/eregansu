@@ -277,7 +277,7 @@ class Silk extends CommandLine
 		Error::$throw = true;
 		require_once(dirname(__FILE__) . '/request.php');
 		$req = new SilkRequest($client);
-		$app = App::initialApp();
+		$app = App::initialApp('silk');
 		ob_start();
 		try
 		{
