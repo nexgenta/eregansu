@@ -178,16 +178,65 @@ class Error implements IRequestProcessor
 			@$req->header('Content-type', 'text/html;charset=UTF-8');
 		}
 		echo '<!DOCTYPE html>' . "\n";
-		echo '<html>';
-		echo '<head>';
-		echo '<meta http-equiv="Content-type" value="text/html;charset=UTF-8" />';
-		echo '<title>' . $title . '</title>';
-		echo '</head>';
-		echo '<body>';
-		echo '<h1>' . _e($title) . '</h1>';
-		echo '<p>' . _e($desc)  . '</p>';
-		echo '</body>';
-		echo '</html>';
+		echo '<html>' . "\n";
+		echo "\t" . '<head>' . "\n";
+		echo "\t\t" . '<meta http-equiv="Content-type" value="text/html;charset=UTF-8" />' . "\n";
+		echo "\t\t" . '<title>' . _e($title) . '</title>' . "\n";
+		echo "\t" . '</head>' . "\n";
+		echo "\t" . '<body>' . "\n";
+		echo "\t\t" . '<h1>' . _e($title) . '</h1>' . "\n";
+		echo "\t\t" . '<p>' . _e($desc)  . '</p>' . "\n";
+		if(defined('EREGANSU_DEBUG') && EREGANSU_DEBUG)
+		{
+			echo "\t\t" . '<hr />' . "\n";
+			$backtrace = debug_backtrace();
+			echo "\t\t" . '<h2>Backtrace:</h2>' . "\n";
+			echo "\t\t" . '<table>' . "\n";
+			echo "\t\t\t" . '<thead>' . "\n";
+			echo "\t\t\t\t" . '<tr>' . "\n";
+			echo "\t\t\t\t\t" . '<th scope="col">Function</th>' . "\n";
+			echo "\t\t\t\t\t" . '<th scope="col">Context</th>' . "\n";
+			echo "\t\t\t\t\t" . '<th scope="col">Called at</th>' . "\n";
+			echo "\t\t\t\t" . '</tr>' . "\n";
+			echo "\t\t\t" . '</thead>' . "\n";
+			foreach($backtrace as $bt)
+			{
+				if(isset($bt['function']))
+				{
+					$func = $bt['function'];
+					if(isset($bt['class']))
+					{
+						$func = $bt['class'] . $bt['type'] . $func . '()';
+					}
+				}
+				else
+				{
+					$func = '(None)';
+				}
+				if(isset($bt['file']))
+				{
+					$location = $bt['file'] . ':' . $bt['line'];
+				}
+				if(isset($bt['object']))
+				{
+					$ctx = get_class($bt['object']);
+				}
+				else
+				{
+					$ctx = '';
+				}
+				echo "\t\t\t<tr>\n";
+				echo "\t\t\t\t<td>" . _e($func) . '</td>' . "\n";
+				echo "\t\t\t\t<td>" . _e($ctx) . '</td>' . "\n";
+				echo "\t\t\t\t<td>" . _e($location) . '</td>' . "\n";
+				echo "\t\t\t</tr>\n";
+			}
+			echo "\t\t" . '</table>' . "\n";
+			echo "\t\t" . '<hr />' . "\n";
+			echo "\t\t" . '<p>Error generated at ' . strftime('%Y-%m-%d %H:%M:%S') . ' UTC</p>';
+		}
+		echo "\t" . '</body>' . "\n";
+		echo '</html>' . "\n";
 		if($req) $req->abort();		
 		exit(1);
 	}
