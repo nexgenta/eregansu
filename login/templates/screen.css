@@ -50,6 +50,17 @@ a:link, a:visited {
 	text-indent: 4px;
 	text-shadow: 1px 1px 1px #fff;
 }
+#content ul.errors {
+	margin: 4px 4px 1em 4px;
+	padding: 0 8px 0 8px;
+	border: solid #ddaaaa 1px;
+	background-color: rgba(252, 240, 240, 0.75);
+}
+#content ul.errors li {
+	margin: 0.5em 0 0.5em 0;
+	padding: 0;
+	list-style: none;
+}
 div.field {
 	margin-bottom: 1em;
 	padding-left: 8px;
