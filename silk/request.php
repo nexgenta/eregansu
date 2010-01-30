@@ -180,6 +180,6 @@ class SilkRequest extends HTTPRequest
 
 	public function abort()
 	{
-		throw new TerminateErrorException();
+		throw new TerminalErrorException();
 	}
 }
