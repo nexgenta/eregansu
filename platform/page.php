@@ -102,6 +102,10 @@ class Page extends Proxy
 	
 	protected function assignTemplate()
 	{
+		if(!strlen($this->title) && isset($this->request->data['title']))
+		{
+			$this->title = $this->request->data['title'];
+		}
 		$this->vars['alerts'] = array();
 		$this->vars['app'] = $this->request->app;
 		$this->vars['app_root'] = $this->request->base;
