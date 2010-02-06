@@ -293,11 +293,39 @@ abstract class DBCore implements IDBCore
 		return $row;
 	}
 
+	public function rowArray($query, $params)
+	{
+		$row = null;
+		if(($r =  $this->vquery($query, $params)))
+		{
+			$rs = new $this->rsClass($this, $r);
+			$row = $rs->next();
+			$rs = null;
+		}
+		return $row;
+	}
+
 	public function rows($query)
 	{
 		$rows = null;
 		$params = func_get_args();
 		array_shift($params);
+		if(($r =  $this->vquery($query, $params)))
+		{
+			$rows = array();
+			$rs = new $this->rsClass($this, $r);
+			while(($row = $rs->next()))
+			{
+				$rows[] = $row;
+			}
+			$rs = null;
+		}
+		return $rows;
+	}
+
+	public function rowsArray($query, $params)
+	{
+		$rows = null;
 		if(($r =  $this->vquery($query, $params)))
 		{
 			$rows = array();
