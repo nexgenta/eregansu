@@ -499,6 +499,15 @@ class Proxy extends Router
 		{
 			return $this->error(Error::TYPE_NOT_SUPPORTED);
 		}
+		$r = $this->performMethod($method, $type);
+		$this->object = null;
+		$this->request = null;
+		$this->sessionObject = null;
+		return $r;
+	}
+	
+	protected function performMethod($method, $type)
+	{
 		$methodName = 'perform_' . preg_replace('/[^A-Za-z0-9_]+/', '_', $method);
 		if(!method_exists($this, $methodName))
 		{
@@ -510,9 +519,6 @@ class Proxy extends Router
 		{
 			$r = $this->perform_GET($type);
 		}
-		$this->object = null;
-		$this->request = null;
-		$this->sessionObject = null;
 		return $r;
 	}
 	
