@@ -35,11 +35,11 @@
 
 uses('model', 'uuid');
 
-class Storable
+class Storable implements ArrayAccess
 {
 	protected static $models = array();
 	
-	public static objectForData($data, $model, $className = null)
+	public static function objectForData($data, $model, $className = null)
 	{
 		if(!$className)
 		{
@@ -92,6 +92,98 @@ class Storable
 	protected function loaded($reloaded = false)
 	{
 	}
+	
+	public function offsetExists($name)
+	{
+		return isset($this->$name);
+	}
+	
+	public function offsetGet($name)
+	{
+		return $this->$name;
+	}
+	
+	public function offsetSet($name, $value)
+	{
+		$this->$name = $value;
+	}
+	
+	public function offsetUnset($name)
+	{
+		unset($this->$name);
+	}
+}
+
+abstract class StorableSet implements DataSet
+{
+	protected $model;
+	public $EOF = true;
+	
+	public function __construct($model, $args)
+	{
+		$this->model = $model;	
+	}
+	
+	public function rewind()
+	{
+	}
+	
+	public function valid()
+	{
+		return !$this->EOF;
+	}
+
+}
+
+class StaticStorableSet extends StorableSet
+{
+	protected $list;
+	protected $keys;
+	protected $storableClass = 'Storable';
+	protected $count;
+	protected $current;
+	
+	public function __construct($model, $args)
+	{
+		parent::__construct($model, $args);
+		$this->list = $args['list'];
+		$this->rewind();
+	}
+	
+	public function next()
+	{
+		if(!$this->EOF)
+		{
+			if(null != ($k = array_shift($this->keys)))
+			{
+				$this->current = call_user_func(array($this->storableClass, 'objectForData'), $this->list[$k], $this->model, $this->storableClass);
+				$this->count++;
+				return $this->current;
+			}
+			$this->EOF = true;
+		}
+		return null;
+	}
+	
+	public function key()
+	{
+		return $this->count;
+	}
+	
+	public function current()
+	{
+		return $this->current;
+	}
+	
+	public function rewind()
+	{
+		$this->count = 0;
+		if(count($this->list))
+		{
+			$this->EOF = false;
+			$this->keys = array_keys($this->list);
+		}
+	}
 }
 
 class Store extends Model
@@ -103,7 +195,7 @@ class Store extends Model
 	
 	public static function getInstance($args = null, $className = null, $defaultDbIri = null)
 	{
-		parent::getInstance($args, ($className ? $className : 'Storable'), $defaultDbIri);
+		return parent::getInstance($args, ($className ? $className : 'Store'), $defaultDbIri);
 	}
 	
 	public function objectForUUID($uuid)
@@ -113,7 +205,7 @@ class Store extends Model
 			return null;
 		}
 		$class = $this->storableClass;
-		return $class::objectForData($data, $this, $class);
+		return call_user_func(array($this->storableClass, 'objectForData'), $data, $this, $this->storableClass);
 	}
 	
 	public function dataForUUID($uuid)
