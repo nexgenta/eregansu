@@ -48,6 +48,10 @@ class DBException extends Exception
 	}
 }
 
+interface DataSet extends Iterator
+{
+}
+
 /* Database errors relating to connection and configuration (rather than
  * malformed queries, data integrity, and so on. These exceptions may be
  * caught and considered transient in some circumstances, but should not
@@ -456,12 +460,13 @@ abstract class DBCore implements IDBCore
 }
 
 /* while(($row = $rs->next())) { ... } */
-class DBDataSet
+class DBDataSet implements DataSet
 {
 	public $fields = array();
 	public $EOF = true;
 	public $db;
 	protected $resource;
+	protected $count = 0;
 	
 	public function __construct($db, $resource)
 	{
@@ -472,13 +477,33 @@ class DBDataSet
 	
 	public function next()
 	{
-		if($this->EOF) return false;
+		if($this->EOF) return null;
 		if(!$this->row())
 		{
 			$this->EOF = true;
 			return null;
 		}
+		$this->count++;
 		return $this->fields;
+	}
+	
+	public function rewind()
+	{
+	}
+	
+	public function current()
+	{
+		return $this->fields;
+	}
+	
+	public function key()
+	{
+		return $this->count;
+	}
+	
+	public function valid()
+	{
+		return !$this->EOF;
 	}
 }
 
