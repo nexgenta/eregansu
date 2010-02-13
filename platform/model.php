@@ -42,11 +42,11 @@ class Model
 		
 	public static function getInstance($args = null, $className = null, $defaultDbIri = null)
 	{
-		if(is_null($args)) $args = array();
-		if(!isset($args['db'])) $args['db'] = $defaultDbIri;
 		if(!$className) return null;
 		if(!isset(self::$instances[$className]))
 		{
+			if(is_null($args)) $args = array();
+			if(!isset($args['db'])) $args['db'] = $defaultDbIri;
 			self::$instances[$className] = new $className($args);
 		}
 		return self::$instances[$className];
@@ -54,6 +54,9 @@ class Model
 	
 	public function __construct($args)
 	{
-		$this->db = DBCore::connect($args['db']);
+		if(strlen($args['db']))
+		{
+			$this->db = DBCore::connect($args['db']);
+		}
 	}
 }
