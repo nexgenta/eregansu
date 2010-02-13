@@ -85,7 +85,7 @@ function is_arrayish($var)
  */
 function e($str)
 {
-	echo htmlspecialchars($str);
+	echo _e($str);
 }
 
 /**
@@ -101,7 +101,7 @@ function e($str)
  
 function _e($str)
 {
-	return htmlspecialchars($str);
+	return str_replace('&quot;', '&#39;', htmlspecialchars($str));
 }
 
 if(!function_exists('uses')) {
