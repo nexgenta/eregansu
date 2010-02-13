@@ -41,6 +41,7 @@ class Page extends Proxy
 	protected $templateName;
 	protected $vars = array();
 	protected $skin = null;
+	protected $defaultSkin = null;
 	protected $supportedTypes = array('text/html');
 	protected $scripts = array();
 	protected $forms = array();
@@ -83,7 +84,7 @@ class Page extends Proxy
 			{
 				$skin = $this->request->app->skin;
 			}
-			$this->tpl = new Template($this->request, $templateName, $skin);
+			$this->tpl = new Template($this->request, $templateName, $skin, $this->defaultSkin);
 			$this->vars = $this->request->data;
 			$this->assignTemplate();
 			$this->vars['page'] = $this;
@@ -163,12 +164,12 @@ class Page extends Proxy
 	}
 	
 	/* Javascript libraries */
-	protected function useJQuery($version = '1.3.2')
+	protected function useJQuery($version = '1.4.1')
 	{
 		$root = $this->request->root;
 		if(defined('SCRIPTS_IRI')) $root = SCRIPTS_IRI;
 		if(defined('SCRIPTS_USE_GAPI')) $root = 'http://ajax.googleapis.com/ajax/libs/';
-		$this->scripts['jquery'] = $root . 'jquery/1.3.2/jquery.min.js';
+		$this->scripts['jquery'] = $root . 'jquery/' . $version . '/jquery.min.js';
 	}
 	
 	protected function useGlitter($module)
