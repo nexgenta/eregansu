@@ -46,8 +46,8 @@ class Error implements IRequestProcessor
 	const PAYMENT_REQUIRED = 402;
 	const FORBIDDEN = 403;
 	const OBJECT_NOT_FOUND = 404;
-	const ROUTE_NOT_MATCHED = 404.1;
-	const NO_OBJECT = 404.2;
+	const ROUTE_NOT_MATCHED = '404.1';
+	const NO_OBJECT = '404.2';
 	const METHOD_NOT_ALLOWED = 405;
 	const TYPE_NOT_SUPPORTED = 406;
 	const PROXY_AUTHENTICATION_REQUIRED = 407;
@@ -64,10 +64,10 @@ class Error implements IRequestProcessor
 	
 	const INTERNAL = 500;
 	const NOT_IMPLEMENTED = 501;
-	const METHOD_NOT_IMPLEMENTED = 501.1;
+	const METHOD_NOT_IMPLEMENTED = '501.1';
 	const BAD_GATEWAY = 502;
 	const SERVICE_UNAVAILABLE = 503;
-	const ROUTE_NOT_PROCESSOR = 503.1;
+	const ROUTE_NOT_PROCESSOR = '503.1';
 	const GATEWAY_TIMEOUT = 504;
 	const HTTP_VERSION_NOT_SUPPORTED = 505;
 	const VARIANT_ALSO_NEGOTIATES = 506;
@@ -122,6 +122,7 @@ class Error implements IRequestProcessor
 		self::PAYMENT_REQUIRED => 'Payment is required to access the requested object.',
 		self::FORBIDDEN => 'Access to the object %1$swas denied.',
 		self::OBJECT_NOT_FOUND => 'The requested object %1$scould not be found.',
+		self::NO_OBJECT => 'Your request could not be processed because an object is required, but none was specified.',
 		self::METHOD_NOT_ALLOWED => 'Your request could not be processed because the method %3$s is not supported by this object.',
 		self::TYPE_NOT_SUPPORTED => 'Your request could not be processed because the requested type is not supported by the object %1$s',
 		
@@ -186,6 +187,30 @@ class Error implements IRequestProcessor
 		echo "\t" . '<body>' . "\n";
 		echo "\t\t" . '<h1>' . _e($title) . '</h1>' . "\n";
 		echo "\t\t" . '<p>' . _e($desc)  . '</p>' . "\n";
+		echo $this->debugInfo();
+		echo "\t" . '</body>' . "\n";
+		echo '</html>' . "\n";
+		if($req) $req->abort();		
+		exit(1);
+	}
+	
+	protected function errorTemplate(Request $request, $skin, $title, $desc)
+	{
+		error_reporting(0);
+		$templates_iri = $request->root . 'templates/';
+		$skin_iri = $template_root . $skin . '/';
+		$templates_path = $request->siteRoot . TEMPLATES_PATH . '/';
+		$skin_path = $templates_Path . $skin . '/';
+		$detail = $this->detail;
+		$debug = $this->debugInfo();
+		require($request->siteRoot . TEMPLATES_PATH . '/' . $skin . '/error.php');
+		$request->abort();
+		exit(1);
+	}
+	
+	protected function debugInfo()
+	{
+		ob_start();
 		if(defined('EREGANSU_DEBUG') && EREGANSU_DEBUG)
 		{
 			echo "\t\t" . '<hr />' . "\n";
@@ -235,23 +260,7 @@ class Error implements IRequestProcessor
 			echo "\t\t" . '<hr />' . "\n";
 			echo "\t\t" . '<p>Error generated at ' . strftime('%Y-%m-%d %H:%M:%S') . ' UTC</p>';
 		}
-		echo "\t" . '</body>' . "\n";
-		echo '</html>' . "\n";
-		if($req) $req->abort();		
-		exit(1);
-	}
-	
-	protected function errorTemplate(Request $request, $skin, $title, $desc)
-	{
-		error_reporting(0);
-		$templates_iri = $request->root . 'templates/';
-		$skin_iri = $template_root . $skin . '/';
-		$templates_path = $request->siteRoot . TEMPLATES_PATH . '/';
-		$skin_path = $templates_Path . $skin . '/';
-		$detail = $this->detail;
-		require($request->siteRoot . TEMPLATES_PATH . '/' . $skin . '/error.php');
-		$request->abort();
-		exit(1);
+		return ob_get_clean();			
 	}
 	
 	protected function statusTitle($code)
