@@ -42,7 +42,7 @@ class Template
 	public $vars = array();
 	protected $skin;
 	
-	public function __construct($req, $filename, $skin = null)
+	public function __construct($req, $filename, $skin = null, $defaultSkin = null)
 	{
 		$this->request = $req;
 		if(!strlen($skin))
@@ -50,6 +50,10 @@ class Template
 			if(defined('DEFAULT_SKIN'))
 			{
 				$skin = DEFAULT_SKIN;
+			}
+			else if(strlen($defaultSkin))
+			{
+				$skin = $defaultSkin;
 			}
 			else
 			{
