@@ -204,6 +204,8 @@ class Page extends Proxy
 	protected function useChromaHash()
 	{
 		$this->useJQuery();
-		$this->scripts['chroma-hash'] = $this->request->root . 'Chroma-Hash/chroma-hash.js';
+		$root = $this->request->root;
+		if(defined('SCRIPTS_IRI')) $root = SCRIPTS_IRI;
+		$this->scripts['chroma-hash'] = $root . 'Chroma-Hash/chroma-hash.js';
 	}
 }
