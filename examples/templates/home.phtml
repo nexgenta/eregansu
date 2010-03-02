@@ -1,0 +1,35 @@
+<?php require_once($skin_path . 'header.php'); ?>
+	<h1><?php e($page_title); ?></h1>
+	<p>
+		This is a very simple sample page. Eregansu templates are really just
+		PHP files (if you’ve built templates for WordPress, this will be
+		quite familiar). PHP as a templating language is lightweight,
+		fast and easy to grips with.
+	</p>
+	<p>
+		Eregansu encourages a clear separation between output-related code
+		in the templates and the logic which makes pages function. This helps
+		to keep both the code and the templates maintainable.
+	</p>
+	<p>
+		The built-in <code>Page</code> class (defined in <code>platform/platform/page.php</code>)
+		contains the logic required to process to requests for HTML resources
+		and generate template-driven responses. You can subclass <code>Page</code>
+		and override its <code>assignTemplate</code> method to control the variables
+		which get substituted here. <code>Page</code> (and the <code>Template</code> instance
+		it creates—the latter defined in <code>platform/platform/template.php</code>)
+		substitute some variables automatically. For example, <code>$skin_iri</code>,
+		which is the URL, relative to the server root, of the directory containing
+		these templates. In this case, it is <code><?php e($skin_iri); ?></code>.
+	</p>
+	<p>
+		You can substitute variables just by adding them to the routes table in your
+		application configuration (<code>appconfig.php</code>) file, too. Just add a
+		<code>key =&gt; value</code> pair to an array for a particular route and
+		if it uses <code>Page</code> (or a subclass of <code>Page</code>), the key
+		that you specify will be substituted into the template automatically.
+	</p>
+	<p>
+		Perhaps you’d like to see <a href="<?php e($app_root); ?>test">another sample page</a>?
+	</p>
+<?php require_once($skin_path . 'footer.php'); ?>
