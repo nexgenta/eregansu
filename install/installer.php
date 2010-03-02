@@ -382,6 +382,7 @@ class Installer
 		if(file_exists(INSTANCE_ROOT . 'eregansu'))
 		{
 			echo "--> Re-creating eregansu script symbolic link\n";
+			unlink(INSTANCE_ROOT . 'eregansu');
 		}
 		else
 		{
