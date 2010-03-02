@@ -25,65 +25,35 @@ Eregansu Hello World
 Change to your web server root (or wherever you want your application to
 be served from).
 
-Create directories named 'config', 'app', and 'templates'
-
-	$ mkdir config app templates
-
-
 Check out Eregansu into a directory called 'platform':
 
 	$ git clone git://github.com/nexgenta/eregansu.git platform
 
+Set everything up:
 
-Create symbolic links and copies to templates, and create a sensible
-default index.php:
+	$ ./platform/eregansu install
+	
+Alternatively, if you want to do it by hand, this is what happens:
 
+	$ mkdir config app templates
 	$ cd templates
 	$ ln -s ../platform/login/templates login
 	$ cd ..
 	$ cp platform/index.dist.php index.php
-
-
-You will also want an .htaccess file. Start with the provided one:
-
 	$ cp platform/htaccess.dist .htaccess
+	$ cp platform/config.default.php config/config.myhostname.php
+	$ ( cd config && ln -s config.myhostname.php config.php )
+	$ cp platform/appconfig.default.php config
+	$ ( cd config && ln -s appconfig.default.php appconfig.php )
+	$ mkdir templates/default
+	$ cp platform/examples/templates/* templates/default/	
+(Replace “myhostname” with the name of your host — e.g., johndev)
 
-
-If you’re going to use the provided login applet, you’ll want Chroma-Hash:
+Next, If you’re going to use the provided login applet, you’ll want Chroma-Hash:
 
 	$ git clone git://github.com/mattt/Chroma-Hash.git
 
-
-Next, configure your instance. Copy the default (empty) instance configuration
-and make it the current configuration:
-
-	$ cp platform/config.default.php config/config.myhostname.php
-	$ ( cd config && ln -s config.myhostname.php config.php )
-
-(Replace “myhostname” with the name of your host — e.g., johndev)
-
-Now you can configure your application. Launch a PHP editor and create a new
-file containing the following:
-
-	<?php
-	
-	/* My application configuration */
-	
-	$HTTP_ROUTES = array(
-		'__NONE__' => array('class' => 'Page', 'templateName' => 'hello.phtml'),
-	);
-	
-Save this file as config/appconfig.hello.php
-
-Make this application configuration active by symlinking it:
-
-	$ ( cd config && ln -s appconfig.hello.php appconfig.php )
-
-Create a dummy template:
-
-	$ mkdir templates/default
-	$ echo '<h1>Hello, World!</h1>' > templates/default/hello.phtml
-
 Finally, launch your web browser and navigate to the server you’ve performed
-all of this on. If all is well, you should see a page containing just the words
-“Hello, World!”.
+all of this on. If all is well, you should see the sample homepage (routed according to
+the <code>__NONE__</code> entry in the <code>$HTTP_ROUTES</code> array in your
+<code>appconfig.php</code>).
