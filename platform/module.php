@@ -46,6 +46,8 @@
  * incremental updates.
  */
 
+require_once(dirname(__FILE__) . '/model.php');
+
 abstract class Module extends Model
 {
 	/* The current latest version number for this module. If zero,
