@@ -38,6 +38,7 @@ uses('model', 'uuid');
 class Storable implements ArrayAccess
 {
 	protected static $models = array();
+	protected static $refs = array();
 	
 	public static function objectForData($data, $model, $className = null)
 	{
@@ -45,7 +46,7 @@ class Storable implements ArrayAccess
 		{
 			$className = 'Storable';
 		}
-		if(isset(self::$models[$className]))
+		if(!isset(self::$models[$className]))
 		{
 			self::$models[$className] = $model;
 		}
@@ -54,6 +55,10 @@ class Storable implements ArrayAccess
 	
 	protected function __construct($data)
 	{
+		if(!is_array($data))
+		{
+			throw new Exception(gettype($data) . ' passed to Storable::__construct(), arrayish expected');
+		}
 		foreach($data as $k => $v)
 		{
 			$this->$k = $v;
@@ -100,6 +105,10 @@ class Storable implements ArrayAccess
 	
 	public function offsetGet($name)
 	{
+		if(isset($this->$name) && isset($this->_refs) && in_array($name, $this->_refs))
+		{
+			return $this->referencedObject($this->$name);
+		}
 		return $this->$name;
 	}
 	
@@ -111,6 +120,17 @@ class Storable implements ArrayAccess
 	public function offsetUnset($name)
 	{
 		unset($this->$name);
+	}
+	
+	protected function referencedObject($id)
+	{
+		$className = get_class($this);
+		if(!isset(self::$refs[$className])) self::$refs[$className] = array();
+		if(!isset(self::$refs[$className][$id]))
+		{
+			self::$refs[$className][$id] = self::$models[$className]->objectForId($id);
+		}
+		return self::$refs[$className][$id];
 	}
 }
 
@@ -130,7 +150,8 @@ abstract class StorableSet implements DataSet
 	
 	public function valid()
 	{
-		return !$this->EOF;
+		$valid = !$this->EOF;
+		return $valid;
 	}
 
 }
@@ -154,34 +175,54 @@ class StaticStorableSet extends StorableSet
 	{
 		if(!$this->EOF)
 		{
-			if(null != ($k = array_shift($this->keys)))
+			if(null !== ($k = array_shift($this->keys)))
 			{
-				$this->current = call_user_func(array($this->storableClass, 'objectForData'), $this->list[$k], $this->model, $this->storableClass);
+				$this->current = $this->storableForEntry($this->list[$k]);
 				$this->count++;
+				if(!count($this->keys))
+				{
+					$this->EOF = true;
+				}
 				return $this->current;
 			}
-			$this->EOF = true;
 		}
+		$this->current = null;
+		$this->EOF = true;
 		return null;
+	}
+	
+	protected function storableForEntry($entry)
+	{
+		return call_user_func(array($this->storableClass, 'objectForData'), $entry, $this->model, $this->storableClass);	
 	}
 	
 	public function key()
 	{
-		return $this->count;
+		return ($this->EOF ? null : $this->count);
 	}
 	
 	public function current()
 	{
+		if($this->current === null)
+		{
+			$this->next();
+		}
 		return $this->current;
 	}
 	
 	public function rewind()
 	{
 		$this->count = 0;
+		$this->current = null;
 		if(count($this->list))
 		{
 			$this->EOF = false;
 			$this->keys = array_keys($this->list);
+		}
+		else
+		{
+			$this->EOF = true;
+			$this->keys = array();
 		}
 	}
 }
@@ -219,7 +260,7 @@ class Store extends Model
 		$this->retrievedMeta($data, $row);
 		return $data;
 	}
-	
+		
 	public function setData($data, $user = null)
 	{
 		if(is_object($data)) $data = get_object_vars($data);
@@ -231,11 +272,14 @@ class Store extends Model
 		{
 			$uuid = UUID::generate();
 		}
+		$uuid = strtolower($uuid);
 		unset($data['uuid']);
 		unset($data['created']);
 		unset($data['modified']);
 		unset($data['creator']);
 		unset($data['modifier']);
+		unset($data['dirty']);
+		unset($data['owner']);
 		$json = json_encode($data);
 		do
 		{
@@ -260,7 +304,7 @@ class Store extends Model
 			}
 		}
 		while(!$this->db->commit());
-		$row = $this->db->row('SELECT "uuid", "created", "creator_scheme", "creator_uuid", "modified", "modifier_scheme", "modifier_uuid" FROM {' . $this->objects . '} WHERE "uuid" = ?', $uuid);
+		$row = $this->db->row('SELECT "uuid", "created", "creator_scheme", "creator_uuid", "modified", "modifier_scheme", "modifier_uuid", "owner" FROM {' . $this->objects . '} WHERE "uuid" = ?', $uuid);
 		$this->retrievedMeta($data, $row);
 		$this->stored($data);
 		return $data['uuid'];
@@ -278,7 +322,8 @@ class Store extends Model
 		if(strlen($data['modifier_uuid']))
 		{
 			$data['modifier'] = array('scheme' => $data['modifier_scheme'], 'uuid' => $data['modifier_uuid']);
-		}	
+		}
+		$data['owner'] = $row['owner'];
 	}
 	
 	protected function stored($data)
