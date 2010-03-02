@@ -165,7 +165,7 @@ abstract class DBTable
 	
 	public function columnWithSpec($name, $type, $sizeValues, $flags = null, $defaultValue = null, $comment = null)
 	{
-		if($flags == null) $flags = self::NULLS;
+		if($flags == null) $flags = DBCol::NULLS;
 		$info = array(
 			'name' => $name,
 			'type' => $type,
@@ -300,7 +300,7 @@ abstract class DBTable
 		{
 			$cl[] = $index['spec'];
 		}
-		$create .= "\n    " . implode(",\n    ", $cl) . "\n) " . implode(' ', $this->nativeCreateOptions);
+		$create .= "\n    " . implode(",\n    ", $cl) . "\n) " . $this->nativeCreateOptions();
 		do
 		{
 			$this->schema->db->begin();
@@ -329,6 +329,16 @@ abstract class DBTable
 		}
 		while(!$this->db->commit());
 		return true;
+	}
+	
+	protected function nativeCreateOptions()
+	{
+		$list = array();
+		foreach($this->nativeCreateOptions as $name => $value)
+		{
+			$list[] = $name . ' ' . $value;
+		}
+		return implode(' ', $list);
 	}
 	
 }
