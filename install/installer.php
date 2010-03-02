@@ -35,6 +35,7 @@ class Installer
 	public $config;
 	public $configCreated;
 	public $instname;
+	public $configuredModules = 0;
 	
 	public function __construct()
 	{
@@ -55,9 +56,10 @@ class Installer
 		$this->checkHtAccess();
 		$this->checkApp();
 		$this->checkTemplates();
+		$this->postamble();
 		
 		/* Once this class has been finished, we should return true to indicate success */
-
+	
 		return true;
 	}
 	
@@ -271,6 +273,17 @@ class Installer
 			fwrite($f, ' */' . "\n");
 			fwrite($f, '/* define(\'HOST_NAME\', \'' . $this->instname . '\'); */' . "\n\n");
 
+			fwrite($f, "/* With the below defined, if jQuery is used by any pages, it will be loaded\n");
+			fwrite($f, " * from Google's servers. If you comment it out or remove it, Eregansu will\n");
+			fwrite($f, " * expect to load jQuery from SCRIPTS_IRI/jquery/jquery-<version>/jquery.min.js\n");
+			fwrite($f, " */\n");
+			fwrite($f, "define('SCRIPTS_USE_GAPI', true);\n\n");
+			
+			fwrite($f, "/* Uncomment the below to override the path used to serve scripts,\n");
+			fwrite($f, " * which by default is set to the root URL of your application.\n");
+			fwrite($f, " */\n");
+			fwrite($f, "/* define('SCRIPTS_IRI', 'http://static1.example.com/scripts/'); */\n\n");
+			
 			fclose($f);
 			chmod($this->config, 0644);
 		}	
@@ -430,10 +443,34 @@ class Installer
 				echo "--> " . $path . "login does not exist, creating\n";			
 				symlink($rpath, $path . 'login');
 			}
+			if(!file_exists($path . 'default'))
+			{
+				echo "--> " . $path . "default does not exist, creating\n";
+				mkdir($path . 'default');
+				$files = array('home.phtml', 'test.phtml', 'header.php', 'footer.php', 'screen.css');
+				foreach($files as $f)
+				{
+					echo "--> Creating " . $path . "default/" . $f . " from platform/examples/templates/" . $f . "\n";
+					copy(PLATFORM_ROOT . "examples/templates/" . $f, $path . "default/" . $f);
+				}
+			}
 		}
 		else
 		{
 			echo "--> " . $path . " already exists, leaving untouched\n";
+		}
+	}
+	
+	protected function postamble()
+	{
+		if(!$this->configuredModules && $this->appconfigCreated)
+		{
+			$f = fopen($this->appconfig, 'a');
+			fwrite($f, '$HTTP_ROUTES = array(' . "\n");
+			fwrite($f, "\t'__NONE__' => array('class' => 'Page', 'templateName' => 'home.phtml', 'title' => 'Sample homepage'),\n");
+			fwrite($f, "\t'test' => array('class' => 'Page', 'templateName' => 'test.phtml', 'title' => 'Another sample page'),\n");
+			fwrite($f, ");\n");
+			fclose($f);
 		}
 	}
 }
