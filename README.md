@@ -53,7 +53,77 @@ Next, If you’re going to use the provided login applet, you’ll want Chroma-H
 
 	$ git clone git://github.com/mattt/Chroma-Hash.git
 
-Finally, launch your web browser and navigate to the server you’ve performed
-all of this on. If all is well, you should see the sample homepage (routed according to
-the <code>__NONE__</code> entry in the <code>$HTTP_ROUTES</code> array in your
-<code>appconfig.php</code>).
+Using Silk
+==========
+
+Silk is a toy web server, written in PHP to run on top of Eregansu itself. It’s no
+real use as a “proper” web server, but it’s sometimes useful for testing.
+
+To launch silk, simply run the following from your application root:
+
+	$ ./eregansu silk
+	
+You will probably see output similar to the following:
+
+	silk: Warning: Session directory /var/php/5.2/sessions is not writeable, using /var/tmp/
+	silk: Listening on port 8998
+
+Now, you can point your web browser at <code>localhost:8998</code> (or <code>someotherhost:8998</code>
+if you’re working on a remote host), and you’re away.
+
+Using Apache
+============
+
+Eregansu will by default create a .htaccess file in your application root for use with
+Apache. All you should need to do is create a virtual host with the appropriate
+<code>DocumentRoot</code> setting. You’ll need to enable <code>mod_php5</code>,
+and <code>mod_rewrite</code>, and ensure the directory-level access rules are
+configured properly.
+
+Something like the below will do (adjust to suit your configuration):
+
+	<VirtualHost *:80>
+		ServerName eregansu.localhost
+		DocumentRoot /home/developer/eregansu
+		DirectoryIndex index.html index.php
+	</VirtualHost>
+	
+	<Directory /home/developer/eregansu>
+		Order allow,deny
+		Allow from all
+		Options ExecCGI FollowSymLinks
+		AllowOverride all
+	</Directory>
+
+
+Using lighttpd
+==============
+
+Add something like the below to your lighttpd configuration:
+
+	$HTTP["host"] =~ "^eregansu\.localhost$"
+	        server.document-root = "/home/developer/eregansu"
+	        url.rewrite-once = (
+	                "^(?!/((app|templates|media|content)/.*|favicon.ico))" => "/index.php"
+	        )
+	}
+
+This assumes you already have the necessary configuration for PHP in place. See
+the lighttpd documentation for more information on this. A simple setup using
+fastcgi would be:
+
+	static-file.exclude-extensions = ( ".php", ".pl", ".fcgi" )
+	fastcgi.server = ( ".php" => ((
+        "socket" => "/tmp/php-fastcgi.socket",
+        "bin-path" => "/usr/php/5.2/bin/php-cgi",
+        "max-procs" => 4,
+        "idle-timeout" => 30,
+        "broken-scriptfilename" => "enable",
+        "allow-x-send-file" => "enable",
+        ))
+	)
+	index-file.names = ( "index.html", "index.php" )
+	
+(This configuration snippet was taken directly from an OpenSolaris host running
+the Sun-provided PHP 5.2 and lighttpd 1.4 packages — you would need to adjust
+your paths to suit).
