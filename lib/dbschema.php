@@ -327,7 +327,7 @@ abstract class DBTable
 				$this->schema->db->exec($change);
 			}
 		}
-		while(!$this->db->commit());
+		while(!$this->schema->db->commit());
 		return true;
 	}
 	
