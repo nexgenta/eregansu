@@ -272,6 +272,7 @@ class Store extends Model
 		{
 			$uuid = UUID::generate();
 		}
+		$user_scheme = $user_uuid = null;
 		$uuid = strtolower($uuid);
 		unset($data['uuid']);
 		unset($data['created']);
@@ -287,7 +288,7 @@ class Store extends Model
 			$entry = $this->db->row('SELECT "uuid" FROM {' . $this->objects . '} WHERE "uuid" = ?', $uuid);
 			if($entry)
 			{
-				$this->db->exec('UPDATE {' . $this->objects . '} SET "data" = ?, "modified" = ' . $this->db->now () . ' "modifier_scheme" = ?, "modifier_uuid" = ? WHERE "uuid" = ?', $json, $user_scheme, $user_uuid, $uuid);
+				$this->db->exec('UPDATE {' . $this->objects . '} SET "data" = ?, "modified" = ' . $this->db->now () . ', "modifier_scheme" = ?, "modifier_uuid" = ? WHERE "uuid" = ?', $json, $user_scheme, $user_uuid, $uuid);
 			}
 			else
 			{
@@ -314,14 +315,14 @@ class Store extends Model
 	{
 		$data['uuid'] = $row['uuid'];
 		$data['created'] = $row['created'];
-		if(strlen($data['creator_uuid']))
+		if(strlen($row['creator_uuid']))
 		{
-			$data['creator'] = array('scheme' => $data['creator_scheme'], 'uuid' => $data['creator_uuid']);
+			$data['creator'] = array('scheme' => $row['creator_scheme'], 'uuid' => $row['creator_uuid']);
 		}
 		$data['modified'] = $row['modified'];
-		if(strlen($data['modifier_uuid']))
+		if(strlen($row['modifier_uuid']))
 		{
-			$data['modifier'] = array('scheme' => $data['modifier_scheme'], 'uuid' => $data['modifier_uuid']);
+			$data['modifier'] = array('scheme' => $row['modifier_scheme'], 'uuid' => $row['modifier_uuid']);
 		}
 		$data['owner'] = $row['owner'];
 	}
