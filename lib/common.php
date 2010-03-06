@@ -76,6 +76,20 @@ function is_arrayish($var)
 }
 
 /**
+ * @brief Parse a string and return the boolean value it represents
+ *
+ * @param[in] string $str a string representation of a boolean value
+ * @return bool The boolean value \p{$str} represents
+ */
+function parse_bool($str)
+{
+	$str = trim(strtolower($str));
+	if($str == 'yes' || $str == 'on' || $str == 'true') return true;
+	if($str == 'no' || $str == 'off' || $str == 'false') return false;
+	return !empty($str);
+}
+
+/**
  * @brief HTML-escape a string and output it
  *
  * \f{e} accepts a string and outputs it after ensuring any characters which have special meaning
