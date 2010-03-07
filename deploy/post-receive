@@ -4,18 +4,18 @@
 ##
 ## On your server:
 ##
-## $ mkdir production.git /path/to/website
+## $ mkdir -p production.git /path/to/website
 ## $ cd production.git
 ## $ git init --bare
-## $ git config core.worktree /path/to/website
+## $ git config core.worktree /path/to/website/son
 ## $ git config core.bare false
 ## $ git config receive.denycurrentbranch ignore
+## $ git config eregansu.rotate true
 ## $ cp wherever-this-file-is hooks/post-receive
 ## $ chmod +x hooks/post-receive
-## $ cat >eregansu-instance <<EOF
-## deploy_to=/path/to/website
-## rotate=yes
-## EOF
+## $ mkdir /path/to/website/shared
+## $ mkdir /path/to/website/private
+## $ chmod 733 /path/to/website/private
 ##
 ## On the client:
 ##
@@ -29,51 +29,94 @@
 ## can be very rapidly reverted with no knowledge of git, should something
 ## be pushed which shouldn't have been.
 ##
-## For a development/staging site, you probably want 'rotate=no', which
-## just maintains $deploy_to/current in-place. Note that with rotate=no,
-## if the setup phase fails, you'll be left with a broken deployment.
+## For a development/staging site, you probably want to disable rotation,
+## in which case the 'core.worktree' and 'eregansu.worktree' configuration
+## lines above should be:
 ##
-## The setup phase can do whatever you want, but considering that it
-## appears twice in this file, you probably want to have a separate
-## script which does the heavy-lifting for you.
+## $ git config core.worktree /path/to/website/current
+## $ git config eregansu.rotate false
+##
+## Note that in a non-rotating configuration, if the setup phase
+## fails, you'll be left with a broken deployment.
+##
+## There are two additional hook files which you can create, pre-deploy
+## and post-deploy. In a rotating configuration, the pre-deploy hook
+## is executed in the 'son' subdirectory, prior to it becoming 'current'.
+## The post-deploy hook is executed immediately after it has been. In both
+## cases, the current directory is that of the newly checked out release.
+##
+## In a non-rotating configuration, both pre-deploy and post-deploy hooks
+## are executed right after 'current' has been updated.
 ##
 ## Once configured, you can simply 'git push production master' to
 ## deploy your master branch to the production server.
 
-if test -f "$GIT_DIR/eregansu-instance" ; then
-        . "$GIT_DIR/eregansu-instance"
-else
-        echo "**** $GIT_DIR/eregansu-instance does not exist; aborting" >&2
-        exit 1
+worktree="`git config --get core.worktree`"
+if test x"$worktree" = x"" ; then
+	echo "**** Detached working tree has not been configured for this repository; aborting" >&2
+	exit 1
 fi
+deploy_to=`( cd $worktree/.. && pwd)`
+here=`pwd`
+rotate="`git config --bool --get eregansu.rotate`"
 
-if test x"$rotate" = x"yes" ; then
+test x"$rotate" = x"" && rotate=false
+test x"$GIT_DIR" = x"" && GIT_DIR=`pwd`
+
+export GIT_DIR
+
+if test x"$rotate" = x"true" ; then
         echo "---> Performing pre-deployment checkout in $deploy_to" >&2
-        rm -rf "$deploy_to/son" || exit $?
-        mkdir "$deploy_to/son" || exit $?
+        rm -rf "$worktree" || exit $?
+        mkdir "$worktree" || exit $?
         git checkout -f || exit $?
 
-        echo "---> Setting up the new release" >&2
-        ## Do setup tasks here, e.g., symlinking per-instance config files,
-        ## updating database schemata, etc.
-
+	echo "---> Setting up the new release" >&2
+	if test -x "$GIT_DIR/hooks/pre-deploy" ; then
+		( cd "$worktree" && "$GIT_DIR/hooks/pre-deploy" ) || exit $?
+	fi
+	if test -d "$deploy_to/shared" ; then
+		cd "$deploy_to/shared"
+		for i in * ; do
+			if test -e "$i" ; then
+				echo "  +> Symlinking /$i" >&2
+				( cd "$worktree" && rm -f "$i" && ln -s ../shared/"$i" . ) || exit $?
+			fi
+		done
+	fi
         echo "---> Rotating previous releases" >&2
         rm -rf "$deploy_to/grandfather" || exit $?
         if test -d "$deploy_to/father" ; then
                 mv "$deploy_to/grandfather" || exit $?
         fi
-        echo "---> Deploying the new release" >&2
+        echo "---> Deploying the new release to $deploy_to/current" >&2
         if test -d "$deploy_to/current" ; then
                 mv "$deploy_to/current" "$deploy_to/father" || exit $?
         fi
-        mv "$deploy_to/son" "$deploy_to/current" || exit $?
+        mv "$worktree" "$deploy_to/current" || exit $?
+	worktree="$deploy_to/current"
 else
-        test -d "$deploy_to/current" || mkdir "$deploy_to/current" || exit $?
+        test -d "$worktree" || mkdir "$worktree" || exit $?
         git checkout -f || exit $?
 
         echo "---> Setting up the new release" >&2
-        ## Do setup tasks here, e.g., symlinking per-instance config files,
-        ## updating database schemata, etc.
+	if test -x "$GIT_DIR/hooks/pre-deploy" ; then
+		( cd "$worktree" && "$GIT_DIR/hooks/pre-deploy" ) || exit $?
+	fi
+	if test -d "$deploy_to/shared" ; then
+		cd "$deploy_to/shared"
+		for i in * ; do
+			if test -e "$i" ; then
+				echo "  +> Symlinking /$i" >&2
+				( cd "$worktree" && rm -f "$i" && ln -s ../shared/"$i" . ) || exit $?
+			fi
+		done
+	fi
+fi
+
+if test -x "$GIT_DIR/hooks/post-deploy" ; then
+	echo "---> Performing post-deploying tasks" >&2
+	( cd "$worktree" && "$GIT_DIR/hooks/post-deploy" ) || exit $?	
 fi
 
 echo "---> New release successfully deployed." >&2
