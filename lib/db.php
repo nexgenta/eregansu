@@ -95,6 +95,8 @@ abstract class DBCore implements IDBCore
 	protected $dbName;
 	protected $schemaName;
 	public $dbms = 'unknown';
+	public $prefix = '';
+	public $suffix = '';
 	
 	public static function connect($iristr)
 	{
@@ -164,19 +166,19 @@ abstract class DBCore implements IDBCore
 		$this->params = $params;
 		if(isset($this->params['options']['autoconnect']))
 		{
-			$auto = strtolower($this->params['options']['autoconnect']);
-		}
-		else
-		{
-			$auto = true;
-		}
-		if(!strcmp($auto, 'no') || !strcmp($auto, 'false') || empty($auto))
-		{
-			$this->params['options']['autoconnect'] = false;
+			$this->params['options']['autoconnect'] = parse_bool($this->params['options']['autoconnect']);
 		}
 		else
 		{
 			$this->params['options']['autoconnect'] = true;
+		}
+		if(isset($this->params['options']['prefix']))
+		{
+			$this->prefix = $this->params['options']['prefix'];
+		}
+		if(isset($this->params['options']['suffix']))
+		{
+			$this->suffix = $this->params['options']['suffix'];
 		}
 		if($this->params['options']['autoconnect'])
 		{
@@ -414,6 +416,7 @@ abstract class DBCore implements IDBCore
 	
 	public function quoteTable($name)
 	{
+		$name = $this->prefix . $name . $this->suffix;
 		$this->quoteObjectRef($name);
 		return $name;
 	}
@@ -668,7 +671,7 @@ class MySQL extends DBCore
 	public function quoteTable($name)
 	{
 		if(!$this->dbName) $this->autoconnect();
-		return '"' . $this->dbName . '"."' . $name . '"';
+		return '"' . $this->dbName . '"."' . $this->prefix . $name . $this->suffix . '"';
 	}
 }
 
