@@ -1,0 +1,79 @@
+#!/bin/sh
+
+## Setup is basically thus:
+##
+## On your server:
+##
+## $ mkdir production.git /path/to/website
+## $ cd production.git
+## $ git init --bare
+## $ git config core.worktree /path/to/website
+## $ git config core.bare false
+## $ git config receive.denycurrentbranch ignore
+## $ cp wherever-this-file-is hooks/post-receive
+## $ chmod +x hooks/post-receive
+## $ cat >eregansu-instance <<EOF
+## deploy_to=/path/to/website
+## rotate=yes
+## EOF
+##
+## On the client:
+##
+## $ git remote add production user@server.example.com:production.git
+## $ git push production master
+##
+## Configure your web server to look at /path/to/website/current as its
+## DocumentRoot (or whatever your server's equivalent is).
+##
+## The configuration above will rotate previous releases so that they
+## can be very rapidly reverted with no knowledge of git, should something
+## be pushed which shouldn't have been.
+##
+## For a development/staging site, you probably want 'rotate=no', which
+## just maintains $deploy_to/current in-place. Note that with rotate=no,
+## if the setup phase fails, you'll be left with a broken deployment.
+##
+## The setup phase can do whatever you want, but considering that it
+## appears twice in this file, you probably want to have a separate
+## script which does the heavy-lifting for you.
+##
+## Once configured, you can simply 'git push production master' to
+## deploy your master branch to the production server.
+
+if test -f "$GIT_DIR/eregansu-instance" ; then
+        . "$GIT_DIR/eregansu-instance"
+else
+        echo "**** $GIT_DIR/eregansu-instance does not exist; aborting" >&2
+        exit 1
+fi
+
+if test x"$rotate" = x"yes" ; then
+        echo "---> Performing pre-deployment checkout in $deploy_to" >&2
+        rm -rf "$deploy_to/son" || exit $?
+        mkdir "$deploy_to/son" || exit $?
+        git checkout -f || exit $?
+
+        echo "---> Setting up the new release" >&2
+        ## Do setup tasks here, e.g., symlinking per-instance config files,
+        ## updating database schemata, etc.
+
+        echo "---> Rotating previous releases" >&2
+        rm -rf "$deploy_to/grandfather" || exit $?
+        if test -d "$deploy_to/father" ; then
+                mv "$deploy_to/grandfather" || exit $?
+        fi
+        echo "---> Deploying the new release" >&2
+        if test -d "$deploy_to/current" ; then
+                mv "$deploy_to/current" "$deploy_to/father" || exit $?
+        fi
+        mv "$deploy_to/son" "$deploy_to/current" || exit $?
+else
+        test -d "$deploy_to/current" || mkdir "$deploy_to/current" || exit $?
+        git checkout -f || exit $?
+
+        echo "---> Setting up the new release" >&2
+        ## Do setup tasks here, e.g., symlinking per-instance config files,
+        ## updating database schemata, etc.
+fi
+
+echo "---> New release successfully deployed." >&2
