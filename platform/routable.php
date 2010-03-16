@@ -353,12 +353,12 @@ class App extends Router
 		{
 			return self::$initialApp['default'];
 		}
-		else if(defined('APP_CLASS'))
+		if(defined('APP_NAME'))
 		{
-			if(defined('APP_NAME'))
-			{
-				$APP_ROOT .= APP_NAME . '/';
-			}
+			$APP_ROOT .= APP_NAME . '/';
+		}
+		if(defined('APP_CLASS'))
+		{
 			if(defined('APP_CLASS_PATH'))
 			{
 				require_once($APP_ROOT . APP_CLASS_PATH);
