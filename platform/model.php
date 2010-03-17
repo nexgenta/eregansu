@@ -43,13 +43,14 @@ class Model
 	public static function getInstance($args = null, $className = null, $defaultDbIri = null)
 	{
 		if(!$className) return null;
-		if(!isset(self::$instances[$className]))
+		if(is_null($args)) $args = array();
+		if(!isset($args['db'])) $args['db'] = $defaultDbIri;
+		$key = $className . ':' . $args['db'];
+		if(!isset(self::$instances[$key]))
 		{
-			if(is_null($args)) $args = array();
-			if(!isset($args['db'])) $args['db'] = $defaultDbIri;
-			self::$instances[$className] = new $className($args);
+			self::$instances[$key] = new $className($args);
 		}
-		return self::$instances[$className];
+		return self::$instances[$key];
 	}
 	
 	public function __construct($args)
