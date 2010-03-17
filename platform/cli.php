@@ -69,6 +69,10 @@ class CliSetup extends CommandLine
 		$root = $APP_ROOT;
 		foreach($SETUP_MODULES as $mod)
 		{
+			if(!is_array($mod))
+			{
+				$mod = array('name' => $mod, 'file' => 'module.php', 'class' => $mod . 'Module');
+			}
 			if(isset($mod['name']))
 			{
 				$APP_ROOT = APPS_ROOT . $mod['name'] . '/';
