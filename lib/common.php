@@ -261,6 +261,7 @@ $AUTOLOAD = array();
 $AUTOLOAD['base32'] = dirname(__FILE__) . '/base32.php';
 $AUTOLOAD['clirequest'] = dirname(__FILE__) . '/cli.php';
 $AUTOLOAD['dbcore'] = dirname(__FILE__) . '/dbcore.php';
+$AUTOLOAD['dbschema'] = dirname(__FILE__) . '/dbschema.php';
 $AUTOLOAD['form'] = dirname(__FILE__) . '/form.php';
 $AUTOLOAD['mime'] = dirname(__FILE__) . '/mime.php';
 $AUTOLOAD['request'] = dirname(__FILE__) . '/request.php';
