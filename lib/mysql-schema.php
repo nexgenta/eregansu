@@ -329,7 +329,7 @@ class MySQLTable extends DBTable
 				$name = 'PRIMARY';
 				break;
 			case DBIndex::UNIQUE:
-				$spec = 'KEY';
+				$spec = 'UNIQUE KEY';
 				break;
 			case DBIndex::INDEX:
 				$spec = 'INDEX';
