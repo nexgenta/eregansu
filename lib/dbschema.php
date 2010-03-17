@@ -115,6 +115,7 @@ abstract class DBTable
 {
 	/* Flags for DBSchema::tableWithOptions */
 	const EXISTING = 0; /* Don't create the table: retrieve existing spec */
+	const CREATE_NEVER = 0;
 	const CREATE_IF_NEEDED = 1; /* Create it if it doesn't exist; no-op otherwise */
 	const CREATE_ALWAYS = 2; /* Always create, dropping if necessary */
 	
@@ -198,6 +199,7 @@ abstract class DBTable
 					trigger_error('DBTable::columnWithSpec: an array of values must be specified for ' . ($type == DBType::ENUM ? 'an ENUM' : 'a SET') . ' column', E_USER_NOTICE);
 					return false;
 				}
+				break;
 			case DBType::DATE:
 			case DBType::DATETIME:
 			case DBType::UUID:
