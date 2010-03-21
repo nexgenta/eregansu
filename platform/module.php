@@ -65,6 +65,10 @@ abstract class Module extends Model
 	 */
 	public function setup()
 	{
+		if(!$this->db)
+		{
+			return true;
+		}
 		$currentVersion = $this->db->schema->moduleVersion($this->moduleId);
 		while($currentVersion < $this->latestVersion)
 		{
