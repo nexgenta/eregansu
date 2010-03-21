@@ -31,12 +31,17 @@ abstract class ModuleInstaller
 {
 	protected $installer;
 	public $name;
+	public $path;
 	public $moduleOrder = 1000;
 	
-	public function __construct($installer, $name)
+	public function __construct($installer, $name, $path)
 	{
 		$this->installer = $installer;
-		$this->name = $name;
+		if(!strlen($this->name))
+		{
+			$this->name = $name;
+		}
+		$this->path = $path;
 	}
 	
 	protected function writePlaceholderDBIri($file, $constant = null, $dbname = null, $dbtype = 'mysql', $options = null)
@@ -54,5 +59,13 @@ abstract class ModuleInstaller
 			$options = '?' . $options;
 		}
 		fwrite($file, '/* define(\'' . $constant . '\', \'' . $dbtype . '://username:password@localhost/' . $dbname . $options . '\'); */' . "\n");
+	}
+	
+	public function writeAppConfig($file)
+	{
+	}
+	
+	public function writeInstanceConfig($file)
+	{
 	}
 }
