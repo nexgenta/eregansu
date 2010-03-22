@@ -128,10 +128,16 @@ class MySQLTable extends DBTable
 		$this->nativeCreateOptions['ENGINE'] = $table['ENGINE'];
 		$this->nativeCreateOptions['DEFAULT COLLATE'] = $table['TABLE_COLLATION'];
 		$this->nativeCreateOptions['COMMENT'] = $table['TABLE_COMMENT'];
-		$info = $this->schema->db->rows('SELECT * FROM "INFORMATION_SCHEMA"."COLUMNS" WHERE "TABLE_CATALOG" IS NULL AND "TABLE_SCHEMA" = ? AND "TABLE_NAME" = ? ORDER BY ORDINAL_POSITION ASC', $this->schema->db->dbName, $this->name);
+		$info = $this->schema->db->rows('SELECT * FROM "INFORMATION_SCHEMA"."COLUMNS" WHERE "TABLE_CATALOG" IS NULL AND "TABLE_SCHEMA" = ? AND "TABLE_NAME" = ? ORDER BY "ORDINAL_POSITION" ASC', $this->schema->db->dbName, $this->name);
 		foreach($info as $field)
 		{
 			$this->columns[$field['COLUMN_NAME']] = $this->columnFromNative($field);
+		}
+		$info = $this->schema->db->rows('SELECT * FROM "INFORMATION_SCHEMA"."STATISTICS" WHERE "TABLE_CATALOG" IS NULL AND "TABLE_SCHEMA" = ? AND "TABLE_NAME" = ? ORDER BY "INDEX_NAME", "SEQ_IN_INDEX" ASC', $this->schema->db->dbName, $this->name);
+		$this->indices = array();
+		foreach($info as $index)
+		{
+			$this->indices[$index['INDEX_NAME']] = $this->indexFromNative($index);
 		}
 	}
 	
@@ -209,6 +215,37 @@ class MySQLTable extends DBTable
 				$spec .= ' COMMENT ' . $this->schema->db->quote($info['comment']);
 		}
 		$info['spec'] = $spec;
+		return true;
+	}
+	
+	protected function nativeIndexSpec(&$info)
+	{
+		$cols = array();
+		foreach($info['columns'] as $c)
+		{
+			$cols[] = '"' . $c . '"';
+		}
+		if($info['type'] != DBIndex::PRIMARY && !strcasecmp($info['name'], 'primary'))
+		{
+			trigger_error('MySQLTable: Only a primary key may be named "PRIMARY"', E_USER_NOTICE);
+			return false;
+		}
+		switch($info['type'])
+		{
+			case DBIndex::PRIMARY:
+				$info['spec'] = 'PRIMARY KEY (' . implode(', ', $cols) . ')';
+				$info['name'] = 'PRIMARY';
+				break;
+			case DBIndex::INDEX:
+				$info['spec'] = 'INDEX "' . $info['name'] . '" (' . implode(', ', $cols) . ')';
+				break;
+			case DBIndex::UNIQUE:
+				$info['spec'] = 'UNIQUE KEY "' . $info['name'] . '" (' . implode(', ', $cols) . ')';
+				break;
+			default:
+				trigger_error('MySQLTable: Unsupported index type ' . $info['type'], E_USER_NOTICE);
+				return false;
+		}
 		return true;
 	}
 	
@@ -316,53 +353,37 @@ class MySQLTable extends DBTable
 		}
 		return $info;
 	}
-
-	public function indexWithSpec($name, $type, $column /* ... */)
+	
+	protected function indexFromNative($native)
 	{
-		$columns = func_get_args();
-		array_shift($columns);
-		array_shift($columns);
-		switch($type)
+		$name = $native['INDEX_NAME'];
+		if(isset($this->indices[$name]))
 		{
-			case DBIndex::PRIMARY:
-				$spec = 'PRIMARY KEY';
-				$name = 'PRIMARY';
-				break;
-			case DBIndex::UNIQUE:
-				$spec = 'UNIQUE KEY';
-				break;
-			case DBIndex::INDEX:
-				$spec = 'INDEX';
-				break;
-			default:
-				trigger_error('MySQLTable: Unsupported index type ' . $type, E_USER_NOTICE);
-				return false;
-		}
-		if($type != DBIndex::PRIMARY && strlen($name))
-		{
-			$spec .= ' "' . $name . '"';
-		}
-		$cols = array();
-		foreach($columns as $c)
-		{
-			$cols[] = '"' . $c . '"';
-		}
-		$spec .= ' (' . implode(', ', $cols) . ')';
-		$info = array(
-			'name' => $name,
-			'type' => $type,
-			'columns' => $columns,
-			'spec' => $spec,
-		);
-		if($name !== null)
-		{
-			$this->indices[$name] = $info;
+			$info = $this->indices[$name];
 		}
 		else
 		{
-			$this->indices[] = $info;
+			$info = array(
+				'name' => $native['INDEX_NAME'],
+				'type' => null,
+				'columns' => array(),
+				'spec' => null,
+			);
+			if($info['name'] == 'PRIMARY')
+			{
+				$info['type'] = DBIndex::PRIMARY;
+			}
+			else if($native['NON_UNIQUE'])
+			{
+				$info['type'] = DBIndex::INDEX;				
+			}
+			else
+			{
+				$info['type'] = DBIndex::UNIQUE;
+			}
 		}
-		return true;		
+		$info['columns'][] = $native['COLUMN_NAME'];
+		$this->nativeIndexSpec($info);		
+		return $info;
 	}
-	
 }

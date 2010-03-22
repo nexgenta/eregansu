@@ -45,6 +45,7 @@ abstract class DBType
 	const SET = 7;
 	const SERIAL = 8;
 	const BOOL = 9;
+	const BOOLEAN = 9;
 	const UUID = 10;
 	const TEXT = 11;
 	const BLOB = 12;
@@ -231,9 +232,77 @@ abstract class DBTable
 		$this->columns[$name] = $info;
 	}
 	
+	public function indexWithSpec($name, $type, $column /* ... */)
+	{
+		$columns = func_get_args();
+		array_shift($columns);
+		array_shift($columns);
+		switch($type)
+		{
+			case DBIndex::PRIMARY:
+				$spec = 'PRIMARY KEY';
+				$name = 'PRIMARY';
+				break;
+			case DBIndex::UNIQUE:
+				$spec = 'UNIQUE KEY';
+				break;
+			case DBIndex::INDEX:
+				$spec = 'INDEX';
+				break;
+			default:
+				trigger_error('DBTable: Unsupported index type ' . $type, E_USER_NOTICE);
+				return false;
+		}
+		if(!strlen($name))
+		{
+			$name = implode('_', $columns);
+		}
+		$info = array(
+			'name' => $name,
+			'type' => $type,
+			'columns' => $columns,
+		);
+		if(!($this->nativeIndexSpec($info)))
+		{
+			return false;
+		}
+		if($this->options == self::EXISTING)
+		{		
+			if(isset($this->indices[$info['name']]))
+			{
+				$this->dropIndex($info['name']);
+			}
+			$this->changes[] = $this->addIndex($info);
+		}
+		$this->indices[$info['name']] = $info;
+		return true;
+	}
+
+	
 	public function indices()
 	{
 		return $this->indices;
+	}
+	
+	/* Drop an index from a table; can be overridden by descendants */
+	public function dropIndex($name)
+	{
+		if(!strlen($name)) $name = 'PRIMARY';
+		if(isset($this->indices[$name]))
+		{
+			unset($this->indices[$name]);			
+			if($this->options == self::EXISTING)
+			{		
+				if($name === null || !strcasecmp($name, 'PRIMARY'))
+				{
+					$this->changes[] = 'ALTER TABLE {' . $this->name . '} DROP PRIMARY KEY';
+				}
+				else
+				{
+					$this->changes[] = 'ALTER TABLE {' . $this->name . '} DROP INDEX "' . $name . '"';
+				}
+			}
+		}
 	}
 	
 	/* Query the database schema and populate $this->columns and
@@ -249,7 +318,7 @@ abstract class DBTable
 	 */
 	abstract protected function nativeColumnSpec(&$info);
 	
-	abstract public function indexWithSpec($name, $type, $column /* ... */);
+	abstract protected function nativeIndexSpec(&$info);
 	
 	/* Return a string containing an ALTER TABLE statement for replacing
 	 * an existing column with a new specification.
@@ -272,6 +341,14 @@ abstract class DBTable
 	protected function addColumn($info)
 	{
 		return 'ALTER TABLE {' . $this->name . '} ADD COLUMN ' . $info['spec'];
+	}
+	
+	/* Return a string containing an ALTER TABLE statement for adding
+	 * a new index.
+	 */
+	protected function addIndex($info)
+	{
+		return 'ALTER TABLE {' . $this->name . '} ADD ' . $info['spec'];
 	}
 	
 	/* Execute a CREATE TABLE statement based on the content of
@@ -326,6 +403,10 @@ abstract class DBTable
 			$this->schema->db->begin();
 			foreach($this->changes as $change)	
 			{
+				if(defined('DBSCHEMA_DEBUG') && DBSCHEMA_DEBUG)
+				{
+					echo "[$change]\n";
+				}
 				$this->schema->db->exec($change);
 			}
 		}
