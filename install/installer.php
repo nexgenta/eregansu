@@ -494,7 +494,7 @@ class Installer
 					include_once(MODULES_ROOT . $de . '/install.php');
 					if(!class_exists($de . 'ModuleInstall'))
 					{
-						echo '*** ' . MODULES_ROOT . $de . '/install.php exists but does not define a class named ' . $de . 'ModuleInstaller; skipping' . "\n";
+						echo '*** ' . MODULES_ROOT . $de . '/install.php exists but does not define a class named ' . $de . 'ModuleInstall; skipping' . "\n";
 						continue;
 					}
 					$className = $de . 'ModuleInstall';
