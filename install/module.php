@@ -48,7 +48,7 @@ abstract class ModuleInstaller
 	{
 		if(0 == strlen($constant))
 		{
-			$constant = strtoupper($this->name, '_IRI');
+			$constant = strtoupper($this->name . '_IRI');
 		}
 		if(0 == strlen($dbname))
 		{
