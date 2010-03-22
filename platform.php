@@ -39,7 +39,6 @@
  
 function uses()
 {
-	global $APP_ROOT;
 	static $_lib_modules = array('base32', 'cli', 'date', 'db', 'dbschema', 'execute', 'form', 'ldap', 'mime', 'request', 'session', 'url', 'uuid');
 	
 	$_modules = func_get_args();

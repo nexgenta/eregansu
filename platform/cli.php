@@ -59,14 +59,14 @@ class CliSetup extends CommandLine
 {
 	public function main($args)
 	{
-		global $SETUP_MODULES, $APP_ROOT;
+		global $SETUP_MODULES, $MODULE_ROOT;
 		
 		if(!isset($SETUP_MODULES) || !is_array($SETUP_MODULES) || !count($SETUP_MODULES))
 		{
 			echo "setup: No modules are configured, nothing to do.\n";
 			exit(0);
 		}
-		$root = $APP_ROOT;
+		$root = $MODULE_ROOT;
 		foreach($SETUP_MODULES as $mod)
 		{
 			if(!is_array($mod))
@@ -75,11 +75,11 @@ class CliSetup extends CommandLine
 			}
 			if(isset($mod['name']))
 			{
-				$APP_ROOT = APPS_ROOT . $mod['name'] . '/';
+				$MODULE_ROOT = MODULES_ROOT . $mod['name'] . '/';
 			}
 			if(isset($mod['file']))
 			{
-				require_once($APP_ROOT . $mod['file']);
+				require_once($MODULE_ROOT . $mod['file']);
 			}
 			$cl = $mod['class'];
 			$module = call_user_func(array($cl, 'getInstance'));
@@ -94,7 +94,7 @@ class CliSetup extends CommandLine
 				echo "*** Schema update of " . $module->moduleId . " to " . $module->latestVersion . " failed\n";
 				exit(1);
 			}
-			$APP_ROOT = $root;
+			$MODULE_ROOT = $root;
 		}
 		echo ">>> Module setup completed successfully.\n";
 	}

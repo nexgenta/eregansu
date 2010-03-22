@@ -125,7 +125,7 @@ class Router extends Routable
 	
 	public function locateRoute(Request $req)
 	{
-		global $APP_ROOT;
+		global $MODULE_ROOT;
 		
 		if(!isset($this->sapi[$req->sapi])) return null;
 		$routes = $this->sapi[$req->sapi];
@@ -259,7 +259,7 @@ class Router extends Routable
 	
 	public function routeInstance(Request $req, $route)
 	{
-		global $APP_ROOT;
+		global $MODULE_ROOT;
 		
 		if(!is_array($route))
 		{
@@ -269,11 +269,11 @@ class Router extends Routable
 		{
 			if(isset($route['name']))
 			{
-				$APP_ROOT .= $route['name'] . '/';
+				$MODULE_ROOT .= $route['name'] . '/';
 			}
 			else if(substr($route['key'], 0, 1) != '_')
 			{
-				$APP_ROOT .= $route['key'] . '/';
+				$MODULE_ROOT .= $route['key'] . '/';
 			}
 		}
 		if(isset($route['file']))
@@ -287,11 +287,11 @@ class Router extends Routable
 			{
 				if(!empty($route['fromRoot']))
 				{
-					$f = APPS_ROOT . $f;
+					$f = MODULES_ROOT . $f;
 				}
 				else
 				{
-					$f = $APP_ROOT . $f;
+					$f = $MODULE_ROOT . $f;
 				}
 			}
 			require_once($f);
@@ -324,7 +324,7 @@ class App extends Router
 
 	public static function initialApp($sapi = null)
 	{
-		global $APP_ROOT;
+		global $MODULE_ROOT;
 
 		if(!strlen($sapi))
 		{
@@ -335,17 +335,17 @@ class App extends Router
 			return self::$initialApp[$sapi];
 		}
 		$prefix = str_replace('-', '_', strtoupper($sapi));
-		if(defined($prefix . '_APP_CLASS'))
+		if(defined($prefix . '_MODULE_CLASS'))
 		{
-			if(defined($prefix . '_APP_NAME'))
+			if(defined($prefix . '_MODULE_NAME'))
 			{
-				$APP_ROOT .= constant($prefix . '_APP_NAME') . '/';
+				$MODULE_ROOT .= constant($prefix . '_MODULE_NAME') . '/';
 			}
-			if(defined($prefix . '_APP_CLASS_PATH'))
+			if(defined($prefix . '_MODULE_CLASS_PATH'))
 			{
-				require_once($APP_ROOT . constant('_APP_CLASS_PATH'));
+				require_once($MODULE_ROOT . constant('_MODULE_CLASS_PATH'));
 			}
-			$appClass = constant($prefix . '_APP_CLASS');
+			$appClass = constant($prefix . '_MODULE_CLASS');
 			self::$initialApp[$sapi] = $inst = new $appClass;
 			return $inst;
 		}
@@ -353,17 +353,17 @@ class App extends Router
 		{
 			return self::$initialApp['default'];
 		}
-		if(defined('APP_NAME'))
+		if(defined('MODULE_NAME'))
 		{
-			$APP_ROOT .= APP_NAME . '/';
+			$MODULE_ROOT .= MODULE_NAME . '/';
 		}
-		if(defined('APP_CLASS'))
+		if(defined('MODULE_CLASS'))
 		{
-			if(defined('APP_CLASS_PATH'))
+			if(defined('MODULE_CLASS_PATH'))
 			{
-				require_once($APP_ROOT . APP_CLASS_PATH);
+				require_once($MODULE_ROOT . MODULE_CLASS_PATH);
 			}
-			$appClass = APP_CLASS;
+			$appClass = MODULE_CLASS;
 			self::$initialApp['default'] = $inst = new $appClass;
 			return $inst;
 		}

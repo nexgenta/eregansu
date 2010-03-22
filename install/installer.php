@@ -420,21 +420,21 @@ class Installer
 	
 	protected function checkApp()
 	{
-		if(!file_exists(APPS_ROOT))
+		if(!file_exists(MODULES_ROOT))
 		{
-			echo "--> " . APPS_ROOT . " does not exist, creating\n";
-			mkdir(APPS_ROOT);
-			chmod(APPS_ROOT, 0755);
-			if(!file_exists(APPS_ROOT . $this->appname))
+			echo "--> " . MODULES_ROOT . " does not exist, creating\n";
+			mkdir(MODULES_ROOT);
+			chmod(MODULES_ROOT, 0755);
+			if(!file_exists(MODULES_ROOT . $this->appname))
 			{
-				echo "--> " . APPS_ROOT . $this->appname . " does not exist, creating\n";
-				mkdir(APPS_ROOT . $this->appname);
-				chmod(APPS_ROOT . $this->appname, 0755);				
+				echo "--> " . MODULES_ROOT . $this->appname . " does not exist, creating\n";
+				mkdir(MODULES_ROOT . $this->appname);
+				chmod(MODULES_ROOT . $this->appname, 0755);				
 			}
 		}
 		else
 		{
-			echo "--> " . APPS_ROOT . " already exists, leaving untouched\n";
+			echo "--> " . MODULES_ROOT . " already exists, leaving untouched\n";
 		}
 	}
 	
@@ -481,24 +481,24 @@ class Installer
 			return;
 		}
 		echo "--> Scanning for modules...\n";
-		$d = opendir(APPS_ROOT);
+		$d = opendir(MODULES_ROOT);
 		$modules = array();
 		$c = 0;
 		while(($de = readdir($d)))
 		{
 			if(substr($de, 0, 1) == '.') continue;
-			if(is_dir(APPS_ROOT . $de))
+			if(is_dir(MODULES_ROOT . $de))
 			{
-				if(file_exists(APPS_ROOT . $de . '/install.php'))
+				if(file_exists(MODULES_ROOT . $de . '/install.php'))
 				{
-					include_once(APPS_ROOT . $de . '/install.php');
+					include_once(MODULES_ROOT . $de . '/install.php');
 					if(!class_exists($de . 'ModuleInstall'))
 					{
-						echo '*** ' . APPS_ROOT . $de . '/install.php exists but does not define a class named ' . $de . 'ModuleInstaller; skipping' . "\n";
+						echo '*** ' . MODULES_ROOT . $de . '/install.php exists but does not define a class named ' . $de . 'ModuleInstaller; skipping' . "\n";
 						continue;
 					}
 					$className = $de . 'ModuleInstall';
-					$inst = new $className($this, $de, APPS_ROOT . $de . '/');
+					$inst = new $className($this, $de, MODULES_ROOT . $de . '/');
 					$k = sprintf('%04d-%04d', $inst->moduleOrder, $c);
 					echo " +> Found module " . $inst->name . "\n";
 					$modules[$k] = $inst;

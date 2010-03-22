@@ -210,15 +210,15 @@ if(!defined('CONFIG_ROOT'))
 {
 	define('CONFIG_ROOT', INSTANCE_ROOT . 'config/');
 }
-if(defined('APPS_PATH'))
+if(defined('MODULES_PATH'))
 {
-	define('APPS_ROOT', INSTANCE_ROOT . APPS_PATH . '/');
+	define('MODULES_ROOT', INSTANCE_ROOT . MODULES_PATH . '/');
 }
 else
 {
-	define('APPS_ROOT', INSTANCE_ROOT . 'app/');
+	define('MODULES_ROOT', INSTANCE_ROOT . 'app/');
 }
-$APP_ROOT = APPS_ROOT;
+$MODULE_ROOT = MODULES_ROOT;
 
 /**
  * @var $AUTOLOAD_SUBST
@@ -232,15 +232,15 @@ $APP_ROOT = APPS_ROOT;
  * - \c ${lib} The filesystem path to the Eregansu Core Library
  * - \c ${instance} The value of the INSTANCE_ROOT definition
  * - \c ${platform} The value of the PLATFORM_ROOT definition
- * - \c ${apps} The value of the APPS_ROOT definition
- * - \c ${app} The filesystem path of the current application
+ * - \c ${modules} The value of the MODULES_ROOT definition
+ * - \c ${module} The filesystem path of the current module
  */
 $AUTOLOAD_SUBST = array();
 $AUTOLOAD_SUBST['${lib}'] = PLATFORM_LIB;
 $AUTOLOAD_SUBST['${instance}'] = INSTANCE_ROOT;
 $AUTOLOAD_SUBST['${platform}'] = PLATFORM_PATH;
-$AUTOLOAD_SUBST['${apps}'] = APPS_ROOT;
-$AUTOLOAD_SUBST['${app}'] =& $APP_ROOT;
+$AUTOLOAD_SUBST['${modules}'] = MODULES_ROOT;
+$AUTOLOAD_SUBST['${module}'] =& $MODULE_ROOT;
 
 /**
  * @var $AUTOLOAD

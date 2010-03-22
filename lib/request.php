@@ -106,7 +106,7 @@ abstract class Request
 			{
 				if(defined('REQUEST_CLASS_PATH'))
 				{
-					require_once(APPS_ROOT . REQUEST_CLASS_PATH);
+					require_once(MODULES_ROOT . REQUEST_CLASS_PATH);
 				}
 				return new REQUEST_CLASS;
 			}
