@@ -231,7 +231,7 @@ abstract class DBCore implements IDBCore
 		array_shift($params);
 		if(($r =  $this->vquery($query, $params)))
 		{
-			return new $this->rsClass($this, $r);
+			return new $this->rsClass($this, $r, $query, $params);
 		}
 		return null;
 	}
@@ -240,7 +240,7 @@ abstract class DBCore implements IDBCore
 	{
 		if(($r =  $this->vquery($query, $params)))
 		{
-			return new $this->rsClass($this, $r);
+			return new $this->rsClass($this, $r, $query, $params);
 		}
 		return null;
 	}
@@ -252,7 +252,7 @@ abstract class DBCore implements IDBCore
 		array_shift($params);
 		if(($r = $this->vquery($query, $params)))
 		{
-			$rs = new $this->rsClass($this, $r);
+			$rs = new $this->rsClass($this, $r, $query, $params);
 			$row = $rs->next();
 			$rs = null;
 			if($row)
@@ -271,7 +271,7 @@ abstract class DBCore implements IDBCore
 		$row = null;
 		if(($r = $this->vquery($query, $params)))
 		{
-			$rs = new $this->rsClass($this, $r);
+			$rs = new $this->rsClass($this, $r, $query, $params);
 			$row = $rs->next();
 			$rs = null;
 			if($row)
@@ -292,7 +292,7 @@ abstract class DBCore implements IDBCore
 		array_shift($params);
 		if(($r =  $this->vquery($query, $params)))
 		{
-			$rs = new $this->rsClass($this, $r);
+			$rs = new $this->rsClass($this, $r, $query, $params);
 			$row = $rs->next();
 			$rs = null;
 		}
@@ -304,7 +304,7 @@ abstract class DBCore implements IDBCore
 		$row = null;
 		if(($r =  $this->vquery($query, $params)))
 		{
-			$rs = new $this->rsClass($this, $r);
+			$rs = new $this->rsClass($this, $r, $query, $params);
 			$row = $rs->next();
 			$rs = null;
 		}
@@ -319,7 +319,7 @@ abstract class DBCore implements IDBCore
 		if(($r =  $this->vquery($query, $params)))
 		{
 			$rows = array();
-			$rs = new $this->rsClass($this, $r);
+			$rs = new $this->rsClass($this, $r, $query, $params);
 			while(($row = $rs->next()))
 			{
 				$rows[] = $row;
@@ -335,7 +335,7 @@ abstract class DBCore implements IDBCore
 		if(($r =  $this->vquery($query, $params)))
 		{
 			$rows = array();
-			$rs = new $this->rsClass($this, $r);
+			$rs = new $this->rsClass($this, $r, $query, $params);
 			while(($row = $rs->next()))
 			{
 				$rows[] = $row;
@@ -468,10 +468,11 @@ class DBDataSet implements DataSet
 	public $fields = array();
 	public $EOF = true;
 	public $db;
+	public $total = 0;
 	protected $resource;
 	protected $count = 0;
 	
-	public function __construct($db, $resource)
+	public function __construct($db, $resource, $query = null, $params = null)
 	{
 		$this->db = $db;
 		$this->resource = $resource;
@@ -677,8 +678,28 @@ class MySQL extends DBCore
 
 class MySQLSet extends DBDataSet
 {
+	public function __construct($db, $resource, $query = null, $params = null)
+	{
+		if(strlen($query) && false !== strpos($query, '/*!SQL_CALC_FOUND_ROWS*/'))
+		{
+			$this->total = $db->value('SELECT FOUND_ROWS()');
+		}
+		parent::__construct($db, $resource, $query);
+	}
+	
 	protected function row()
 	{
 		return ($this->fields = mysql_fetch_assoc($this->resource));
+	}
+	
+	public function rewind()
+	{
+		$this->EOF = false;
+		$this->fields = null;
+		if(false == @mysql_data_seek($this->resource, 0))
+		{
+			$this->EOF = true;
+			return;
+		}
 	}
 }
