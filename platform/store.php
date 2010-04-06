@@ -227,6 +227,65 @@ class StaticStorableSet extends StorableSet
 	}
 }
 
+class DBStorableSet extends StaticStorableSet
+{
+	protected $rs;
+	protected $current;
+	protected $key;
+	public $offset;
+	public $limit;
+	public $total;
+	
+	public function __construct($model, $args)
+	{
+		$this->rs = $args['recordSet'];
+		$this->total = $this->rs->total;
+		if(isset($args['offset'])) $this->offset = $args['offset'];
+		if(isset($args['limit'])) $this->limit = $args['limit'];
+		$this->rewind();
+	}
+	
+	public function key()
+	{
+		return $this->key;
+	}
+		
+	public function next()
+	{
+		$this->rs->next();
+		if(($this->data = $this->rs->fields))
+		{
+			$this->count++;
+			$this->key = $this->data['uuid'];
+			$data = json_decode($this->data['data'], true);
+			$this->current = $this->storableForEntry($data);
+		}
+		else
+		{
+			$this->key = $this->current = null;
+		}
+		$this->EOF = $this->rs->EOF;
+		return $this->current;
+	}
+	
+	public function rewind()
+	{	
+		$this->count = 0;
+		$this->rs->rewind();
+		if(($this->data = $this->rs->fields))
+		{
+			$this->key = $this->data['uuid'];
+			$data = json_decode($this->data['data'], true);
+			$this->current = $this->storableForEntry($data);			
+		}
+		else
+		{
+			$this->key = $this->current = null;
+		}
+		$this->EOF = $this->rs->EOF;
+	}	
+}
+
 class Store extends Model
 {
 	protected $storableClass = 'Storable';
@@ -261,7 +320,7 @@ class Store extends Model
 		return $data;
 	}
 		
-	public function setData($data, $user = null)
+	public function setData($data, $user = null, $lazy = false)
 	{
 		if(is_object($data)) $data = get_object_vars($data);
 		if(isset($data['uuid']) && strlen($data['uuid']) == 36)
@@ -288,7 +347,7 @@ class Store extends Model
 			$entry = $this->db->row('SELECT "uuid" FROM {' . $this->objects . '} WHERE "uuid" = ?', $uuid);
 			if($entry)
 			{
-				$this->db->exec('UPDATE {' . $this->objects . '} SET "data" = ?, "modified" = ' . $this->db->now () . ', "modifier_scheme" = ?, "modifier_uuid" = ? WHERE "uuid" = ?', $json, $user_scheme, $user_uuid, $uuid);
+				$this->db->exec('UPDATE {' . $this->objects . '} SET "data" = ?, "dirty" = ?, "modified" = ' . $this->db->now () . ', "modifier_scheme" = ?, "modifier_uuid" = ? WHERE "uuid" = ?', $json, 'Y', $user_scheme, $user_uuid, $uuid);
 			}
 			else
 			{
@@ -301,6 +360,7 @@ class Store extends Model
 					'@modified' => $this->db->now(),
 					'modifier_scheme' => $user_scheme,
 					'modifier_uuid' => $user_uuid,
+					'dirty' => 'Y',
 				));
 			}
 		}
@@ -327,7 +387,53 @@ class Store extends Model
 		$data['owner'] = $row['owner'];
 	}
 	
-	protected function stored($data)
+	protected function stored($data, $json = null)
 	{
+		if(!isset($data['kind']) || !strlen($data['kind']) || !isset($data['uuid']))
+		{
+			return false;
+		}
+		$uuid = strtolower(trim($data['uuid']));
+		if(!strlen($uuid))
+		{
+			return false;
+		}
+		if(defined('OBJECT_CACHE_ROOT'))
+		{
+			try
+			{
+				if(!file_exists(OBJECT_CACHE_ROOT))
+				{
+					mkdir(OBJECT_CACHE_ROOT, 0777, true);
+				}
+				$dir = OBJECT_CACHE_ROOT . $data['kind'] . '/' . substr($uuid, 0, 2) . '/';
+				if(null == $json)
+				{
+					$json = json_encode($data);
+				}
+				if(!file_exists($dir))
+				{
+					mkdir($dir, 0777, true);
+				}
+				$f = fopen($dir . $uuid . '.json', 'w');
+				fwrite($f, $json);
+				fclose($f);
+				try
+				{
+					chmod($dir . $uuid . '.json', 0666);
+				}
+				catch (Exception $e)
+				{
+				}
+			}
+			catch(Exception $e)
+			{
+				if(php_sapi_name() == 'cli')
+				{
+					echo str_repeat('=', 79) . "\n" . $e . "\n" . str_repeat('=', 79) . "\n";
+				}				
+			}
+		}
+		return true;
 	}
 }
