@@ -174,6 +174,14 @@ function exception_error_handler($errno, $errstr, $errfile, $errline)
 	return false;
 }
 
+function strict_error_handler($errno, $errstr, $errfile, $errline)
+{
+	$e = error_reporting();
+	if(!$errno || ($e & $errno) != $errno) return;
+	throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
+	return false;
+}
+
 umask(007);
 error_reporting(E_ALL|E_STRICT|E_RECOVERABLE_ERROR);
 ini_set('display_errors', 'On');
