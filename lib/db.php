@@ -100,13 +100,28 @@ abstract class DBCore implements IDBCore
 	
 	public static function connect($iristr)
 	{
+		$iri = self::parseIRI($iristr);
+		switch($iri['scheme'])
+		{
+			case 'mysql':
+				return new MySQL($iri);
+			case 'ldap':
+				require_once(dirname(__FILE__) . '/ldap.php');
+				return new LDAP($iri);
+			default:
+				throw new DBException(0, 'Unsupported database connection scheme "' . $iri['scheme'] . '"', null);
+		}
+	}
+	
+	public static function parseIRI($iristr)
+	{
 		if(is_array($iristr))
 		{
 			$iri = $iristr;
 		}
 		else
 		{
-			$iri = parse_url($iristr);
+			$iri = URL::parse($iristr);
 		}
 		if(!isset($iri['user']))
 		{
@@ -149,16 +164,7 @@ abstract class DBCore implements IDBCore
 				$iri['options'][urldecode($kv[0])] = urldecode($kv[1]);
 			}
 		}
-		switch($iri['scheme'])
-		{
-			case 'mysql':
-				return new MySQL($iri);
-			case 'ldap':
-				require_once(dirname(__FILE__) . '/ldap.php');
-				return new LDAP($iri);
-			default:
-				throw new DBException(0, 'Unsupported database connection scheme "' . $iri['scheme'] . '"', null);
-		}
+		return $iri;	
 	}
 	
 	public function __construct($params)
