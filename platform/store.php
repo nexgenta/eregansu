@@ -367,8 +367,20 @@ class Store extends Model
 		while(!$this->db->commit());
 		$row = $this->db->row('SELECT "uuid", "created", "creator_scheme", "creator_uuid", "modified", "modifier_scheme", "modifier_uuid", "owner" FROM {' . $this->objects . '} WHERE "uuid" = ?', $uuid);
 		$this->retrievedMeta($data, $row);
-		$this->stored($data);
+		$this->stored($data, $json, $lazy);
 		return $data['uuid'];
+	}
+	
+	public function updateObjectWithUUID($uuid)
+	{
+		if(!($row = $this->db->row('SELECT * FROM {' . $this->objects . '} WHERE "uuid" = ?', $uuid)))
+		{
+			return false;
+		}
+		$data = json_decode($row['data'], true);
+		$this->retrievedMeta($data, $row);
+		$this->stored($data, false);
+		return true;
 	}
 	
 	protected function retrievedMeta(&$data, $row)
@@ -387,7 +399,7 @@ class Store extends Model
 		$data['owner'] = $row['owner'];
 	}
 	
-	protected function stored($data, $json = null)
+	protected function stored($data, $json = null, $lazy = false)
 	{
 		if(!isset($data['kind']) || !strlen($data['kind']) || !isset($data['uuid']))
 		{
@@ -397,6 +409,10 @@ class Store extends Model
 		if(!strlen($uuid))
 		{
 			return false;
+		}
+		if($lazy)
+		{
+			return true;
 		}
 		if(defined('OBJECT_CACHE_ROOT'))
 		{
@@ -434,6 +450,7 @@ class Store extends Model
 				}				
 			}
 		}
+		$this->db->query('UPDATE {' . $this->objects . '} SET "dirty" = ? WHERE "uuid" = ?', 'N', $uuid);
 		return true;
 	}
 }
