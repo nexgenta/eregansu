@@ -296,6 +296,13 @@ class Installer
 			fwrite($f, " */\n");
 			fwrite($f, "/* define('SCRIPTS_IRI', 'http://static1.example.com/scripts/'); */\n\n");
 			
+			fwrite($f, "/* For applications which make use of the object store, set\n");
+			fwrite($f, " * OBJECT_CACHE_ROOT to the absolute path of a directory where\n");
+			fwrite($f, " * a JSON-encoded copy of each stored object should be written to.\n");
+			fwrite($f, " * Objects are stored at <OBJECT_CACHE_ROOT>/<kind>/<uuid[0..2]>/<uuid>.json\n");
+			fwrite($f, " * If specified, OBJECT_CACHE_ROOT must include a trailing slash.\n");
+			fwrite($f, " */\n");
+			fwrite($f, "/* define('OBJECT_CACHE_ROOT', '/shared/cache/objects/'); */\n\n");
 			fclose($f);
 			chmod($this->config, 0644);
 		}	
