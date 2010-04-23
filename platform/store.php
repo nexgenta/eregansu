@@ -167,6 +167,10 @@ class StaticStorableSet extends StorableSet
 	public function __construct($model, $args)
 	{
 		parent::__construct($model, $args);
+		if(isset($args['storableClass']))
+		{
+			$this->storableClass = $args['storableClass'];
+		}
 		$this->list = $args['list'];
 		$this->rewind();
 	}
@@ -239,6 +243,10 @@ class DBStorableSet extends StaticStorableSet
 	public function __construct($model, $args)
 	{
 		$this->rs = $args['recordSet'];
+		if(isset($args['storableClass']))
+		{
+			$this->storableClass = $args['storableClass'];
+		}		
 		$this->total = $this->rs->total;
 		if(isset($args['offset'])) $this->offset = $args['offset'];
 		if(isset($args['limit'])) $this->limit = $args['limit'];
