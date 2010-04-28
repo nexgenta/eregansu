@@ -333,6 +333,11 @@ class Session
  */
 class TransientSession extends Session
 {
+	public function __construct($request)
+	{
+		parent::__construct($request);
+	}
+	
 	protected function init($req)
 	{
 		$this->data = array();
