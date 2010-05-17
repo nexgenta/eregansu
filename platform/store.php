@@ -195,8 +195,23 @@ class StaticStorableSet extends StorableSet
 		return null;
 	}
 	
-	protected function storableForEntry($entry)
+	protected function storableForEntry($entry, $rowData = null)
 	{
+		if(is_array($rowData))
+		{
+			$entry['uuid'] = $rowData['uuid'];
+			$entry['created'] = $rowData['created'];
+			if(strlen($rowData['creator_uuid']))
+			{
+				$entry['creator'] = array('scheme' => $rowData['creator_scheme'], 'uuid' => $rowData['creator_uuid']);
+			}
+			$entry['modified'] = $rowData['modified'];
+			if(strlen($rowData['modifier_uuid']))
+			{
+				$entry['modifier'] = array('scheme' => $rowData['modifier_scheme'], 'uuid' => $rowData['modifier_uuid']);
+			}
+			$entry['owner'] = $rowData['owner'];		
+		}
 		return call_user_func(array($this->storableClass, 'objectForData'), $entry, $this->model, $this->storableClass);	
 	}
 	
@@ -266,7 +281,7 @@ class DBStorableSet extends StaticStorableSet
 			$this->count++;
 			$this->key = $this->data['uuid'];
 			$data = json_decode($this->data['data'], true);
-			$this->current = $this->storableForEntry($data);
+			$this->current = $this->storableForEntry($data, $this->data);
 		}
 		else
 		{
@@ -284,7 +299,7 @@ class DBStorableSet extends StaticStorableSet
 		{
 			$this->key = $this->data['uuid'];
 			$data = json_decode($this->data['data'], true);
-			$this->current = $this->storableForEntry($data);			
+			$this->current = $this->storableForEntry($data, $this->data);			
 		}
 		else
 		{

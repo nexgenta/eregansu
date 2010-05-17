@@ -617,6 +617,10 @@ class MySQL extends DBCore
 		{
 			$string = ($string ? "'Y'" : "'N'");
 		}
+		else if(is_array($string))
+		{
+			$this->reportError(0, 'Attempt to escape array value', json_encode($string), 'DBException');
+		}
 		else
 		{
 			$string = "'" . mysql_real_escape_string($string, $this->mysql) . "'";
