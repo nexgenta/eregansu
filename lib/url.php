@@ -73,6 +73,31 @@ abstract class URL
 		return parse_url($url);
 	}
 
+	/* As parse(), but ensure that 'scheme', 'host', 'path', 'query', 'fragment',
+	 * 'user', 'pass' and 'port' are at the very least null. Also break 'query' out
+	 * into an 'options' array.
+	 */
+	public static function parseForOptions($url)
+	{
+		$default = array('scheme' => null, 'host' => null, 'user' => null, 'pass' => null, 'host' => null, 'port' => null, 'path' => null, 'query' => null, 'fragment' => null);
+		if(!($url = self::parse($url)))
+		{
+			return null;
+		}
+		$url = array_merge($default, $url);
+		$url['options'] = array();
+		if(strlen($url['query']))
+		{
+			$q = explode(';', str_replace('&', ';', $url['query']));
+			foreach($q as $qv)
+			{
+				$kv = explode('=', $qv, 2);
+				$url['options'][urldecode($kv[0])] = urldecode($kv[1]);
+			}
+		}
+		return $url;
+	}
+
 	public static function copy($source, $dest, $context = null)
 	{
 		global $VFS;
