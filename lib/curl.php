@@ -35,6 +35,7 @@ if(function_exists('curl_init'))
 	if(!defined('CURLPROTO_HTTP')) define('CURLPROTO_HTTP', null);
 	if(!defined('CURLPROTO_HTTPS')) define('CURLPROTO_HTTPS', null);
 	if(!defined('CURLPROTO_FTP')) define('CURLPROTO_FTP', null);
+	if(!defined('CURLPROTO_FTPS')) define('CURLPROTO_FTPS', null);
 	if(!defined('CURLPROTO_SCP')) define('CURLPROTO_SCP', null);
 	if(!defined('CURLPROTO_SFTP')) define('CURLPROTO_SFTP', null);
 	if(!defined('CURLPROTO_TELNET')) define('CURLPROTO_TELNET', null);
