@@ -107,7 +107,11 @@ class PlatformEventSink
 			{
 				uses('auth');
 				$session->begin();
-				if(($engine = Auth::authEngineForScheme($session->user['scheme'])))
+				if(!isset($session->user['scheme']))
+				{
+					unset($session->user);
+				}
+				else if(($engine = Auth::authEngineForScheme($session->user['scheme'])))
 				{
 					$engine->refreshUserData($session->user);
 				}
@@ -116,6 +120,19 @@ class PlatformEventSink
 					unset($session->user);
 				}
 				$session->commit();
+			}
+		}
+		else if(isset($session->userScheme) && isset($session->userUUID))
+		{
+			uses('auth');
+			if(($engine = Auth::authEngineForScheme($session->userScheme)))
+			{
+				if(($data = $engine->retrieveUserData($session->userScheme, $session->userUUID)))
+				{
+					$session->begin();
+					$session->user = $data;
+					$session->commit();
+				}
 			}
 		}
 		else if($req->sapi != 'http')
@@ -129,7 +146,6 @@ class PlatformEventSink
 				$session->commit();
 			}
 		}
-	
 	}
 }
 
