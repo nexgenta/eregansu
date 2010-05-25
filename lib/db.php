@@ -99,6 +99,7 @@ abstract class DBCore implements IDBCore
 	public $dbms = 'unknown';
 	public $prefix = '';
 	public $suffix = '';
+	protected $aliases = array();
 	
 	public static function connect($iristr)
 	{
@@ -422,8 +423,31 @@ abstract class DBCore implements IDBCore
 		return $this->execute($sql);
 	}
 	
+	public function alias($alias, $target = null)
+	{		
+		if(strlen($target))
+		{
+			$this->aliases[$alias] = $target;
+			return $target;
+		}
+		if(is_array($alias))
+		{
+			foreach($alias as $k => $v)
+			{
+				$this->aliases[$k] = $v;
+			}
+			return;	
+		}
+		if(isset($this->aliases[$alias]))
+		{
+			return $this->aliases[$alias];
+		}
+		return null;
+	}
+	
 	public function quoteTable($name)
 	{
+		if(isset($this->aliases[$name])) $name = $this->aliases[$name];
 		$name = $this->prefix . $name . $this->suffix;
 		$this->quoteObjectRef($name);
 		return $name;
@@ -684,6 +708,7 @@ class MySQL extends DBCore
 	public function quoteTable($name)
 	{
 		if(!$this->dbName) $this->autoconnect();
+		if(isset($this->aliases[$name])) $name = $this->aliases[$name];
 		return '"' . $this->dbName . '"."' . $this->prefix . $name . $this->suffix . '"';
 	}
 }
