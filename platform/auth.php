@@ -118,7 +118,7 @@ abstract class Auth implements IAuthEngine
 			if(isset($AUTH_CLASSES[$scheme]))
 			{
 				$class = $AUTH_CLASSES[$scheme];
-				self::$authEngines[$scheme] = $class::getInstance();
+				self::$authEngines[$scheme] = call_user_func(array($class, 'getInstance'));
 				return self::$authEngines[$scheme];
 			}
 			switch($scheme)
