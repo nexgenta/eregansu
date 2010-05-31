@@ -68,6 +68,13 @@ class DBNetworkException extends DBSystemException
 {
 }
 
+/* Database errors relating to transient scenarios which caused the transaction
+ * to be rolled back.
+ */
+class DBRollbackException extends DBException
+{
+}
+
 interface IDBCore
 {
 	public function __construct($params);
@@ -99,7 +106,6 @@ abstract class DBCore implements IDBCore
 	public $dbms = 'unknown';
 	public $prefix = '';
 	public $suffix = '';
-	protected $aliases = array();
 	
 	public static function connect($iristr)
 	{
@@ -231,6 +237,36 @@ abstract class DBCore implements IDBCore
 			return true;
 		}
 		return false;
+	}
+
+	/* Invoke $function within a transaction which will be automatically re-tried
+	 * if necessary.
+	 */
+	public function perform($function, $data = null, $maxRetries = 10)
+	{
+		$count = 0;
+		while($maxRetries < 0 || $count < $maxRetries)
+		{
+			try
+			{
+				$this->begin();
+				if(call_user_func($function, $this, $data))
+				{
+					if($this->commit())
+					{
+						return true;
+					}
+					continue;
+				}
+				$this->rollback();
+				return false;
+			}
+			catch(DBRollbackException $e)
+			{
+				$count++;
+			}
+		}
+		throw new DBRollbackException(0, 'Repeatedly failed to perform transaction (retried ' . $maxRetries . ' times)');
 	}
 
 	/* $rs = $inst->query('SELECT * FROM `sometable` WHERE `field` = ? AND `otherfield` = ?', $something, 27); */
@@ -423,31 +459,8 @@ abstract class DBCore implements IDBCore
 		return $this->execute($sql);
 	}
 	
-	public function alias($alias, $target = null)
-	{		
-		if(strlen($target))
-		{
-			$this->aliases[$alias] = $target;
-			return $target;
-		}
-		if(is_array($alias))
-		{
-			foreach($alias as $k => $v)
-			{
-				$this->aliases[$k] = $v;
-			}
-			return;	
-		}
-		if(isset($this->aliases[$alias]))
-		{
-			return $this->aliases[$alias];
-		}
-		return null;
-	}
-	
 	public function quoteTable($name)
 	{
-		if(isset($this->aliases[$name])) $name = $this->aliases[$name];
 		$name = $this->prefix . $name . $this->suffix;
 		$this->quoteObjectRef($name);
 		return $name;
@@ -564,13 +577,13 @@ class MySQL extends DBCore
 	{
 		if(!($this->mysql = mysql_connect($this->params['host'], $this->params['user'], $this->params['pass'], $this->forceNewConnection)))
 		{
-			$this->raiseError(null);
+			return $this->raiseError(null);
 		}
 		if(strlen($this->params['dbname']))
 		{
 			if(!mysql_select_db($this->params['dbname'], $this->mysql))
 			{
-				$this->raiseError(null);
+				return $this->raiseError(null);
 			}
 			$this->dbName = $this->params['dbname'];
 		}
@@ -584,7 +597,7 @@ class MySQL extends DBCore
 	{
 		if(!mysql_select_db($name, $this->mysql))
 		{
-			$this->raiseError(null);
+			return $this->raiseError(null);
 		}
 		$this->dbName = $name;		
 	}
@@ -596,7 +609,7 @@ class MySQL extends DBCore
 		$r = mysql_query($sql, $this->mysql);
 		if($r === false)
 		{
-			$this->raiseError($sql);
+			return $this->raiseError($sql);
 		}
 		return $r;
 	}
@@ -605,6 +618,8 @@ class MySQL extends DBCore
 	{
 		static $neterrors = array(1042, 1043, 1044, 1045, 1129, 1130, 1133, 1152, 1153, 1154, 1155, 1156, 1157, 1158, 1159, 1160, 1162, 1184, 1370, 1203, 1226, 1227, 1251, 1275, 1301, 1317, 1637, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2009, 2010, 2011, 2012, 2013, 2015, 2020, 2021, 2024, 2025, 2027, 2028, 2036, 2037, 2038, 2039, 2040, 2041, 2042, 2043, 2044, 2045, 2046, 2049, 2055);
 		static $syserrors = array(1000, 1001, 1004, 1005, 1006, 1009, 1010, 1011, 1012, 1013, 1014, 1015, 1016, 1017, 1018, 1019, 1021, 1023, 1024, 1025, 1026, 1030, 1033, 1035, 1037, 1039, 1041, 1053, 1078, 1080, 1081, 1082, 1085, 1086, 1098, 1126, 1127, 1135, 1187, 1189, 1190, 1194, 1197, 1199, 1200, 1201, 1202, 1218, 1219, 1236, 1254, 1255, 1256, 1257, 1258, 1259, 1274, 1282, 1285, 1289, 1290, 1296, 1297, 1340, 1341, 1342, 1343, 1344, 1346, 1371, 1374, 1375, 1376, 1377, 1378, 1379, 1380, 1383, 1388, 1389, 1430, 1431, 1432, 1436, 1501, 1524, 1528, 1529, 1533, 1541, 1545, 1547, 1549, 1570, 1573, 1602, 1623, 1627, 1639, 1640);
+		static $rollbackerrors = array(1205, 1213);
+		
 		$class = 'DBException';
 		if($this->mysql)
 		{
@@ -616,7 +631,11 @@ class MySQL extends DBCore
 			$errcode = mysql_errno();
 			$errstr = mysql_error();			
 		}
-		if(in_array($errcode, $neterrors))
+		if(in_array($errcode, $rollbackerrors))
+		{
+			$class = 'DBRollbackException';
+		}
+		else if(in_array($errcode, $neterrors))
 		{
 			$class = 'DBNetworkException';
 			$this->mysql = null;
@@ -708,7 +727,6 @@ class MySQL extends DBCore
 	public function quoteTable($name)
 	{
 		if(!$this->dbName) $this->autoconnect();
-		if(isset($this->aliases[$name])) $name = $this->aliases[$name];
 		return '"' . $this->dbName . '"."' . $this->prefix . $name . $this->suffix . '"';
 	}
 }
