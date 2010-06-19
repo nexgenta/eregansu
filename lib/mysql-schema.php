@@ -183,7 +183,7 @@ class MySQLTable extends DBTable
 				break;
 			case DBType::SERIAL:
 				$spec .= 'BIGINT UNSIGNED';
-				$info['flags'] |= DBTable::NOT_NULL;
+				$info['flags'] |= DBCol::NOT_NULL;
 				break;
 			case DBType::BOOL:
 				$spec .= 'ENUM(\'N\',\'Y\')';
