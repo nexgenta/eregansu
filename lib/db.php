@@ -81,6 +81,7 @@ interface IDBCore
 	public function vquery($query, $params);
 	public function query($query);
 	public function exec($query);
+	public function vexec($query, $params);
 	public function value($query);
 	public function row($query);
 	public function rows($query);
@@ -588,7 +589,7 @@ class MySQL extends DBCore
 			$this->dbName = $this->params['dbname'];
 		}
 		$this->execute("SET NAMES 'utf8'");
-		$this->execute("SET sql_mode='ANSI'");
+		$this->execute("SET sql_mode='ANSI_QUOTES,IGNORE_SPACE,PIPES_AS_CONCAT'");
 		$this->execute("SET storage_engine='InnoDB'");
 		$this->execute("SET time_zone='+00:00'");
 	}
