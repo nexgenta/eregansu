@@ -57,7 +57,7 @@ class Storable implements ArrayAccess
 	{
 		if(!is_array($data))
 		{
-			throw new Exception(gettype($data) . ' passed to Storable::__construct(), arrayish expected');
+			throw new Exception(gettype($data) . ' passed to Storable::__construct(), array expected');
 		}
 		foreach($data as $k => $v)
 		{
@@ -68,14 +68,19 @@ class Storable implements ArrayAccess
 	
 	public function store()
 	{
-		return self::$models[get_class($this)]->store($this);
+		if(!($data = self::$models[get_class($this)]->setData($this)))
+		{
+			return null;
+		}
+		$this->reload($data);
+		return $this->uuid;
 	}
 	
-	public function reload()
+	public function reload($data = null)
 	{
 		static $uuid = null;
 		
-		if(!$uuid)
+		if(!$uuid && isset($this->uuid))
 		{
 			$uuid = $this->uuid;
 		}
@@ -84,14 +89,20 @@ class Storable implements ArrayAccess
 		{
 			unset($this->$k);
 		}
-		if(($data = self::$models[get_class($this)]->dataForUUID($uuid)))
+		if(!$data)
 		{
+			$data = self::$models[get_class($this)]->dataForUUID($uuid);
+		}
+		if($data)
+		{		
 			foreach($data as $k => $v)
 			{
 				$this->$k = $v;
 			}
 			$this->loaded(true);
+			$uuid = $this->uuid;
 		}
+		return $uuid;
 	}
 	
 	protected function loaded($reloaded = false)
@@ -263,7 +274,10 @@ class Store extends Model
 		
 	public function setData($data, $user = null)
 	{
-		if(is_object($data)) $data = get_object_vars($data);
+		if(is_object($data))
+		{
+			$data = get_object_vars($data);
+		}
 		if(isset($data['uuid']) && strlen($data['uuid']) == 36)
 		{
 			$uuid = $data['uuid'];
@@ -308,7 +322,7 @@ class Store extends Model
 		$row = $this->db->row('SELECT "uuid", "created", "creator_scheme", "creator_uuid", "modified", "modifier_scheme", "modifier_uuid", "owner" FROM {' . $this->objects . '} WHERE "uuid" = ?', $uuid);
 		$this->retrievedMeta($data, $row);
 		$this->stored($data);
-		return $data['uuid'];
+		return $data;
 	}
 	
 	protected function retrievedMeta(&$data, $row)
