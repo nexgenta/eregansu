@@ -178,6 +178,10 @@ class StaticStorableSet extends StorableSet
 	public function __construct($model, $args)
 	{
 		parent::__construct($model, $args);
+		if(isset($args['storableClass']))
+		{
+			$this->storableClass = $args['storableClass'];
+		}
 		$this->list = $args['list'];
 		$this->rewind();
 	}
@@ -202,8 +206,23 @@ class StaticStorableSet extends StorableSet
 		return null;
 	}
 	
-	protected function storableForEntry($entry)
+	protected function storableForEntry($entry, $rowData = null)
 	{
+		if(is_array($rowData))
+		{
+			$entry['uuid'] = $rowData['uuid'];
+			$entry['created'] = $rowData['created'];
+			if(strlen($rowData['creator_uuid']))
+			{
+				$entry['creator'] = array('scheme' => $rowData['creator_scheme'], 'uuid' => $rowData['creator_uuid']);
+			}
+			$entry['modified'] = $rowData['modified'];
+			if(strlen($rowData['modifier_uuid']))
+			{
+				$entry['modifier'] = array('scheme' => $rowData['modifier_scheme'], 'uuid' => $rowData['modifier_uuid']);
+			}
+			$entry['owner'] = $rowData['owner'];		
+		}
 		return call_user_func(array($this->storableClass, 'objectForData'), $entry, $this->model, $this->storableClass);	
 	}
 	
@@ -236,6 +255,69 @@ class StaticStorableSet extends StorableSet
 			$this->keys = array();
 		}
 	}
+}
+
+class DBStorableSet extends StaticStorableSet
+{
+	protected $rs;
+	protected $current;
+	protected $key;
+	public $offset;
+	public $limit;
+	public $total;
+	
+	public function __construct($model, $args)
+	{
+		$this->rs = $args['recordSet'];
+		if(isset($args['storableClass']))
+		{
+			$this->storableClass = $args['storableClass'];
+		}		
+		$this->total = $this->rs->total;
+		if(isset($args['offset'])) $this->offset = $args['offset'];
+		if(isset($args['limit'])) $this->limit = $args['limit'];
+		$this->rewind();
+	}
+	
+	public function key()
+	{
+		return $this->key;
+	}
+		
+	public function next()
+	{
+		$this->rs->next();
+		if(($this->data = $this->rs->fields))
+		{
+			$this->count++;
+			$this->key = $this->data['uuid'];
+			$data = json_decode($this->data['data'], true);
+			$this->current = $this->storableForEntry($data, $this->data);
+		}
+		else
+		{
+			$this->key = $this->current = null;
+		}
+		$this->EOF = $this->rs->EOF;
+		return $this->current;
+	}
+	
+	public function rewind()
+	{	
+		$this->count = 0;
+		$this->rs->rewind();
+		if(($this->data = $this->rs->fields))
+		{
+			$this->key = $this->data['uuid'];
+			$data = json_decode($this->data['data'], true);
+			$this->current = $this->storableForEntry($data, $this->data);			
+		}
+		else
+		{
+			$this->key = $this->current = null;
+		}
+		$this->EOF = $this->rs->EOF;
+	}	
 }
 
 class Store extends Model
@@ -272,7 +354,7 @@ class Store extends Model
 		return $data;
 	}
 		
-	public function setData($data, $user = null)
+	public function setData($data, $user = null, $lazy = false)
 	{
 		if(is_object($data))
 		{
@@ -302,7 +384,7 @@ class Store extends Model
 			$entry = $this->db->row('SELECT "uuid" FROM {' . $this->objects . '} WHERE "uuid" = ?', $uuid);
 			if($entry)
 			{
-				$this->db->exec('UPDATE {' . $this->objects . '} SET "data" = ?, "modified" = ' . $this->db->now () . ', "modifier_scheme" = ?, "modifier_uuid" = ? WHERE "uuid" = ?', $json, $user_scheme, $user_uuid, $uuid);
+				$this->db->exec('UPDATE {' . $this->objects . '} SET "data" = ?, "dirty" = ?, "modified" = ' . $this->db->now () . ', "modifier_scheme" = ?, "modifier_uuid" = ? WHERE "uuid" = ?', $json, 'Y', $user_scheme, $user_uuid, $uuid);
 			}
 			else
 			{
@@ -315,14 +397,27 @@ class Store extends Model
 					'@modified' => $this->db->now(),
 					'modifier_scheme' => $user_scheme,
 					'modifier_uuid' => $user_uuid,
+					'dirty' => 'Y',
 				));
 			}
 		}
 		while(!$this->db->commit());
 		$row = $this->db->row('SELECT "uuid", "created", "creator_scheme", "creator_uuid", "modified", "modifier_scheme", "modifier_uuid", "owner" FROM {' . $this->objects . '} WHERE "uuid" = ?', $uuid);
 		$this->retrievedMeta($data, $row);
-		$this->stored($data);
+		$this->stored($data, $json, $lazy);
 		return $data;
+	}
+	
+	public function updateObjectWithUUID($uuid)
+	{
+		if(!($row = $this->db->row('SELECT * FROM {' . $this->objects . '} WHERE "uuid" = ?', $uuid)))
+		{
+			return false;
+		}
+		$data = json_decode($row['data'], true);
+		$this->retrievedMeta($data, $row);
+		$this->stored($data, false);
+		return true;
 	}
 	
 	protected function retrievedMeta(&$data, $row)
@@ -341,7 +436,58 @@ class Store extends Model
 		$data['owner'] = $row['owner'];
 	}
 	
-	protected function stored($data)
+	protected function stored($data, $json = null, $lazy = false)
 	{
+		if(!isset($data['kind']) || !strlen($data['kind']) || !isset($data['uuid']))
+		{
+			return false;
+		}
+		$uuid = strtolower(trim($data['uuid']));
+		if(!strlen($uuid))
+		{
+			return false;
+		}
+		if($lazy)
+		{
+			return true;
+		}
+		if(defined('OBJECT_CACHE_ROOT'))
+		{
+			try
+			{
+				if(!file_exists(OBJECT_CACHE_ROOT))
+				{
+					mkdir(OBJECT_CACHE_ROOT, 0777, true);
+				}
+				$dir = OBJECT_CACHE_ROOT . $data['kind'] . '/' . substr($uuid, 0, 2) . '/';
+				if(null == $json)
+				{
+					$json = json_encode($data);
+				}
+				if(!file_exists($dir))
+				{
+					mkdir($dir, 0777, true);
+				}
+				$f = fopen($dir . $uuid . '.json', 'w');
+				fwrite($f, $json);
+				fclose($f);
+				try
+				{
+					chmod($dir . $uuid . '.json', 0666);
+				}
+				catch (Exception $e)
+				{
+				}
+			}
+			catch(Exception $e)
+			{
+				if(php_sapi_name() == 'cli')
+				{
+					echo str_repeat('=', 79) . "\n" . $e . "\n" . str_repeat('=', 79) . "\n";
+				}				
+			}
+		}
+		$this->db->query('UPDATE {' . $this->objects . '} SET "dirty" = ? WHERE "uuid" = ?', 'N', $uuid);
+		return true;
 	}
 }

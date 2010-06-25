@@ -44,6 +44,7 @@ class Model
 	{
 		if(!$className) return null;
 		if(is_null($args)) $args = array();
+		if(is_string($args)) $args = array('db' => $args);
 		if(!isset($args['db'])) $args['db'] = $defaultDbIri;
 		$key = $className . ':' . $args['db'];
 		if(!isset(self::$instances[$key]))

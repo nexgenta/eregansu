@@ -378,6 +378,19 @@ class App extends Router
 		{
 			$this->routes['login'] = array('file' => PLATFORM_ROOT . 'login/app.php', 'class' => 'LoginPage', 'fromRoot' => true);
 		}
+		$help = array('file' => PLATFORM_PATH . 'cli.php', 'class' => 'CliHelp', 'fromRoot' => true);
+		if(!isset($this->sapi['cli']['__DEFAULT__']))
+		{
+			$this->sapi['cli']['__DEFAULT__'] = $help;
+		}
+		if(!isset($this->sapi['cli']['__NONE__']))
+		{
+			$this->sapi['cli']['__NONE__'] = $help;
+		}
+		if(!isset($this->sapi['cli']['help']))
+		{
+			$this->sapi['cli']['help'] = $help;
+		}		
 	}
 	
 	public function process(Request $req)
@@ -448,6 +461,8 @@ class HostnameRouter extends DefaultApp
 
 class Proxy extends Router
 {
+	public static $willPerformMethod;
+
 	public $request;
 	protected $supportedTypes = array();
 	protected $supportedMethods = array('GET','HEAD');
@@ -498,6 +513,10 @@ class Proxy extends Router
 		if($type == null)
 		{
 			return $this->error(Error::TYPE_NOT_SUPPORTED);
+		}
+		if(self::$willPerformMethod)
+		{
+			call_user_func(self::$willPerformMethod, $this, $method, $type);
 		}
 		$r = $this->performMethod($method, $type);
 		$this->object = null;

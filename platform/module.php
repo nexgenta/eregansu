@@ -67,6 +67,7 @@ abstract class Module extends Model
 	{
 		if(!$this->db)
 		{
+			echo "Warning: skipping setup of " . $this->moduleId . " because it has no database\n";
 			return true;
 		}
 		$currentVersion = $this->db->schema->moduleVersion($this->moduleId);

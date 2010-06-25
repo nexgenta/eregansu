@@ -13,7 +13,15 @@ fi
 cd "$dir"
 
 if test -r index.php ; then
-	exec ${PHP_5} -f index.php "$@"
+	if test x"$EREGANSU_PAUSE_ON_EXIT" = x"" ; then
+		exec ${PHP_5} -f index.php "$@"
+	else
+		${PHP_5} -f index.php "$@"
+		status=$?
+		echo "*** Subprocess exited with status $status" >&2
+		read dummy
+		exit $status
+	fi
 fi
 
 if test -r platform/index.setup.php ; then

@@ -78,7 +78,8 @@ class Template
 		$this->vars['templates_path'] = $this->request->siteRoot . TEMPLATES_PATH . '/';
 		$this->vars['skin_path'] = $this->vars['templates_path'] . $this->skin . '/';
 		$this->vars['templates_iri'] = (defined('STATIC_IRI') ? STATIC_IRI : $this->request->root . TEMPLATES_PATH . '/');
-		$this->vars['skin_iri'] = $this->vars['templates_iri'] . $this->skin . '/';		
+		$this->vars['skin_iri'] = $this->vars['templates_iri'] . $this->skin . '/';
+		$this->vars['skin'] = $this->skin;
 	}
 	
 	/* Render a template */

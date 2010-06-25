@@ -174,6 +174,14 @@ function exception_error_handler($errno, $errstr, $errfile, $errline)
 	return false;
 }
 
+function strict_error_handler($errno, $errstr, $errfile, $errline)
+{
+	$e = error_reporting();
+	if(!$errno || ($e & $errno) != $errno) return;
+	throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
+	return false;
+}
+
 umask(007);
 error_reporting(E_ALL|E_STRICT|E_RECOVERABLE_ERROR);
 ini_set('display_errors', 'On');
@@ -260,7 +268,7 @@ $AUTOLOAD_SUBST['${module}'] =& $MODULE_ROOT;
 $AUTOLOAD = array();
 $AUTOLOAD['base32'] = dirname(__FILE__) . '/base32.php';
 $AUTOLOAD['clirequest'] = dirname(__FILE__) . '/cli.php';
-$AUTOLOAD['dbcore'] = dirname(__FILE__) . '/dbcore.php';
+$AUTOLOAD['dbcore'] = dirname(__FILE__) . '/db.php';
 $AUTOLOAD['dbschema'] = dirname(__FILE__) . '/dbschema.php';
 $AUTOLOAD['form'] = dirname(__FILE__) . '/form.php';
 $AUTOLOAD['mime'] = dirname(__FILE__) . '/mime.php';
