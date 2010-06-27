@@ -35,7 +35,6 @@
 abstract class RedlandBase
 {
 	protected static $defaultWorld;
-	protected static $defaultStorage;
 
 	protected $resource;
 	protected $world;
