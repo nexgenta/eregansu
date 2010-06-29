@@ -33,6 +33,16 @@
  * @framework Eregansu
  */
 
+if(defined('WP_CONTENT_URL') && defined('ABSPATH'))
+{
+	define('EREGANSU_MINIMAL_CORE', true);
+	define('INSTANCE_ROOT', ABSPATH);
+	define('PLATFORM_ROOT', ABSPATH . 'platform/');
+	define('PLATFORM_LIB', PLATFORM_ROOT . 'lib/');
+	define('PLATFORM_PATH', PLATFORM_ROOT . 'platform/');
+	define('MODULES_ROOT', ABSPATH . 'app/');
+}
+
 /* Define our version of uses() before including the core library - this will
  * take precedence.
  */
@@ -55,8 +65,14 @@ function uses()
 	}
 }
 
+if(defined('EREGANSU_MINIMAL_CORE'))
+{
+	return true;
+}
+
 /* Initialise the core library */
 require_once(dirname(__FILE__) . '/lib/common.php');
+
 
 if(isset($argv[1]) && ($argv[1] == 'setup' || $argv[1] == 'install'))
 {
