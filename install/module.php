@@ -68,4 +68,40 @@ abstract class ModuleInstaller
 	public function writeInstanceConfig($file)
 	{
 	}
+	
+	public function createLinks()
+	{
+	}
+	
+	protected function linkTemplates($subdir = 'templates', $target = null)
+	{
+		if(!strlen($target))
+		{
+			$target = $this->name;
+		}
+		if(substr($this->installer->relModulesPath, 0, 1) == '/')
+		{
+			$rpath = $this->installer->relModulesPath;
+		}
+		else
+		{
+			$rpath = '../' . $this->installer->relModulesPath;
+		}
+		if(substr($rpath, -1) != '/') $rpath .= '/';
+		$rpath .= $this->name . '/' . $subdir;
+		$path = INSTANCE_ROOT . (defined('TEMPLATES_PATH') ? TEMPLATES_PATH : 'templates') . '/';
+		if(file_exists($path))
+		{
+			if(file_exists($path . $target))
+			{
+				echo "--> Leaving existing file at " . $path . $target . " in place\n";
+			}
+			else
+			{
+				echo "--> Linking $rpath to $target in $path\n";
+				@unlink($path . $target);
+				symlink($rpath, $path . $target);
+			}
+		}
+	}
 }
