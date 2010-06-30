@@ -37,10 +37,18 @@ if(defined('WP_CONTENT_URL') && defined('ABSPATH'))
 {
 	define('EREGANSU_MINIMAL_CORE', true);
 	define('INSTANCE_ROOT', ABSPATH);
+	define('CONFIG_ROOT', INSTANCE_ROOT . 'config/');
 	define('PLATFORM_ROOT', ABSPATH . 'platform/');
 	define('PLATFORM_LIB', PLATFORM_ROOT . 'lib/');
 	define('PLATFORM_PATH', PLATFORM_ROOT . 'platform/');
 	define('MODULES_ROOT', ABSPATH . 'app/');
+	
+	global $MODULE_ROOT;
+	
+	if(!isset($MODULE_ROOT))
+	{
+		$MODULE_ROOT = MODULES_ROOT;	
+	}
 }
 
 /* Define our version of uses() before including the core library - this will
