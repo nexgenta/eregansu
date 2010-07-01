@@ -85,7 +85,12 @@ class Template
 	/* Render a template */
 	public function process()
 	{
+		global $_EREGANSU_TEMPLATE;
+		
+		$__ot = !empty($_EREGANSU_TEMPLATE);
 		extract($this->vars);
+		$_EREGANSU_TEMPLATE = true;
 		require($this->path);
+		$_EREGANSU_TEMPLATE = $__ot;
 	}
 }
