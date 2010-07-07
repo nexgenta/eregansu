@@ -99,14 +99,19 @@ interface IDBCore
 
 abstract class DBCore implements IDBCore
 {
+	protected static $stderr;
+	
 	protected $rsClass;
 	protected $params;
 	protected $schema;
 	protected $dbName;
 	protected $schemaName;
+	public $maxReconnectAttempts = 0;
+	public $reconnectDelay = 1;
 	public $dbms = 'unknown';
 	public $prefix = '';
 	public $suffix = '';
+	protected $transactionDepth;
 	
 	public static function connect($iristr)
 	{
@@ -188,6 +193,22 @@ abstract class DBCore implements IDBCore
 		{
 			$this->params['options']['autoconnect'] = true;
 		}
+		if(isset($this->params['options']['autoreconnect']))
+		{
+			$this->params['options']['autoreconnect'] = parse_bool($this->params['options']['autoconnect']);
+		}
+		else
+		{
+			$this->params['options']['autoreconnect'] = php_sapi_name() == 'cli' ? true : false;
+		}
+		if(isset($this->params['options']['reconnectquietly']))
+		{
+			$this->params['options']['reconnectquietly'] = parse_bool($this->params['options']['autoconnect']);
+		}
+		else
+		{
+			$this->params['options']['reconnectquietly'] = php_sapi_name() == 'cli' ? false : true;
+		}
 		if(isset($this->params['options']['prefix']))
 		{
 			$this->prefix = $this->params['options']['prefix'];
@@ -200,16 +221,70 @@ abstract class DBCore implements IDBCore
 		{
 			$this->autoconnect();
 		}
+		if(isset($this->params['options']['maxreconnectattempts']))
+		{
+			$this->maxReconnectAttempts = $this->params['options']['maxreconnectattempts'];
+		}
+		if(isset($this->params['options']['reconnectdelay']))
+		{
+			$this->reconnectDelay = $this->params['options']['reconnectdelay'];
+		}
+
+	}
+
+	protected function reconnect()
+	{
+		$dbname = $this->params['dbname'];
+		if(!strlen($dbname)) $dbname = '(None)';
+		if(!$this->params['options']['reconnectquietly'])
+		{
+			if(!self::$stderr) self::$stderr = fopen('php://stderr', 'w');
+			fwrite(self::$stderr, '[' . strftime('%Y-%m-%d %H:%M:%S %z') . '] Lost connection to database ' . $dbname . ', attempting to reconnect...' . "\n");	
+		}
+		for($c = 0; !$this->maxReconnectAttempts || ($c < $this->maxReconnectAttempts); $c++)
+		{
+			try
+			{
+				if($this->autoconnect())
+				{
+					if(!$this->params['options']['reconnectquietly'])
+					{
+						fwrite(self::$stderr, '[' . strftime('%Y-%m-%d %H:%M:%S %z') . '] Connection to database ' . $dbname . ' re-established after ' . $c . ' attempts.' . "\n");
+					}
+					return true;
+				}
+			}
+			catch(DBNetworkException $e)
+			{
+			}
+			if($this->reconnectDelay)
+			{
+				sleep($this->reconnectDelay);
+			}
+			if($c && (($c < 100 && !($c % 10)) || !($c % 100)))
+			{
+				if(!$this->params['options']['reconnectquietly'])
+				{
+					fwrite(self::$stderr, '[' . strftime('%Y-%m-%d %H:%M:%S %z') . '] Unable to connect to database ' . $dbname . ' after ' . $c . ' attempts, still trying...' . "\n");
+				}
+			}
+		}
+		throw new DBNetworkException(0, 'Failed to reconnect to database ' . $dbname . ' after ' . $this->maxReconnectAttempts);
 	}
 	
 	public function begin()
 	{
 		$this->execute('START TRANSACTION');
+		$this->transactionDepth++;
 	}
 	
 	public function rollback()
 	{
 		$this->execute('ROLLBACK');
+		if($this->transactionDepth)
+		{
+			$this->transactionDepth--;
+		}
 	}
 	
 	public function vquery($query, $params)
@@ -578,13 +653,13 @@ class MySQL extends DBCore
 	{
 		if(!($this->mysql = mysql_connect($this->params['host'], $this->params['user'], $this->params['pass'], $this->forceNewConnection)))
 		{
-			return $this->raiseError(null);
+			return $this->raiseError(null, false);
 		}
 		if(strlen($this->params['dbname']))
 		{
 			if(!mysql_select_db($this->params['dbname'], $this->mysql))
 			{
-				return $this->raiseError(null);
+				return $this->raiseError(null, false);
 			}
 			$this->dbName = $this->params['dbname'];
 		}
@@ -592,6 +667,7 @@ class MySQL extends DBCore
 		$this->execute("SET sql_mode='ANSI_QUOTES,IGNORE_SPACE,PIPES_AS_CONCAT'");
 		$this->execute("SET storage_engine='InnoDB'");
 		$this->execute("SET time_zone='+00:00'");
+		return true;
 	}
 	
 	public function selectDatabase($name)
@@ -606,16 +682,20 @@ class MySQL extends DBCore
 	protected function execute($sql)
 	{
 		if(!$this->mysql) $this->autoconnect();
-//		echo "[$sql]\n";
-		$r = mysql_query($sql, $this->mysql);
-		if($r === false)
+		do
 		{
-			return $this->raiseError($sql);
+	//		echo "[$sql]\n";
+			$r = mysql_query($sql, $this->mysql);
+			if($r === false)
+			{
+				$this->raiseError($sql);
+			}
 		}
+		while($r === false);
 		return $r;
 	}
 	
-	protected function raiseError($query)
+	protected function raiseError($query, $allowReconnect = true)
 	{
 		static $neterrors = array(1042, 1043, 1044, 1045, 1129, 1130, 1133, 1152, 1153, 1154, 1155, 1156, 1157, 1158, 1159, 1160, 1162, 1184, 1370, 1203, 1226, 1227, 1251, 1275, 1301, 1317, 1637, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2009, 2010, 2011, 2012, 2013, 2015, 2020, 2021, 2024, 2025, 2027, 2028, 2036, 2037, 2038, 2039, 2040, 2041, 2042, 2043, 2044, 2045, 2046, 2049, 2055);
 		static $syserrors = array(1000, 1001, 1004, 1005, 1006, 1009, 1010, 1011, 1012, 1013, 1014, 1015, 1016, 1017, 1018, 1019, 1021, 1023, 1024, 1025, 1026, 1030, 1033, 1035, 1037, 1039, 1041, 1053, 1078, 1080, 1081, 1082, 1085, 1086, 1098, 1126, 1127, 1135, 1187, 1189, 1190, 1194, 1197, 1199, 1200, 1201, 1202, 1218, 1219, 1236, 1254, 1255, 1256, 1257, 1258, 1259, 1274, 1282, 1285, 1289, 1290, 1296, 1297, 1340, 1341, 1342, 1343, 1344, 1346, 1371, 1374, 1375, 1376, 1377, 1378, 1379, 1380, 1383, 1388, 1389, 1430, 1431, 1432, 1436, 1501, 1524, 1528, 1529, 1533, 1541, 1545, 1547, 1549, 1570, 1573, 1602, 1623, 1627, 1639, 1640);
@@ -635,17 +715,37 @@ class MySQL extends DBCore
 		if(in_array($errcode, $rollbackerrors))
 		{
 			$class = 'DBRollbackException';
+			$this->transactionDepth = 0;
 		}
 		else if(in_array($errcode, $neterrors))
 		{
+			$depth = $this->transactionDepth;
 			$class = 'DBNetworkException';
 			$this->mysql = null;
+			$this->transactionDepth = 0;
 			$this->forceNewConnection = true;
+			if($allowReconnect && $this->params['options']['autoreconnect'])
+			{
+				if($this->reconnect())
+				{
+					if($depth)
+					{
+						/* Allow perform() to catch this and re-try the transaction */
+						$class = 'DBRollbackException';
+					}
+					else
+					{
+						return false;
+					}
+				}
+				/* Failed to reconnect, throw the exception */
+			}
 		}
 		else if(in_array($errcode, $syserrors))
 		{
 			$class = 'DBSystemException';
 			$this->mysql = null;
+			$this->transactionDepth = 0;
 			$this->forceNewConnection = true;
 		}
 		return $this->reportError($errcode, $errstr, $query, $class);
@@ -700,6 +800,7 @@ class MySQL extends DBCore
 			if($e->code == 1213 || $e->code == 1205)
 			{
 				/* 1213 (ER_LOCK_DEADLOCK) Transaction deadlock. You should rerun the transaction. */
+				$this->transactionDepth = 0;
 				return false;
 			}
 			else
@@ -709,8 +810,13 @@ class MySQL extends DBCore
 				 * returning false. This allows transactions to be
 				 * contained within a do { … } while(!$db->commit()) block.
 				 */
+				$this->transactionDepth = 0;
 				throw $e;
 			}
+		}
+		if($this->transactionDepth)
+		{
+			$this->transactionDepth--;
 		}
 		return true;
 	}
