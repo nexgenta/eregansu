@@ -43,6 +43,9 @@ class Installer
 	public $defaultAppName = 'default';
 	public $defaultInstanceName = null;
 	
+	public $relPlatformPath;
+	public $relModulesPath;
+	
 	public function __construct()
 	{
 		if(!strlen($this->defaultInstanceName))
@@ -87,7 +90,7 @@ class Installer
 		echo "Files will be stored in the following locations:\n\n";
 
 		echo " - Instance root:       " . INSTANCE_ROOT . "\n";
-		echo " - Application modules: " . INSTANCE_ROOT . "app/\n";
+		echo " - Application modules: " . MODULES_ROOT . "\n";
 		echo " - Configuration files: " . CONFIG_ROOT . "\n";
 		echo " - Eregansu platform:   " . PLATFORM_ROOT . "\n";
 		
@@ -98,6 +101,14 @@ class Installer
 		else
 		{
 			$this->relPlatformPath = PLATFORM_ROOT;
+		}
+		if(!strncmp(INSTANCE_ROOT, MODULES_ROOT, strlen(INSTANCE_ROOT)))
+		{
+			$this->relModulesPath = substr(MODULES_ROOT, strlen(INSTANCE_ROOT));
+		}
+		else
+		{
+			$this->relModulesPath = MODULES_ROOT;
 		}
 		echo "\n";
 	}
@@ -488,6 +499,7 @@ class Installer
 			return;
 		}
 		echo "--> Scanning for modules...\n";
+		
 		$d = opendir(MODULES_ROOT);
 		$modules = array();
 		$c = 0;
@@ -540,6 +552,7 @@ class Installer
 			{
 				$inst->writeInstanceConfig($config);
 			}
+			$inst->createLinks();
 			$this->configuredModules++;
 		}
 		if($appConfig)

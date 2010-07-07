@@ -224,6 +224,7 @@ class Error implements IRequestProcessor
 			echo "\t\t\t\t\t" . '<th scope="col">Called at</th>' . "\n";
 			echo "\t\t\t\t" . '</tr>' . "\n";
 			echo "\t\t\t" . '</thead>' . "\n";
+			echo "\t\t\t" . '<tbody>' . "\n";
 			foreach($backtrace as $bt)
 			{
 				if(isset($bt['function']))
@@ -250,12 +251,13 @@ class Error implements IRequestProcessor
 				{
 					$ctx = '';
 				}
-				echo "\t\t\t<tr>\n";
-				echo "\t\t\t\t<td>" . _e($func) . '</td>' . "\n";
-				echo "\t\t\t\t<td>" . _e($ctx) . '</td>' . "\n";
-				echo "\t\t\t\t<td>" . _e($location) . '</td>' . "\n";
-				echo "\t\t\t</tr>\n";
+				echo "\t\t\t\t<tr>\n";
+				echo "\t\t\t\t\t<td>" . _e($func) . '</td>' . "\n";
+				echo "\t\t\t\t\t<td>" . _e($ctx) . '</td>' . "\n";
+				echo "\t\t\t\t\t<td>" . _e($location) . '</td>' . "\n";
+				echo "\t\t\t\t</tr>\n";
 			}
+			echo "\t\t\t" . '</tbody>' . "\n";
 			echo "\t\t" . '</table>' . "\n";
 			echo "\t\t" . '<hr />' . "\n";
 			echo "\t\t" . '<p>Error generated at ' . strftime('%Y-%m-%d %H:%M:%S') . ' UTC</p>';

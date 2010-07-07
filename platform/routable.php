@@ -153,6 +153,8 @@ class Router extends Routable
 				unset($data['name']);
 				unset($data['file']);
 				unset($data['adjustBase']);
+				unset($data['adjustBaseURI']);
+				unset($data['adjustModuleBase']);
 				unset($data['routes']);
 				unset($data['crumbName']);
 				unset($data['class']);
@@ -168,7 +170,7 @@ class Router extends Routable
 			$req->data = $data;
 			if($consume)
 			{
-				if(!empty($data['adjustBase']))
+				if(!empty($data['adjustBase']) || !empty($data['adjustBaseURI']))
 				{
 					$req->consumeForApp();
 				}
@@ -265,7 +267,7 @@ class Router extends Routable
 		{
 			return $this->error(Error::NOT_IMPLEMENTED, $req);		
 		}
-		if(!empty($route['adjustBase']))
+		if(!empty($route['adjustBase']) || !empty($route['adjustModuleBase']))
 		{
 			if(isset($route['name']))
 			{
@@ -279,7 +281,7 @@ class Router extends Routable
 		if(isset($route['file']))
 		{
 			$f = $route['file'];
-			if(isset($route['name']) && empty($route['adjustBase']))
+			if(isset($route['name']) && empty($route['adjustBase']) && empty($route['adjustModuleBase']))
 			{
 				$f = $route['name'] . '/' . $f;
 			}
@@ -412,6 +414,7 @@ class DefaultApp extends App
 		$this->sapi['http'] = $HTTP_ROUTES;
 		$this->sapi['cli'] = $CLI_ROUTES;
 		$this->sapi['mq'] = $MQ_ROUTES;
+		parent::__construct();
 		$help = array('file' => PLATFORM_PATH . 'cli.php', 'class' => 'CliHelp', 'fromRoot' => true);
 		if(!isset($this->sapi['cli']['__DEFAULT__']))
 		{

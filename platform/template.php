@@ -42,7 +42,7 @@ class Template
 	public $vars = array();
 	protected $skin;
 	
-	public function __construct($req, $filename, $skin = null, $defaultSkin = null)
+	public function __construct($req, $filename, $skin = null, $fallbackSkin = null)
 	{
 		$this->request = $req;
 		if(!strlen($skin))
@@ -51,9 +51,9 @@ class Template
 			{
 				$skin = DEFAULT_SKIN;
 			}
-			else if(strlen($defaultSkin))
+			else if(strlen($fallbackSkin))
 			{
-				$skin = $defaultSkin;
+				$skin = $fallbackSkin;
 			}
 			else
 			{
@@ -71,21 +71,48 @@ class Template
 		$this->vars = array_merge($vars, $this->vars);
 	}
 	
+	
 	/* Reset the template variables to their initial values */
 	public function reset()
 	{
 		$this->vars = array();
 		$this->vars['templates_path'] = $this->request->siteRoot . TEMPLATES_PATH . '/';
-		$this->vars['skin_path'] = $this->vars['templates_path'] . $this->skin . '/';
 		$this->vars['templates_iri'] = (defined('STATIC_IRI') ? STATIC_IRI : $this->request->root . TEMPLATES_PATH . '/');
-		$this->vars['skin_iri'] = $this->vars['templates_iri'] . $this->skin . '/';
-		$this->vars['skin'] = $this->skin;
+		if(substr($this->skin, 0, 1) == '/')
+		{
+			if(substr($this->skin, -1) != '/') $this->skin .= '/';
+			$this->vars['skin_path'] = $this->skin;			
+			$this->vars['skin'] = basename($this->skin);
+			if(!strncmp($this->skin, $this->vars['templates_path'], strlen($this->vars['templates_path'])))
+			{
+				$this->vars['skin_iri'] = $this->vars['templates_iri'] . substr($this->skin, strlen($this->vars['templates_path']));
+			}
+			else if(!strncmp($this->skin, $this->request->siteRoot, strlen($this->request->siteRoot)))
+			{
+				$this->vars['skin_iri'] = $this->request->root . substr($this->skin, strlen($this->request->siteRoot));
+			}
+			else
+			{
+				$this->vars['skin_iri'] = $this->vars['templates_iri'] . $this->skin;
+			}
+		}
+		else
+		{
+			$this->vars['skin_path'] = $this->vars['templates_path'] . $this->skin . '/';
+			$this->vars['skin_iri'] = $this->vars['templates_iri'] . $this->skin . '/';
+			$this->vars['skin'] = $this->skin;
+		}
 	}
 	
 	/* Render a template */
 	public function process()
 	{
+		global $_EREGANSU_TEMPLATE;
+		
+		$__ot = !empty($_EREGANSU_TEMPLATE);
 		extract($this->vars);
+		$_EREGANSU_TEMPLATE = true;
 		require($this->path);
+		$_EREGANSU_TEMPLATE = $__ot;
 	}
 }
