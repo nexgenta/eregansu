@@ -327,9 +327,10 @@ class Store extends Model
 	/* The name of the 'objects' table */
 	protected $objects = 'objects';
 	
-	public static function getInstance($args = null, $className = null, $defaultDbIri = null)
+	public static function getInstance($args = null)
 	{
-		return parent::getInstance($args, ($className ? $className : 'Store'), $defaultDbIri);
+		if(!isset($args['class'])) $args['class'] = 'Store';
+		return parent::getInstance($args);
 	}
 	
 	public function objectForUUID($uuid)

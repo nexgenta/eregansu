@@ -40,13 +40,12 @@ class Model
 	protected static $instances = array();
 	public $db;
 		
-	public static function getInstance($args = null, $className = null, $defaultDbIri = null)
+	public static function getInstance($args = null)
 	{
-		if(!$className) return null;
-		if(is_null($args)) $args = array();
-		if(is_string($args)) $args = array('db' => $args);
-		if(!isset($args['db'])) $args['db'] = $defaultDbIri;
-		$key = $className . ':' . $args['db'];
+		if(!isset($args['class'])) return null;
+		$key = $args['class'] . (isset($args['db']) ? ':' . $args['db'] : null);
+		$className = $args['class'];
+		if(!isset($args['db'])) $args['db'] = null;
 		if(!isset(self::$instances[$key]))
 		{
 			self::$instances[$key] = new $className($args);

@@ -73,26 +73,25 @@ class Identity extends Model
 	public $writeable = true;
 	public $allowAutomaticCreation = false;
 	
-	public static function getInstance($args = null, $className = null, $defaultDbIri = null)
+	public static function getInstance($args = null)
 	{
-		if(null === $args) $args = array();
-		if(!isset($args['db'])) $args['db'] = ($defaultDbIri ? $defaultDbIri : IDENTITY_IRI);
-		if(null === $className)
+		if(!isset($args['db'])) $args['db'] = IDENTITY_IRI;
+		if(!isset($args['class'])
 		{
 			if(!strncmp($args['db'], 'file:', 5))
 			{
-				$className = 'IdentityFile';				
+				$args['class'] = 'IdentityFile';				
 			}
 			else if(!strncmp($args['db'], 'ldap:', 5))
 			{
-				$className = 'IdentityDirectory';				
+				$args['class'] = 'IdentityDirectory';				
 			}
 			else
 			{
-				$className = 'Identity';
+				$args['class'] = 'Identity';
 			}
 		}
-		return Model::getInstance($args, $className);
+		return Model::getInstance($args);
 	}
 
 	public function __construct($args)
