@@ -52,6 +52,7 @@ abstract class DBType
 	const BINARY = 13;
 	const VARBINARY = 14;
 	const TIME = 15;
+	const DECIMAL = 16;
 }
 
 abstract class DBCol
@@ -209,6 +210,13 @@ abstract class DBTable
 			case DBType::INT:
 			case DBType::TEXT:
 				$info['sizeValues'] = null;
+				break;
+			case DBType::DECIMAL:
+				if(!is_array($info['sizeValues']) || count($info['sizeValues']) != 2)
+				{
+					trigger_error('DBTable::columnWithSpec: a two-entry array must be specified as the size for a DECIMAL column', E_USER_NOTICE);
+					return false;
+				}
 				break;
 			default:
 				trigger_error('DBTable: Unsupported column type ' . $info['type'], E_USER_NOTICE);

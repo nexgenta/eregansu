@@ -194,6 +194,9 @@ class MySQLTable extends DBTable
 			case DBType::TEXT:
 				$spec .=  ($info['flags'] & DBCol::BIG ? 'LONGTEXT' : 'TEXT');
 				break;
+			case DBType::DECIMAL:
+				$spec .= 'DECIMAL(' . $info['sizeValues'][0] . ',' . $info['sizeValues'][1] . ')';
+				break;
 			default:
 				trigger_error('MySQLTable: Unsupported column type ' . $info['type'], E_USER_NOTICE);
 				return false;
