@@ -218,13 +218,16 @@ if(!defined('CONFIG_ROOT'))
 {
 	define('CONFIG_ROOT', INSTANCE_ROOT . 'config/');
 }
-if(defined('MODULES_PATH'))
+if(!defined('MODULES_ROOT'))
 {
-	define('MODULES_ROOT', INSTANCE_ROOT . MODULES_PATH . '/');
-}
-else
-{
-	define('MODULES_ROOT', INSTANCE_ROOT . 'app/');
+	if(defined('MODULES_PATH'))
+	{
+		define('MODULES_ROOT', INSTANCE_ROOT . MODULES_PATH . '/');
+	}
+	else
+	{
+		define('MODULES_ROOT', INSTANCE_ROOT . 'app/');
+	}
 }
 $MODULE_ROOT = MODULES_ROOT;
 
