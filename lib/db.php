@@ -123,6 +123,9 @@ abstract class DBCore implements IDBCore
 			case 'ldap':
 				require_once(dirname(__FILE__) . '/ldap.php');
 				return new LDAP($iri);
+			case 'sqlite3':
+				require_once(dirname(__FILE__) . '/sqlite3.php');
+				return new SQLite3DB($iri);
 			default:
 				throw new DBException(0, 'Unsupported database connection scheme "' . $iri['scheme'] . '"', null);
 		}
@@ -274,45 +277,91 @@ abstract class DBCore implements IDBCore
 	
 	public function begin()
 	{
-		$this->execute('START TRANSACTION');
+		$this->execute('START TRANSACTION', false);
 		$this->transactionDepth++;
 	}
 	
 	public function rollback()
 	{
-		$this->execute('ROLLBACK');
+		$this->execute('ROLLBACK', false);
 		if($this->transactionDepth)
 		{
 			$this->transactionDepth--;
 		}
 	}
-	
-	public function vquery($query, $params)
+
+	/* Execute any (parametized) query, expecting a resultset */	
+	public /*internal*/ function vquery($query, $params)
 	{
 		if(!is_array($params)) $params = array();
 		$query = preg_replace('/\{([^}]+)\}/e', "\$this->quoteTable(\"\\1\")", $query);
 		$sql = preg_replace('/\?/e', "\$this->quote(array_shift(\$params))", $query);
-		return $this->execute($sql);
-	}
-	
-	public function exec($query)
-	{
-		$params = func_get_args();
-		array_shift($params);
-		if($this->vquery($query, $params))
-		{
-			return true;
-		}
-		return false;
+		return $this->execute($sql, true);
 	}
 
+	/* Execute any (parametized) query, expecting a boolean result */	
 	public function vexec($query, $params)
 	{
-		if($this->vquery($query, $params))
+		if(!is_array($params)) $params = array();
+		$query = preg_replace('/\{([^}]+)\}/e', "\$this->quoteTable(\"\\1\")", $query);
+		$sql = preg_replace('/\?/e', "\$this->quote(array_shift(\$params))", $query);
+		return $this->execute($sql, false) ? true : false;
+	}
+	
+	public function queryArray($query, $params)
+	{
+		if(($r = $this->vquery($query, $params)))
 		{
-			return true;
+			return new $this->rsClass($this, $r, $query, $params);
 		}
-		return false;
+		return null;
+	}
+
+	public function rowArray($query, $params)
+	{
+		$row = null;
+		if(($r =  $this->vquery($query, $params)))
+		{
+			$rs = new $this->rsClass($this, $r, $query, $params);
+			$row = $rs->next();
+			$rs = null;
+		}
+		return $row;
+	}
+
+	public function valueArray($query, $params)
+	{
+		$row = null;
+		if(($r = $this->vquery($query, $params)))
+		{
+			$rs = new $this->rsClass($this, $r, $query, $params);
+			$row = $rs->next();
+			$rs = null;
+			if($row)
+			{
+				foreach($row as $v)
+				{
+					return $v;
+				}
+			}
+		}
+		return null;
+	}
+
+	public function rowsArray($query, $params)
+	{
+		$rows = null;
+		if(($r =  $this->vquery($query, $params)))
+		{
+			$rows = array();
+			$rs = new $this->rsClass($this, $r, $query, $params);
+			while(($row = $rs->next()))
+			{
+				$rows[] = $row;
+			}
+			$rs = null;
+		}
+		return $rows;
 	}
 
 	/* Invoke $function within a transaction which will be automatically re-tried
@@ -345,125 +394,48 @@ abstract class DBCore implements IDBCore
 		throw new DBRollbackException(0, 'Repeatedly failed to perform transaction (retried ' . $maxRetries . ' times)');
 	}
 
-	/* $rs = $inst->query('SELECT * FROM `sometable` WHERE `field` = ? AND `otherfield` = ?', $something, 27); */
+	/* $rs = $inst->query('SELECT * FROM {sometable} WHERE "field" = ? AND "otherfield" = ?', $something, 27); */
 	public function query($query)
 	{
 		$params = func_get_args();
 		array_shift($params);
-		if(($r =  $this->vquery($query, $params)))
+		if(($r = $this->vquery($query, $params)))
 		{
 			return new $this->rsClass($this, $r, $query, $params);
 		}
 		return null;
 	}
 
-	public function queryArray($query, $params)
+	public function exec($query)
 	{
-		if(($r =  $this->vquery($query, $params)))
+		$params = func_get_args();
+		array_shift($params);
+		if($this->vexec($query, $params))
 		{
-			return new $this->rsClass($this, $r, $query, $params);
+			return true;
 		}
-		return null;
+		return false;
 	}
 
 	public function value($query)
 	{
-		$row = null;
 		$params = func_get_args();
 		array_shift($params);
-		if(($r = $this->vquery($query, $params)))
-		{
-			$rs = new $this->rsClass($this, $r, $query, $params);
-			$row = $rs->next();
-			$rs = null;
-			if($row)
-			{
-				foreach($row as $v)
-				{
-					return $v;
-				}
-			}
-		}
-		return null;
-	}
-
-	public function valueArray($query, $params)
-	{
-		$row = null;
-		if(($r = $this->vquery($query, $params)))
-		{
-			$rs = new $this->rsClass($this, $r, $query, $params);
-			$row = $rs->next();
-			$rs = null;
-			if($row)
-			{
-				foreach($row as $v)
-				{
-					return $v;
-				}
-			}
-		}
-		return null;
+		return $this->valueArray($query, $params);
 	}
 
 	public function row($query)
 	{
-		$row = null;
 		$params = func_get_args();
-		array_shift($params);
-		if(($r =  $this->vquery($query, $params)))
-		{
-			$rs = new $this->rsClass($this, $r, $query, $params);
-			$row = $rs->next();
-			$rs = null;
-		}
-		return $row;
-	}
-
-	public function rowArray($query, $params)
-	{
-		$row = null;
-		if(($r =  $this->vquery($query, $params)))
-		{
-			$rs = new $this->rsClass($this, $r, $query, $params);
-			$row = $rs->next();
-			$rs = null;
-		}
-		return $row;
+		array_shift($params);	
+		return $this->rowArray($query, $params);
 	}
 
 	public function rows($query)
 	{
-		$rows = null;
 		$params = func_get_args();
 		array_shift($params);
-		if(($r =  $this->vquery($query, $params)))
-		{
-			$rows = array();
-			$rs = new $this->rsClass($this, $r, $query, $params);
-			while(($row = $rs->next()))
-			{
-				$rows[] = $row;
-			}
-			$rs = null;
-		}
-		return $rows;
-	}
-
-	public function rowsArray($query, $params)
-	{
-		$rows = null;
-		if(($r =  $this->vquery($query, $params)))
-		{
-			$rows = array();
-			$rs = new $this->rsClass($this, $r, $query, $params);
-			while(($row = $rs->next()))
-			{
-				$rows[] = $row;
-			}
-			$rs = null;
-		}
-		return $rows;
+		return $this->rowsArray($query, $params);
 	}
 	
 	protected function reportError($errcode, $errmsg, $sqlString, $class = 'DBException')
@@ -489,7 +461,7 @@ abstract class DBCore implements IDBCore
 			}
 		}
 		$sql = 'INSERT INTO ' . $this->quoteTable($table) . ' (' . implode(',', $klist) . ') VALUES (' . implode(',', $values) . ')';
-		return $this->execute($sql);
+		return $this->execute($sql, false);
 	}
 	
 	public function now()
@@ -532,7 +504,7 @@ abstract class DBCore implements IDBCore
 			}
 			$sql = substr($sql, 0, -4);
 		}
-		return $this->execute($sql);
+		return $this->execute($sql, false);
 	}
 	
 	public function quoteTable($name)
@@ -663,10 +635,10 @@ class MySQL extends DBCore
 			}
 			$this->dbName = $this->params['dbname'];
 		}
-		$this->execute("SET NAMES 'utf8'");
-		$this->execute("SET sql_mode='ANSI_QUOTES,IGNORE_SPACE,PIPES_AS_CONCAT'");
-		$this->execute("SET storage_engine='InnoDB'");
-		$this->execute("SET time_zone='+00:00'");
+		$this->execute("SET NAMES 'utf8'", false);
+		$this->execute("SET sql_mode='ANSI_QUOTES,IGNORE_SPACE,PIPES_AS_CONCAT'", false);
+		$this->execute("SET storage_engine='InnoDB'", false);
+		$this->execute("SET time_zone='+00:00'", false);
 		return true;
 	}
 	
@@ -679,7 +651,7 @@ class MySQL extends DBCore
 		$this->dbName = $name;		
 	}
 	
-	protected function execute($sql)
+	protected function execute($sql, $expectResult = false)
 	{
 		if(!$this->mysql) $this->autoconnect();
 		do
@@ -793,7 +765,7 @@ class MySQL extends DBCore
 	{
 		try
 		{
-			$this->execute('COMMIT');
+			$this->execute('COMMIT', false);
 		}
 		catch(DBException $e)
 		{

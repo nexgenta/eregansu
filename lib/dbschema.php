@@ -76,6 +76,9 @@ abstract class DBSchema
 			case 'mysql':
 				require_once(dirname(__FILE__) . '/mysql-schema.php');
 				return new MySQLSchema($connection);
+			case 'sqlite3':
+				require_once(dirname(__FILE__) . '/sqlite3-schema.php');
+				return new SQLite3Schema($connection);
 		}
 		return null;
 	}
@@ -385,7 +388,10 @@ abstract class DBTable
 		}
 		foreach($this->indices as $index)
 		{
-			$cl[] = $index['spec'];
+			if($index['type'] == DBIndex::PRIMARY)
+			{
+				$cl[] = $index['spec'];
+			}
 		}
 		$create .= "\n    " . implode(",\n    ", $cl) . "\n) " . $this->nativeCreateOptions();
 		do
@@ -398,6 +404,19 @@ abstract class DBTable
 			$this->schema->db->exec($create);		
 		}
 		while(!$this->schema->db->commit());
+		foreach($this->indices as $index)
+		{
+			if($index['type'] == DBIndex::PRIMARY)
+			{
+				continue;
+			}
+			do
+			{
+				$this->schema->db->begin();
+				$this->schema->db->exec($index['fullspec']);
+			}
+			while(!$this->schema->db->commit());
+		}
 		return true;
 	}
 	

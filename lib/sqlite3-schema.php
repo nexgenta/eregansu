@@ -29,9 +29,9 @@
 
 require_once(dirname(__FILE__) . '/dbschema.php');
 
-class MySQLSchema extends DBSchema
+class SQLite3Schema extends DBSchema
 {
-	protected $tableClass = 'MySQLTable';
+	protected $tableClass = 'SQLite3Table';
 	
 	public function moduleVersion($moduleId)
 	{
@@ -42,12 +42,12 @@ class MySQLSchema extends DBSchema
 		catch(Exception $e)
 		{
 			$this->db->exec('CREATE TABLE IF NOT EXISTS {_version} ( ' .
-				' "ident" VARCHAR(64) NOT NULL COMMENT \'Module identifier\', ' .
-				' "version" BIGINT UNSIGNED NOT NULL COMMENT \'Current schema version\', ' .
-				' "updated" DATETIME NOT NULL COMMENT \'Timestamp of the last schema update\', ' .
-				' "comment" TEXT DEFAULT NULL COMMENT \'Description of the last update\', ' .
+				' "ident" VARCHAR(64) NOT NULL, ' .
+				' "version" UNSIGNED BIG INT NOT NULL, ' .
+				' "updated" DATETIME NOT NULL, ' .
+				' "comment" TEXT DEFAULT NULL, ' .
 				' PRIMARY KEY ("ident") ' .
-				') ENGINE=InnoDB DEFAULT CHARSET=utf8 DEFAULT COLLATE=utf8_general_ci');
+				')');
 			$ver = null;
 		}
 		if($ver === null)
@@ -78,12 +78,7 @@ class MySQLSchema extends DBSchema
 	public function databases()
 	{
 		$list = array();
-		$rows = $this->db->rows('SHOW DATABASES');
-		foreach($rows as $r)
-		{
-			$list[] = $r['Database'];
-		}
-		sort($list);
+		$list[] = $this->db->dbName;
 		return $list;
 	}
 	
@@ -97,7 +92,7 @@ class MySQLSchema extends DBSchema
 	public function tables($dbName, $schemaName)
 	{
 		$list = array();
-		$rows = $this->db->rows('SHOW FULL TABLES FROM "' . $dbName . '" WHERE "Table_type" = ?', 'BASE TABLE');
+		$rows = $this->db->rows('SELECT * FROM "sqlite_master" WHERE "type" = ?', 'table');
 		foreach($rows as $r)
 		{
 			$r = array_values($r);
@@ -110,23 +105,19 @@ class MySQLSchema extends DBSchema
 	/* Return the list of views in a database (within a schema, if supported) */
 	public function views($dbName, $schemaName)
 	{
-		return $this->db->column('SHOW FULL TABLES FROM "' . $dbName . '" WHERE "Table_type" = ?', 'VIEW');
+		$rows = $this->db->rows('SELECT * FROM "sqlite_master" WHERE "type" = ?', 'view');
 	}
 	
 }
 
-class MySQLTable extends DBTable
+class SQLite3Table extends DBTable
 {
 	protected $nativeCreateOptions = array(
-		'ENGINE' => 'InnoDB',
-		'DEFAULT COLLATE' => 'utf8_general_ci',
 	);
 	
 	protected function retrieve()
 	{
 		$table = $this->schema->db->row('SELECT * FROM "INFORMATION_SCHEMA"."TABLES" WHERE "TABLE_CATALOG" IS NULL AND "TABLE_SCHEMA" = ? AND "TABLE_NAME" = ?', $this->schema->db->dbName, $this->name);
-		$this->nativeCreateOptions['ENGINE'] = $table['ENGINE'];
-		$this->nativeCreateOptions['DEFAULT COLLATE'] = $table['TABLE_COLLATION'];
 		$this->nativeCreateOptions['COMMENT'] = $table['TABLE_COMMENT'];
 		$info = $this->schema->db->rows('SELECT * FROM "INFORMATION_SCHEMA"."COLUMNS" WHERE "TABLE_CATALOG" IS NULL AND "TABLE_SCHEMA" = ? AND "TABLE_NAME" = ? ORDER BY "ORDINAL_POSITION" ASC', $this->schema->db->dbName, $this->name);
 		foreach($info as $field)
@@ -167,26 +158,27 @@ class MySQLTable extends DBTable
 				break;
 			case DBType::ENUM:
 				$list = array();
+				$len = 1;
 				foreach($info['sizeValues'] as $v)
 				{
-					$list[] = $this->schema->db->quote($v);
+					if(strlen($v) > $len)
+					{
+						$len = strlen($v);
+					}
 				}
-				$spec .= 'ENUM(' . implode(', ', $list) . ')';
+				$spec .= 'VARCHAR(' . $len . ')';
 				break;
 			case DBType::SET:
 				$list = array();
-				foreach($info['sizeValues'] as $v)
-				{
-					$list[] = $this->schema->db->quote($v);
-				}
-				$spec .=  'SET(' . implode(', ', $list) . ')';
+				$len = strlen(implode(',', $info['sizeValues']));
+				$spec .=  'VARCHAR(' . $len . ')';
 				break;
 			case DBType::SERIAL:
-				$spec .= 'BIGINT UNSIGNED';
+				$spec .= 'INTEGER';
 				$info['flags'] |= DBCol::NOT_NULL;
 				break;
 			case DBType::BOOL:
-				$spec .= 'ENUM(\'N\',\'Y\')';
+				$spec .= 'CHAR(1)';
 				break;
 			case DBType::UUID:
 				$spec .= 'VARCHAR(36)';
@@ -198,24 +190,23 @@ class MySQLTable extends DBTable
 				$spec .= 'DECIMAL(' . $info['sizeValues'][0] . ',' . $info['sizeValues'][1] . ')';
 				break;
 			default:
-				trigger_error('MySQLTable: Unsupported column type ' . $info['type'], E_USER_NOTICE);
+				trigger_error('SQLite3Table: Unsupported column type ' . $info['type'], E_USER_NOTICE);
 				return false;
-		}
-		if($info['flags'] & DBCol::NOT_NULL)
-		{
-			$spec .= ' NOT NULL';
 		}
 		if($info['type'] == DBType::SERIAL)
 		{
-			$spec .= ' AUTO_INCREMENT';
+			$spec .= 'PRIMARY KEY AUTOINCREMENT';
 		}
-		if($info['default'] !== null)
+		else
 		{
-			$spec .= ' DEFAULT ' . $this->schema->db->quote($info['default']);
-		}
-		if($info['comment'] !== null)
-		{
-				$spec .= ' COMMENT ' . $this->schema->db->quote($info['comment']);
+			if($info['flags'] & DBCol::NOT_NULL)
+			{
+				$spec .= ' NOT NULL';
+			}
+			if($info['default'] !== null)
+			{
+				$spec .= ' DEFAULT ' . $this->schema->db->quote($info['default']);
+			}
 		}
 		$info['spec'] = $spec;
 		return true;
@@ -230,7 +221,7 @@ class MySQLTable extends DBTable
 		}
 		if($info['type'] != DBIndex::PRIMARY && !strcasecmp($info['name'], 'primary'))
 		{
-			trigger_error('MySQLTable: Only a primary key may be named "PRIMARY"', E_USER_NOTICE);
+			trigger_error('SQLite3Table: Only a primary key may be named "PRIMARY"', E_USER_NOTICE);
 			return false;
 		}
 		switch($info['type'])
@@ -244,11 +235,11 @@ class MySQLTable extends DBTable
 				$info['fullspec'] = 'CREATE INDEX "' . $this->name . '_' . $info['name'] . '" ON {' . $this->name . '} (' . implode(', ', $cols) . ')';
 				break;
 			case DBIndex::UNIQUE:
-				$info['spec'] = 'UNIQUE KEY "' . $info['name'] . '" (' . implode(', ', $cols) . ')';
-				$info['fullspec'] = 'CREATE UNIQUE INDEX "' . $this->name . '_' .  $info['name'] . '" {' . $this->name . '} (' . implode(', ', $cols) . ')';
+				$info['spec'] = 'UNIQUE INDEX "' . $info['name'] . '" (' . implode(', ', $cols) . ')';
+				$info['fullspec'] = 'CREATE UNIQUE INDEX "' . $this->name . '_' . $info['name'] . '" ON {' . $this->name . '} (' . implode(', ', $cols) . ')';
 				break;
 			default:
-				trigger_error('MySQLTable: Unsupported index type ' . $info['type'], E_USER_NOTICE);
+				trigger_error('SQLite3Table: Unsupported index type ' . $info['type'], E_USER_NOTICE);
 				return false;
 		}
 		return true;
@@ -352,10 +343,6 @@ class MySQLTable extends DBTable
 		{
 			$info['spec'] .= ' DEFAULT ' . $this->schema->db->quote($info['default']);
 		}
-		if($info['comment'] !== null)
-		{
-			$info['spec'] .= ' COMMENT ' . $this->schema->db->quote($info['comment']);
-		}
 		return $info;
 	}
 	
@@ -373,6 +360,7 @@ class MySQLTable extends DBTable
 				'type' => null,
 				'columns' => array(),
 				'spec' => null,
+				'fullspec' => null,
 			);
 			if($info['name'] == 'PRIMARY')
 			{
