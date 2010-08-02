@@ -150,6 +150,10 @@ abstract class DBCore implements IDBCore
 		{
 			$iri['pass'] = null;
 		}
+		if(!isset($iri['host']))
+		{
+			$iri['host'] = null;
+		}
 		if(!isset($iri['path']))
 		{
 			$iri['path'] = null;

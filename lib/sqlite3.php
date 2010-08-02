@@ -39,7 +39,6 @@ class SQLite3DB extends DBCore
 	
 	protected function autoconnect()
 	{
-		print_r($this->params);
 		$err = null;
 		$this->conn = null;
 		if(strlen($this->params['path']) && $this->params['path'] != '/')
@@ -104,11 +103,11 @@ class SQLite3DB extends DBCore
 //			echo "[$sql]\n";
 			if($expectResult)
 			{
-				$r = $this->conn->query($sql);
+				@$r = $this->conn->query($sql);
 			}
 			else
 			{
-				$r = $this->conn->exec($sql);
+				@$r = $this->conn->exec($sql);
 			}
 			if($r === false)
 			{

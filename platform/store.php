@@ -325,12 +325,19 @@ class Store extends Model
 	protected $storableClass = 'Storable';
 	
 	/* The name of the 'objects' table */
-	protected $objects = 'objects';
+	protected $objects;
 	
 	public static function getInstance($args = null)
 	{
 		if(!isset($args['class'])) $args['class'] = 'Store';
+		if(!isset($args['objectsTable'])) $args['objectsTable'] = 'object';
 		return parent::getInstance($args);
+	}
+	
+	public function __construct($args)
+	{
+		$this->objects = $args['objectsTable'];
+		parent::__construct($args);
 	}
 	
 	public function objectForUUID($uuid)

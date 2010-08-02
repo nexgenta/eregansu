@@ -57,45 +57,125 @@ class CliHelp extends CommandLine
 /* For each registered module, perform any necessary database schema updates */
 class CliSetup extends CommandLine
 {
+	protected $modules = array();
+	
 	public function main($args)
 	{
-		global $SETUP_MODULES, $MODULE_ROOT;
+		global $SETUP_MODULES;
 		
 		if(!isset($SETUP_MODULES) || !is_array($SETUP_MODULES) || !count($SETUP_MODULES))
 		{
 			echo "setup: No modules are configured, nothing to do.\n";
 			exit(0);
 		}
-		$root = $MODULE_ROOT;
 		foreach($SETUP_MODULES as $mod)
 		{
-			if(!is_array($mod))
+			$this->load($mod);
+		}
+		$this->load(array('file' => PLATFORM_PATH . 'id-module.php', 'class' => 'IdentityModule'), null);
+		$this->load(array('file' => PLATFORM_PATH . 'store-module.php', 'class' => 'StoreModule'), null);		
+		foreach($this->modules as $k => $mod)
+		{
+			$this->processSetup($k);
+		}
+		echo ">>> Module setup completed successfully.\n";
+	}
+	
+	protected function processSetup($key)
+	{
+		$mod = $this->modules[$key];
+		if($mod['processed'])
+		{
+			return true;
+		}
+		echo ">>> Updating schema of " . $mod['id'] . "\n";
+		$this->modules[$key]['processed'] = true;
+		if(!$mod['module']->setup())
+		{
+			echo "*** Schema update of " . $mod['id'] . " to " . $mod['module']->latestVersion . " failed\n";
+			exit(1);
+		}
+	}
+
+	protected function load($mod, $iri = null)
+	{
+		global $MODULE_ROOT;
+		
+		$root = $MODULE_ROOT;
+		if(!is_array($mod))
+		{
+			$mod = array('name' => $mod);
+		}
+		if(isset($mod['name']))
+		{
+			if(!isset($mod['file']))
 			{
-				$mod = array('name' => $mod, 'file' => 'module.php', 'class' => $mod . 'Module');
+				$mod['file'] = 'module.php';
 			}
-			if(isset($mod['name']))
+			if(!isset($mod['class']))
 			{
-				$MODULE_ROOT = MODULES_ROOT . $mod['name'] . '/';
+				$mod['class'] = $mod['name'] . 'Module';
 			}
-			if(isset($mod['file']))
+		}
+		if(isset($mod['name']))
+		{
+			$MODULE_ROOT = MODULES_ROOT . $mod['name'] . '/';
+		}
+		if(isset($mod['file']))
+		{
+			if(substr($mod['file'], 0, 1) == '/')
+			{
+				require_once($mod['file']);
+			}
+			else
 			{
 				require_once($MODULE_ROOT . $mod['file']);
 			}
-			$cl = $mod['class'];
-			$module = call_user_func(array($cl, 'getInstance'));
-			if(!$module)
-			{
-				echo "*** Failed to retrieve module instance ($cl)\n";
-				exit(1);
-			}
-			echo ">>> Updating schema of " . $module->moduleId . "\n";
-			if(!$module->setup())
-			{
-				echo "*** Schema update of " . $module->moduleId . " to " . $module->latestVersion . " failed\n";
-				exit(1);
-			}
-			$MODULE_ROOT = $root;
 		}
-		echo ">>> Module setup completed successfully.\n";
+		$cl = $mod['class'];
+		$module = call_user_func(array($cl, 'getInstance'), array('cli' => $this, 'db' => $iri));
+		if(!$module)
+		{
+			echo "*** Failed to retrieve module instance ($cl)\n";
+			exit(1);
+		}
+		$key = $module->moduleId . '-' . $module->dbIri;
+		if(!isset($this->modules[$key]))
+		{
+			$mod['key'] = $key;
+			$mod['module'] = $module;
+			$mod['id'] = $module->moduleId;
+			$mod['processed'] = false;
+			$mod['iri'] = $module->dbIri;
+			$this->modules[$key] = $mod;
+		}
+		$MODULE_ROOT = $root;
+		return $this->modules[$key];
+	}
+	
+	public function depend($id, $iri, $info = null)
+	{
+		$key = $id . '-' . $iri;
+		if(isset($this->modules[$key]))
+		{
+			$this->processSetup($key);
+			return;
+		}
+		foreach($this->modules as $mod)
+		{
+			if(!strcmp($mod['id'], $id))
+			{
+				$mod = $this->load($mod, $iri);
+				$this->processSetup($mod['key']);
+				return;
+			}
+		}
+		if($info === null)
+		{
+			trigger_error('Cannot load dependency ' . $id . ' because it does not exist', E_USER_ERROR);
+			exit(1);
+		}
+		$mod = $this->load($info);
+		$this->processSetup($mod['key']);
 	}
 }

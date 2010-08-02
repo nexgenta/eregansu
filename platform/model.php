@@ -39,7 +39,8 @@ class Model
 {
 	protected static $instances = array();
 	public $db;
-		
+	public $dbIri;
+	
 	public static function getInstance($args = null)
 	{
 		if(!isset($args['class'])) return null;
@@ -57,6 +58,7 @@ class Model
 	{
 		if(strlen($args['db']))
 		{
+			$this->dbIri = $args['db'];
 			$this->db = DBCore::connect($args['db']);
 		}
 	}

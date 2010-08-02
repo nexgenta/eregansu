@@ -58,6 +58,24 @@ abstract class Module extends Model
 	 * the module. For example, com.example.mymodule
 	 */
 	public $moduleId = null;
+	/* The SetupCli instance calling us */
+	protected $cli;
+	
+	public static function getInstance($args = null)
+	{
+		if(!isset($args['cli']))
+		{
+			trigger_error('Attempt to call Module::getInstance() without passing a cli argument', E_USER_ERROR);
+			return null;
+		}
+		return parent::getInstance($args);
+	}
+	
+	public function __construct($args)
+	{
+		$this->cli = $args['cli'];
+		parent::__construct($args);
+	}
 	
 	/* Compare the stored version number in the database (if any)
 	 * with $this->latestVersion. Cycle from the former to the
@@ -65,6 +83,7 @@ abstract class Module extends Model
 	 */
 	public function setup()
 	{
+		$this->dependencies();
 		if(!$this->db)
 		{
 			echo "Warning: skipping setup of " . $this->moduleId . " because it has no database\n";
@@ -119,38 +138,20 @@ abstract class Module extends Model
 	{
 	
 	}
-}
-
-class StoreModule extends Module
-{
-	/* The name of the 'objects' table */
-	protected $objects = 'objects';
-
-	protected function updateStoreSchema($targetVersion)
+	
+	/* Override dependencies() to call $this->depend() for each other
+	 * module that this depends upon.
+	 */
+	protected function dependencies()
 	{
-		if($targetVersion == 1)
+	}
+	
+	protected function depend($id, $iri = null, $info = null)
+	{
+		if($iri === null)
 		{
-			$t = $this->db->schema->tableWithOptions($this->objects, DBTable::CREATE_ALWAYS);
-			$t->columnWithSpec('uuid', DBType::UUID, null, DBCol::NOT_NULL, null, 'Unique object identifier (UUID)');
-			$t->columnWithSpec('data', DBType::TEXT, null, DBCol::NULLS|DBCol::BIG, null, 'JSON-encoded serialised object data');
-			$t->columnWithSpec('created', DBType::DATETIME, null, DBCol::NOT_NULL, null, 'Timestamp of the object being created');
-			$t->columnWithSpec('creator_scheme', DBType::VARCHAR, 16, DBCol::NULLS, null, 'Scheme of the creating user');
-			$t->columnWithSpec('creator_uuid', DBType::UUID, null, DBCol::NULLS, null, 'UUID of the creating user');
-			$t->columnWithSpec('modified', DBType::DATETIME, null, DBCol::NOT_NULL, null, 'Timestamp of the object being last modified');
-			$t->columnWithSpec('modifier_scheme', DBType::VARCHAR, 16, DBCol::NULLS, null, 'Scheme of the modifying user');
-			$t->columnWithSpec('modifier_uuid', DBType::UUID, null, DBCol::NULLS, null, 'UUID of the modifying user');
-			$t->columnWithSpec('owner', DBType::VARCHAR, 64, DBCol::NULLS, null, 'Identifier of the key used to sign the last update to this object');
-			$t->columnWithSpec('dirty', DBType::BOOLEAN, null, DBCol::NOT_NULL, 'Y', 'Whether the object needs to be re-indexed on the next pass');
-			$t->indexWithSpec(null, DBIndex::PRIMARY, 'uuid');
-			$t->indexWithSpec('creator_scheme', DBIndex::INDEX, 'creator_scheme');
-			$t->indexWithSpec('creator_uuid', DBIndex::INDEX, 'creator_uuid');
-			$t->indexWithSpec('modifier_scheme', DBIndex::INDEX, 'modifier_scheme');
-			$t->indexWithSpec('modifier_uuid', DBIndex::INDEX, 'modifier_uuid');
-			$t->indexWithSpec('dirty', DBIndex::INDEX, 'dirty');
-			$t->indexWithSpec('owner', DBIndex::INDEX, 'owner');
-			return $t->apply();
+			$iri = $this->dbIri;
 		}
-		trigger_error('StoreModule::updateStoreSchema(): Attempt to update store schema to version ' . $targetVersion . ' which is not (yet) supported', E_USER_ERROR);
-		return false;
+		$this->cli->depend($id, $iri, $info);
 	}
 }
