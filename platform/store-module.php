@@ -32,21 +32,26 @@
 class StoreModule extends Module
 {
 	/* The name of the 'objects' table */
-	protected $objects;
-
+	protected $objects = 'object';
+	protected $objects_base = 'object_base';
+	protected $objects_iri = 'object_iri';
+	protected $objects_tags = 'object_tags';
+	
 	public $moduleId = 'com.nexgenta.eregansu.store';
-	public $latestVersion = 1;
+	public $latestVersion = 4;
 	
 	public static function getInstance($args = null)
 	{	
 		if(!isset($args['class'])) $args['class'] = 'StoreModule';
-		if(!isset($args['objectsTable'])) $args['objectsTable'] = 'object';
 		return parent::getInstance($args);
 	}
 	
 	public function __construct($args)
 	{
-		$this->objects = $args['objectsTable'];
+		if(isset($args['objectsTable'])) $this->objects = $args['objectsTable'];
+		if(isset($args['objectsBaseTable'])) $this->objects_base = $args['objectsBaseTable'];
+		if(isset($args['objectsIriTable'])) $this->objects_base = $args['objectsIrisTable'];
+		if(isset($args['objectsTagsTable'])) $this->objects_base = $args['objectsTagsTable'];
 		parent::__construct($args);		
 	}
 	
@@ -74,7 +79,37 @@ class StoreModule extends Module
 			$t->indexWithSpec('owner', DBIndex::INDEX, 'owner');
 			return $t->apply();
 		}
-		trigger_error('StoreModule::updateSchema(): Attempt to update store schema to version ' . $targetVersion . ' which is not (yet) supported', E_USER_ERROR);
+		if($targetVersion == 2)
+		{
+			$t = $this->db->schema->tableWithOptions($this->objects_base, DBTable::CREATE_ALWAYS);
+			$t->columnWithSpec('uuid', DBType::UUID, null, DBCol::NOT_NULL, null, 'Object identifier');
+			$t->columnWithSpec('kind', DBType::VARCHAR, 36, DBCol::NULLS, null, 'Object kind');
+			$t->columnWithSpec('tag', DBType::VARCHAR, 64, DBCol::NULLS, null, 'Short object name');
+			$t->columnWithSpec('realm', DBType::UUID, null, DBCol::NULLS, null, 'Associated realm identifier, if any');
+			$t->indexWithSpec(null, DBIndex::PRIMARY, 'uuid');
+			$t->indexWithSpec('kind', DBIndex::INDEX, 'kind');
+			$t->indexWithSpec('tag', DBIndex::INDEX, 'tag');
+			$t->indexWithSpec('realm', DBIndex::INDEX, 'realm');
+			return $t->apply();
+		}
+		if($targetVersion == 3)
+		{
+			$t = $this->db->schema->tableWithOptions($this->objects_tags, DBTable::CREATE_ALWAYS);
+			$t->columnWithSpec('uuid', DBType::UUID, null, DBCol::NOT_NULL, null, 'Object identifier');
+			$t->columnWithSpec('tag', DBType::VARCHAR, 64, DBCol::NOT_NULL, null, 'Tag');
+			$t->indexWithSpec('uuid', DBIndex::INDEX, 'uuid');
+			$t->indexWithSpec('tag', DBIndex::INDEX, 'tag');
+			return $t->apply();
+		}
+		if($targetVersion == 4)
+		{
+			$t = $this->db->schema->tableWithOptions($this->objects_iri, DBTable::CREATE_ALWAYS);
+			$t->columnWithSpec('uuid', DBType::UUID, null, DBCol::NOT_NULL, null, 'Object identifier');
+			$t->columnWithSpec('iri', DBType::VARCHAR, 128, DBCol::NULLS, null, 'IRI of this object');
+			$t->indexWithSpec('uuid', DBIndex::INDEX, 'uuid');
+			$t->indexWithSpec('iri', DBIndex::INDEX, 'iri');
+			return $t->apply();
+		}
 		return false;
 	}
 }

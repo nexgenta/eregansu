@@ -325,18 +325,23 @@ class Store extends Model
 	protected $storableClass = 'Storable';
 	
 	/* The name of the 'objects' table */
-	protected $objects;
+	protected $objects = 'object';
+	protected $objects_base = 'object_base';
+	protected $objects_iri = 'object_iri';
+	protected $objects_tags = 'object_tags';
 	
 	public static function getInstance($args = null)
 	{
 		if(!isset($args['class'])) $args['class'] = 'Store';
-		if(!isset($args['objectsTable'])) $args['objectsTable'] = 'object';
 		return parent::getInstance($args);
 	}
 	
 	public function __construct($args)
 	{
-		$this->objects = $args['objectsTable'];
+		if(isset($args['objectsTable'])) $this->objects = $args['objectsTable'];
+		if(isset($args['objectsBaseTable'])) $this->objects_base = $args['objectsBaseTable'];
+		if(isset($args['objectsIriTable'])) $this->objects_iri = $args['objectsIriTable'];
+		if(isset($args['objectsTagsTable'])) $this->objects_tags = $args['objectsTagsTable'];
 		parent::__construct($args);
 	}
 	
@@ -495,7 +500,62 @@ class Store extends Model
 				}				
 			}
 		}
+		$this->db->perform(array($this, 'storedTransaction'), array('uuid' => strtolower(trim($data['uuid'])), 'data' => $data, 'json' => $json, 'lazy' => $lazy));
+		return true;
+	}
+
+	public /*callback*/ function storedTransaction($db, $args)
+	{
+		$uuid = $args['uuid'];
+		$json = $args['json'];
+		$lazy = $args['lazy'];
+		$data = $args['data'];
+
+		$baseinfo = array();
+		
+		$this->db->query('DELETE FROM {' . $this->objects_base . '} WHERE "uuid" = ?', $uuid);
+		$this->db->query('DELETE FROM {' . $this->objects_tag . '} WHERE "uuid" = ?', $uuid);
+		$this->db->query('DELETE FROM {' . $this->objects_iri . '} WHERE "uuid" = ?', $uuid);
+		
+		if($data['kind'] == 'realm' && !isset($data['realm']))
+		{
+			$data['realm'] = $uuid;
+		}
+		if(isset($data['kind'])) $baseinfo['kind'] = $data['kind']; 
+		if(isset($data['realm'])) $baseinfo['realm'] = $data['realm'];
+		if(isset($data['tag'])) $baseinfo['tag'] = strtolower(trim($data['tag']));
+		if(count($baseinfo))
+		{
+			$baseinfo['uuid'] = $uuid;
+			$this->db->insert($this->objects_base, $baseinfo);
+		}
+
+		if(isset($data['tags']))
+		{
+			if(!is_array($data['tags']))
+			{
+				$data['tags'] = array($data['tags']);
+			}
+			foreach($data['tags'] as $tag)
+			{
+				$this->db->insert($this->objects_tags, array('uuid' => $uuid, 'tag' => $tag));
+			}
+		}
+		if(isset($data['iri']))
+		{
+			if(!is_array($data['iri']))
+			{
+				$data['iri'] = array($data['iri']);
+			}
+			foreach($data['iri'] as $iri)
+			{
+				$this->db->insert($this->objects_iri, array('uuid' => $uuid, 'iri' => $ident['tag']));
+			}
+		}	
+
+
 		$this->db->query('UPDATE {' . $this->objects . '} SET "dirty" = ? WHERE "uuid" = ?', 'N', $uuid);
 		return true;
 	}
+
 }
