@@ -421,6 +421,172 @@ class Store extends Model
 		return $data;
 	}
 	
+	protected function buildQuery(&$qlist, &$tables, &$query)
+	{
+		if(!isset($tables['base'])) $tables['base'] = $this->objects_base;
+		if(!isset($tables['iri'])) $tables['iri'] = $this->objects_iri;
+		foreach($query as $k => $v)
+		{
+			$value = $v;
+			switch($k)
+			{
+				case 'uuid':
+					unset($query[$k]);
+					$qlist['obj'][] = '"obj"."uuid" = ' . $this->db->quote($value);
+					break;
+				case 'kind':
+					unset($query[$k]);
+					$qlist['base'][] = '"base"."kind" = ' . $this->db->quote($value);
+					break;
+				case 'tag':
+					unset($query[$k]);
+					$qlist['base'][] = '"base"."tag" = ' . $this->db->quote($value);
+					break;
+				case 'realm':
+					unset($query[$k]);
+					$qlist['base'][] = '"base"."realm" = ' . $this->db->quote($value);
+					break;
+				case 'iri':
+					unset($query[$k]);
+					$qlist['iri'][] = '"iri"."iri" = ' . $this->db->quote($value);
+					break;
+			}
+		}		
+	}
+	
+	protected function parseOrder(&$order, $key, $desc = true)
+	{
+		/* $order['table'][] = '"table"."field" ' . ($desc ? 'DESC' : 'ASC'); */
+		return false;
+	}
+	
+	public function query($query)
+	{
+		$tables = array('obj' => $this->objects);
+		$qlist = array();
+		$order = array();
+		$olist = array();
+		$tags = array();
+		$ord = array();
+		$ofs = $limit = 0;		
+		if(isset($query['order']))
+		{
+			$ord = $query['order'];
+			unset($query['order']);
+			if(!is_array($ord))
+			{
+				$ord = explode(',', str_replace(' ', ',', $ord));
+			}
+		}
+		if(isset($query['offset']))
+		{
+			$ofs = intval($query['offset']);
+			unset($query['offset']);
+		}
+		if(isset($query['limit']))
+		{
+			$limit = intval($query['limit']);
+			unset($query['limit']);
+		}
+		$this->buildQuery($qlist, $tables, $query);
+		foreach($ord as $o)
+		{
+			$o = trim($o);
+			if(!strlen($o)) continue;
+			$desc = true;
+			if(substr($o, 0, 1) == '-')
+			{
+				$desc = false;
+			}
+			if(!$this->parseOrder($order, $o, $desc))
+			{
+				trigger_error('Store::query(): Unknown ordering key ' . $o, E_USER_WARNING);
+			}
+		}
+		foreach($order as $table => $ref)
+		{
+			if($table != 'obj' && !isset($qlist[$table])) $qlist[$table] = array();
+			foreach($ref as $oo)
+			{
+				$olist[] = $oo;
+			}
+		}
+		$tlist = array('{' . $this->objects . '} "obj"');
+		$where = array();
+		foreach($qlist as $table => $clauses)
+		{
+			if($table != 'obj')
+			{
+				$tlist[] = '{' . $tables[$table] . '} "' . $table . '"';
+				$where[] = '"' . $table . '"."uuid" = "obj"."uuid"';
+			}
+			foreach($clauses as $c)
+			{
+				$where[] = $c;
+			}
+		}
+		if(isset($query['tags']))
+		{
+			if(is_array($query['tags']))
+			{
+				$tags = $query['tags'];
+			}
+			else
+			{
+				$tags = explode(',', str_replace(' ', ',', $query['tags']));
+			}
+			unset($query['tags']);
+		}
+		if(count($query))
+		{
+			foreach($query as $k => $v)
+			{
+				trigger_error('Store::query(): Unsupported query key ' . $k, E_USER_WARNING);
+			}
+		}
+		if(count($tags))
+		{
+			$tc = 0;
+			foreach($tags as $t)
+			{
+				$t = strtolower(trim($t));
+				if(!strlen($t)) continue;
+				$tc++;
+				$tn = '"t' . $tc . '"';
+				$tlist[] = '{' . $this->objects_tags . '} ' . $tn;
+				$where[] = $tn . '."tag" = ' . $this->db->quote($t);
+				$where[] = $tn . '."uuid" = "obj"."uuid"';
+			}
+		}
+		$qstr = 'SELECT /*!SQL_CALC_FOUND_ROWS*/ "obj".* FROM ( ' . implode(', ', $tlist) . ' )';
+		if(count($where))
+		{
+			$qstr .= ' WHERE ' . implode(' AND ', $where);
+		}
+		if(count($olist))
+		{
+			$qstr .= ' ORDER BY ' . implode(', ', $olist);
+		}
+		if($limit)
+		{
+			if($ofs)
+			{
+				$qstr .= ' LIMIT ' . $ofs . ', ' . $limit;
+			}
+			else
+			{
+				$qstr .= ' LIMIT ' . $limit;
+			}
+		}
+		if(($rs = $this->db->query($qstr)))
+		{
+			$query['recordSet'] = $rs;
+			$query['storableClass'] = $this->storableClass;
+			return new DBStorableSet($this, $query);
+		}
+		return null;
+	}
+	
 	public function updateObjectWithUUID($uuid)
 	{
 		if(!($row = $this->db->row('SELECT * FROM {' . $this->objects . '} WHERE "uuid" = ?', $uuid)))
@@ -429,7 +595,7 @@ class Store extends Model
 		}
 		$data = json_decode($row['data'], true);
 		$this->retrievedMeta($data, $row);
-		$this->stored($data, false);
+		$this->stored($data, $row['data'], false);
 		return true;
 	}
 	
@@ -514,7 +680,7 @@ class Store extends Model
 		$baseinfo = array();
 		
 		$this->db->query('DELETE FROM {' . $this->objects_base . '} WHERE "uuid" = ?', $uuid);
-		$this->db->query('DELETE FROM {' . $this->objects_tag . '} WHERE "uuid" = ?', $uuid);
+		$this->db->query('DELETE FROM {' . $this->objects_tags . '} WHERE "uuid" = ?', $uuid);
 		$this->db->query('DELETE FROM {' . $this->objects_iri . '} WHERE "uuid" = ?', $uuid);
 		
 		if($data['kind'] == 'realm' && !isset($data['realm']))
@@ -551,9 +717,7 @@ class Store extends Model
 			{
 				$this->db->insert($this->objects_iri, array('uuid' => $uuid, 'iri' => $ident['tag']));
 			}
-		}	
-
-
+		}
 		$this->db->query('UPDATE {' . $this->objects . '} SET "dirty" = ? WHERE "uuid" = ?', 'N', $uuid);
 		return true;
 	}
