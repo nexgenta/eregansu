@@ -81,25 +81,27 @@ if(defined('EREGANSU_MINIMAL_CORE'))
 /* Initialise the core library */
 require_once(dirname(__FILE__) . '/lib/common.php');
 
-
-if(isset($argv[1]) && ($argv[1] == 'setup' || $argv[1] == 'install'))
+if(!defined('EREGANSU_SKIP_CONFIG'))
 {
-	if(php_sapi_name() == 'cli')
+	if(isset($argv[1]) && ($argv[1] == 'setup' || $argv[1] == 'install'))
 	{
-		if($argv[1] == 'install' || !file_exists(CONFIG_ROOT) || !file_exists(CONFIG_ROOT . 'config.php') || !file_exists(CONFIG_ROOT . 'appconfig.php'))
+		if(php_sapi_name() == 'cli')
 		{
-			require_once(PLATFORM_ROOT . 'install/installer.php');
-		}
-		if($argv[1] == 'install')
-		{
-			$argv[1] = $_SERVER['argv'][1] = 'setup';
+			if($argv[1] == 'install' || !file_exists(CONFIG_ROOT) || !file_exists(CONFIG_ROOT . 'config.php') || !file_exists(CONFIG_ROOT . 'appconfig.php'))
+			{
+				require_once(PLATFORM_ROOT . 'install/installer.php');
+			}
+			if($argv[1] == 'install')
+			{
+				$argv[1] = $_SERVER['argv'][1] = 'setup';
+			}
 		}
 	}
-}
 
-/* Load the application-wide and per-instance configurations */
-require_once(CONFIG_ROOT . 'config.php');
-require_once(CONFIG_ROOT . 'appconfig.php');
+	/* Load the application-wide and per-instance configurations */
+	require_once(CONFIG_ROOT . 'config.php');
+	require_once(CONFIG_ROOT . 'appconfig.php');
+}
 
 /* Load the initial set of modules */
 require_once(PLATFORM_LIB . 'request.php');
