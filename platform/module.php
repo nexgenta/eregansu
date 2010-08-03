@@ -63,17 +63,15 @@ abstract class Module extends Model
 	
 	public static function getInstance($args = null)
 	{
-		if(!isset($args['cli']))
-		{
-			trigger_error('Attempt to call Module::getInstance() without passing a cli argument', E_USER_ERROR);
-			return null;
-		}
 		return parent::getInstance($args);
 	}
 	
 	public function __construct($args)
 	{
-		$this->cli = $args['cli'];
+		if(isset($args['cli']))
+		{
+			$this->cli = $args['cli'];
+		}
 		parent::__construct($args);
 	}
 	
@@ -148,6 +146,11 @@ abstract class Module extends Model
 	
 	protected function depend($id, $iri = null, $info = null)
 	{
+		if(!is_object($this->cli))
+		{
+			echo "*** Cannot recurse into dependent module $id because " . get_class($this) . " is being invoked outside of the setup command-line utility\n";
+			exit(1);
+		}
 		if($iri === null)
 		{
 			$iri = $this->dbIri;
