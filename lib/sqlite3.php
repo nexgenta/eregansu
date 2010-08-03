@@ -268,21 +268,22 @@ class SQLite3Set extends DBDataSet
 	{
 		if(strlen($query) && false !== strpos($query, '/*!SQL_CALC_FOUND_ROWS*/'))
 		{
-			$this->total = $db->value('SELECT FOUND_ROWS()');
+//			$this->total = $db->value('SELECT FOUND_ROWS()');
+			$this->total = 0;
 		}
-		parent::__construct($db, $resource, $query);
+		parent::__construct($db, $resource, $query, $params);
 	}
 	
 	protected function row()
 	{
-		return ($this->fields = sqlite3_fetch_array($this->resource));
+		return ($this->fields = $this->resource->fetchArray(SQLITE3_ASSOC));
 	}
 	
 	public function rewind()
 	{
 		$this->EOF = false;
 		$this->fields = null;
-		if(false == @sqlite3_rewind($this->resource))
+		if(false == $this->resource->reset())
 		{
 			$this->EOF = true;
 			return;
