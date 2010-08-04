@@ -456,7 +456,13 @@ class Store extends Model
 	
 	protected function parseOrder(&$order, $key, $desc = true)
 	{
-		/* $order['table'][] = '"table"."field" ' . ($desc ? 'DESC' : 'ASC'); */
+		$dir = $desc ? 'DESC' : 'ASC';
+		switch($key)
+		{
+			case 'created':
+				$order['obj'][] = '"obj"."created" ' . $dir;
+				return true;		
+		}
 		return false;
 	}
 	
