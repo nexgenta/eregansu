@@ -721,11 +721,20 @@ class Store extends Model
 			}
 			foreach($data['iri'] as $iri)
 			{
-				$this->db->insert($this->objects_iri, array('uuid' => $uuid, 'iri' => $ident['tag']));
+				$this->db->insert($this->objects_iri, array('uuid' => $uuid, 'iri' => $iri));
 			}
 		}
 		$this->db->query('UPDATE {' . $this->objects . '} SET "dirty" = ? WHERE "uuid" = ?', 'N', $uuid);
 		return true;
+	}
+
+	public function pendingObjectsSet($limit = null)
+	{
+		if(!($limit = intval($limit)))
+		{
+			$limit = 10;
+		}
+		return $this->db->query('SELECT "uuid" FROM {' . $this->objects . '} WHERE "dirty" = ? LIMIT ' . $limit, 'Y');
 	}
 
 }
