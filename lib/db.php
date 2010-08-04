@@ -112,6 +112,7 @@ abstract class DBCore implements IDBCore
 	public $prefix = '';
 	public $suffix = '';
 	protected $transactionDepth;
+	protected $aliases = array();
 	
 	public static function connect($iristr)
 	{
@@ -514,6 +515,7 @@ abstract class DBCore implements IDBCore
 	
 	public function quoteTable($name)
 	{
+		if(isset($this->aliases[$name])) $name = $this->aliases[$name];
 		$name = $this->prefix . $name . $this->suffix;
 		$this->quoteObjectRef($name);
 		return $name;
@@ -536,6 +538,25 @@ abstract class DBCore implements IDBCore
 		$name = '"' . $name . '"';
 	}
 
+	public function alias($name, $table = null)
+	{
+		if(is_array($name))
+		{
+			foreach($name as $alias => $table)
+			{
+				$this->aliases[$alias] = $table;
+			}
+		}
+		else if(strlen($table))
+		{
+			$this->aliases[$name] = $table;
+		}
+		else
+		{
+			unset($this->aliases[$name]);
+		}
+	}
+	
 	public function &__get($name)
 	{
 		$nothing = null;

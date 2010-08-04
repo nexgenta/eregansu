@@ -229,6 +229,7 @@ class MySQL extends DBCore
 	public function quoteTable($name)
 	{
 		if(!$this->dbName) $this->autoconnect();
+		if(isset($this->aliases[$name])) $name = $this->aliases[$name];
 		return '"' . $this->dbName . '"."' . $this->prefix . $name . $this->suffix . '"';
 	}
 }
