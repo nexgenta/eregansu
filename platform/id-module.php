@@ -5,7 +5,7 @@ if(!defined('IDENTITY_IRI')) define('IDENTITY_IRI', null);
 class IdentityModule extends Module
 {
 	public $moduleId = 'com.nexgenta.eregansu.identity';
-	public $latestVersion = 1;
+	public $latestVersion = 0;
 	
 	public static function getInstance($args = null)
 	{
@@ -26,18 +26,5 @@ class IdentityModule extends Module
 	public function dependencies()
 	{
 		$this->depend('com.nexgenta.eregansu.store');
-	}
-	
-	public function updateSchema($targetVersion)
-	{
-		if($targetVersion == 1)
-		{
-			$t = $this->db->schema->tableWithOptions('object_identity', DBTable::CREATE_ALWAYS);
-			$t->columnWithSpec('uuid', DBType::UUID, null, DBCol::NOT_NULL, null, 'Object identifier');
-			$t->columnWithSpec('iri', DBType::VARCHAR, 128, DBCol::NOT_NULL, null, 'IRI relating to this user');
-			$t->indexWithSpec('uuid', DBIndex::INDEX, 'uuid');
-			$t->indexWithSpec('iri', DBIndex::INDEX, 'iri');
-			return $t->apply();
-		}
 	}
 }
