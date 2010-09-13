@@ -125,6 +125,15 @@ abstract class UUID
 	{
 		return '00000000-0000-0000-0000-000000000000';
 	}
+
+	public static function isUUID($str)
+	{
+		if(preg_match('/[a-f0-9]{8}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{12}/i', $str))
+		{
+			return $str;
+		}
+		return null;
+	}
 	
 	/**
 	 * @brief Return the canonical form of a UUID string (i.e., no braces, no dashes, all lower-case)
