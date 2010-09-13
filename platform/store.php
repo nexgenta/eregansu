@@ -40,7 +40,7 @@ class Storable implements ArrayAccess
 	protected static $models = array();
 	protected static $refs = array();
 	
-	public static function objectForData($data, $model, $className = null)
+	public static function objectForData($data, $model = null, $className = null)
 	{
 		if(!$className)
 		{
@@ -55,7 +55,7 @@ class Storable implements ArrayAccess
 	
 	protected function __construct($data)
 	{
-		if(!is_array($data))
+		if(!is_arrayish($data))
 		{
 			throw new Exception(gettype($data) . ' passed to Storable::__construct(), array expected');
 		}
@@ -132,6 +132,19 @@ class Storable implements ArrayAccess
 	{
 		unset($this->$name);
 	}
+
+	protected function referenceObject($name, $uuid)
+	{
+		$this->$name = $uuid;
+		if(!isset($this->_refs) || !is_array($this->_refs))
+		{
+			$this->_refs = array();
+		}
+		if(!in_array($name, $this->_refs))
+		{
+			$this->_refs[] = $name;
+		}
+	}
 	
 	protected function referencedObject($id)
 	{
@@ -139,7 +152,7 @@ class Storable implements ArrayAccess
 		if(!isset(self::$refs[$className])) self::$refs[$className] = array();
 		if(!isset(self::$refs[$className][$id]))
 		{
-			self::$refs[$className][$id] = self::$models[$className]->objectForId($id);
+			self::$refs[$className][$id] = self::$models[$className]->objectForUUID($id);
 		}
 		return self::$refs[$className][$id];
 	}
@@ -383,6 +396,14 @@ class Store extends Model
 		}
 		$user_scheme = $user_uuid = null;
 		$uuid = strtolower($uuid);
+		if(isset($data['created']))
+		{
+			$created = $this->db->quote($data['created']);
+		}
+		else
+		{
+			$created = $this->db->now();
+		}
 		unset($data['uuid']);
 		unset($data['created']);
 		unset($data['modified']);
@@ -404,7 +425,7 @@ class Store extends Model
 				$this->db->insert($this->objects, array(
 					'uuid' => $uuid,
 					'data' => $json,
-					'@created' => $this->db->now(),
+					'@created' => $created,
 					'creator_scheme' => $user_scheme,
 					'creator_uuid' => $user_uuid,
 					'@modified' => $this->db->now(),
