@@ -118,6 +118,17 @@ function _e($str)
 	return str_replace('&quot;', '&#39;', htmlspecialchars($str));
 }
 
+/**
+ * @brief Write text to the output stream, followed by a newline.
+ */
+
+function writeLn()
+{
+	$args = func_get_args();
+	echo implode(' ', $args) . "\n";
+}
+
+
 if(!function_exists('uses')) {
 
 	/**
