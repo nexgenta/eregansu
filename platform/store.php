@@ -457,7 +457,19 @@ class Store extends Model
 					break;
 				case 'kind':
 					unset($query[$k]);
-					$qlist['base'][] = '"base"."kind" = ' . $this->db->quote($value);
+					if(is_array($value))
+					{
+						$qal = array();
+						foreach($value as $v)
+						{
+							$qal[] = '"base"."kind" = ' . $this->db->quote($v);
+						}
+						$qlist['base'][] = '(' . implode(' OR ', $qal) . ')';
+					}
+					else
+					{
+						$qlist['base'][] = '"base"."kind" = ' . $this->db->quote($value);
+					}
 					break;
 				case 'tag':
 					unset($query[$k]);
