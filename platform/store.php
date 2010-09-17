@@ -118,7 +118,7 @@ class Storable implements ArrayAccess
 	{
 		if(isset($this->$name) && isset($this->_refs) && in_array($name, $this->_refs))
 		{
-			return $this->referencedObject($this->$name);
+			return $this->referencedObject($this->$name, $name);
 		}
 		return $this->$name;
 	}
@@ -146,10 +146,23 @@ class Storable implements ArrayAccess
 		}
 	}
 	
-	protected function referencedObject($id)
+	protected function referencedObject($id, $propName = null)
 	{
 		$className = get_class($this);
 		if(!isset(self::$refs[$className])) self::$refs[$className] = array();
+		if(is_array($id))
+		{
+			if($propName === null)
+			{
+				return null;
+			}
+			if(!isset(self::$refs[$className][':' . $propName]))
+			{
+				$args = array('storableClass' => $className, 'list' => $id);
+				self::$refs[$className][':' . $propName] = new StaticStorableSet(self::$models[$className], $args);
+			}
+			return self::$refs[$className][':' . $propName];
+		}
 		if(!isset(self::$refs[$className][$id]))
 		{
 			self::$refs[$className][$id] = self::$models[$className]->objectForUUID($id);
@@ -180,14 +193,15 @@ abstract class StorableSet implements DataSet
 
 }
 
-class StaticStorableSet extends StorableSet
+class StaticStorableSet extends StorableSet implements Countable
 {
 	protected $list;
 	protected $keys;
 	protected $storableClass = 'Storable';
 	protected $count;
 	protected $current;
-	
+	protected $valid = true;
+
 	public function __construct($model, $args)
 	{
 		parent::__construct($model, $args);
@@ -197,6 +211,16 @@ class StaticStorableSet extends StorableSet
 		}
 		$this->list = $args['list'];
 		$this->rewind();
+	}
+
+	public function count()
+	{
+		return count($this->list);
+	}
+
+	public function valid()
+	{
+		return $this->valid;
 	}
 	
 	public function next()
@@ -216,11 +240,20 @@ class StaticStorableSet extends StorableSet
 		}
 		$this->current = null;
 		$this->EOF = true;
+		$this->valid = false;
 		return null;
 	}
 	
 	protected function storableForEntry($entry, $rowData = null)
 	{
+		if(is_string($entry))
+		{
+			if(!($obj = $this->model->dataForUUID($entry)))
+			{
+				return null;
+			}
+			$entry = $obj;
+		}
 		if(is_array($rowData))
 		{
 			$entry['uuid'] = $rowData['uuid'];
@@ -260,12 +293,14 @@ class StaticStorableSet extends StorableSet
 		if(count($this->list))
 		{
 			$this->EOF = false;
+			$this->valid = true;
 			$this->keys = array_keys($this->list);
 		}
 		else
 		{
 			$this->EOF = true;
 			$this->keys = array();
+			$this->valid = false;
 		}
 	}
 }
@@ -709,6 +744,15 @@ class Store extends Model
 		return true;
 	}
 
+	public function deleteObjectWithUUID($uuid)
+	{
+		$this->db->exec('DELETE FROM {' . $this->objects . '} WHERE "uuid" = ?', $uuid);
+		$this->db->exec('DELETE FROM {' . $this->objects_base . '} WHERE "uuid" = ?', $uuid);
+		$this->db->exec('DELETE FROM {' . $this->objects_tags . '} WHERE "uuid" = ?', $uuid);
+		$this->db->exec('DELETE FROM {' . $this->objects_iri . '} WHERE "uuid" = ?', $uuid);
+		return true;
+	}
+
 	public /*callback*/ function storedTransaction($db, $args)
 	{
 		$uuid = $args['uuid'];
@@ -770,4 +814,8 @@ class Store extends Model
 		return $this->db->query('SELECT "uuid" FROM {' . $this->objects . '} WHERE "dirty" = ? LIMIT ' . $limit, 'Y');
 	}
 
+	public function markAllAsDirty()
+	{
+		$this->db->query('UPDATE {' . $this->objects . '} SET "dirty" = ?', 'Y');
+	}
 }
