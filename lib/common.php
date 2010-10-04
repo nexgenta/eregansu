@@ -115,7 +115,7 @@ function e($str)
  
 function _e($str)
 {
-	return str_replace('&quot;', '&#39;', htmlspecialchars($str));
+	return str_replace('&apos;', '&#39;', str_replace('&quot;', '&#34;', htmlspecialchars(strval($str), ENT_QUOTES, 'UTF-8')));
 }
 
 /**
