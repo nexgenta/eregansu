@@ -590,7 +590,8 @@ class DBDataSet implements DataSet
 	public $total = 0;
 	protected $resource;
 	protected $count = 0;
-	
+	protected $fetched = false;
+
 	public function __construct($db, $resource, $query = null, $params = null)
 	{
 		$this->db = $db;
@@ -616,16 +617,28 @@ class DBDataSet implements DataSet
 	
 	public function current()
 	{
+		if(!$this->fetched)
+		{
+			$this->next();
+		}
 		return $this->fields;
 	}
 	
 	public function key()
 	{
+		if(!$this->fetched)
+		{
+			$this->next();
+		}
 		return $this->count;
 	}
 	
 	public function valid()
 	{
+		if(!$this->fetched)
+		{
+			$this->next();
+		}
 		return !$this->EOF;
 	}
 }
