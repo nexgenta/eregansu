@@ -39,6 +39,7 @@ class Storable implements ArrayAccess
 {
 	protected static $models = array();
 	protected static $refs = array();
+	protected $storableClass = null;
 	
 	public static function objectForData($data, $model = null, $className = null)
 	{
@@ -87,6 +88,7 @@ class Storable implements ArrayAccess
 		$keys = array_keys(get_object_vars($this));
 		foreach($keys as $k)
 		{
+			if($k == 'storableClass') continue;
 			unset($this->$k);
 		}
 		if(!$data)
@@ -125,7 +127,18 @@ class Storable implements ArrayAccess
 	
 	public function offsetSet($name, $value)
 	{
-		$this->$name = $value;
+		if(is_object($value))
+		{
+			$value = $value->uuid;
+		}
+		if(null !== ($uuid = UUID::isUUID($value)))
+		{
+			$this->referenceObject($name, $uuid);
+		}
+		else
+		{
+			$this->$name = $value;
+		}
 	}
 	
 	public function offsetUnset($name)
@@ -135,6 +148,10 @@ class Storable implements ArrayAccess
 
 	protected function referenceObject($name, $uuid)
 	{
+		if(is_object($uuid))
+		{
+			$uuid = $uuid->uuid;
+		}
 		$this->$name = $uuid;
 		if(!isset($this->_refs) || !is_array($this->_refs))
 		{
@@ -158,7 +175,7 @@ class Storable implements ArrayAccess
 			}
 			if(!isset(self::$refs[$className][':' . $propName]))
 			{
-				$args = array('storableClass' => $className, 'list' => $id);
+				$args = array('storableClass' => ($this->storableClass === null ? $className : $this->storableClass), 'list' => $id);
 				self::$refs[$className][':' . $propName] = new StaticStorableSet(self::$models[$className], $args);
 			}
 			return self::$refs[$className][':' . $propName];
@@ -171,7 +188,7 @@ class Storable implements ArrayAccess
 	}
 }
 
-abstract class StorableSet implements DataSet
+abstract class StorableSet implements DataSet, Countable
 {
 	protected $model;
 	public $EOF = true;
@@ -179,6 +196,10 @@ abstract class StorableSet implements DataSet
 	public function __construct($model, $args)
 	{
 		$this->model = $model;	
+		if(isset($args['storableClass']))
+		{
+			$this->storableClass = $args['storableClass'];
+		}
 	}
 	
 	public function rewind()
@@ -190,10 +211,43 @@ abstract class StorableSet implements DataSet
 		$valid = !$this->EOF;
 		return $valid;
 	}
+	
+	public function count()
+	{
+		return 0;
+	}
 
+	protected function storableForEntry($entry, $rowData = null)
+	{
+		if(is_string($entry))
+		{
+			if(!($obj = $this->model->dataForUUID($entry)))
+			{
+				return null;
+			}
+			$entry = $obj;
+		}
+		if(is_array($rowData))
+		{
+			$entry['uuid'] = $rowData['uuid'];
+			$entry['created'] = $rowData['created'];
+			if(strlen($rowData['creator_uuid']))
+			{
+				$entry['creator'] = array('scheme' => $rowData['creator_scheme'], 'uuid' => $rowData['creator_uuid']);
+			}
+			$entry['modified'] = $rowData['modified'];
+			if(strlen($rowData['modifier_uuid']))
+			{
+				$entry['modifier'] = array('scheme' => $rowData['modifier_scheme'], 'uuid' => $rowData['modifier_uuid']);
+			}
+			$entry['owner'] = $rowData['owner'];		
+		}
+		return call_user_func(array($this->storableClass, 'objectForData'), $entry, $this->model, $this->storableClass);	
+	}
+	
 }
 
-class StaticStorableSet extends StorableSet implements Countable
+class StaticStorableSet extends StorableSet
 {
 	protected $list;
 	protected $keys;
@@ -205,10 +259,6 @@ class StaticStorableSet extends StorableSet implements Countable
 	public function __construct($model, $args)
 	{
 		parent::__construct($model, $args);
-		if(isset($args['storableClass']))
-		{
-			$this->storableClass = $args['storableClass'];
-		}
 		$this->list = $args['list'];
 		$this->rewind();
 	}
@@ -244,37 +294,9 @@ class StaticStorableSet extends StorableSet implements Countable
 		return null;
 	}
 	
-	protected function storableForEntry($entry, $rowData = null)
-	{
-		if(is_string($entry))
-		{
-			if(!($obj = $this->model->dataForUUID($entry)))
-			{
-				return null;
-			}
-			$entry = $obj;
-		}
-		if(is_array($rowData))
-		{
-			$entry['uuid'] = $rowData['uuid'];
-			$entry['created'] = $rowData['created'];
-			if(strlen($rowData['creator_uuid']))
-			{
-				$entry['creator'] = array('scheme' => $rowData['creator_scheme'], 'uuid' => $rowData['creator_uuid']);
-			}
-			$entry['modified'] = $rowData['modified'];
-			if(strlen($rowData['modifier_uuid']))
-			{
-				$entry['modifier'] = array('scheme' => $rowData['modifier_scheme'], 'uuid' => $rowData['modifier_uuid']);
-			}
-			$entry['owner'] = $rowData['owner'];		
-		}
-		return call_user_func(array($this->storableClass, 'objectForData'), $entry, $this->model, $this->storableClass);	
-	}
-	
 	public function key()
 	{
-		return ($this->EOF ? null : $this->count);
+		return ($this->valid ? null : $this->count);
 	}
 	
 	public function current()
@@ -305,7 +327,7 @@ class StaticStorableSet extends StorableSet implements Countable
 	}
 }
 
-class DBStorableSet extends StaticStorableSet
+class DBStorableSet extends StorableSet
 {
 	protected $rs;
 	protected $current;
@@ -326,46 +348,65 @@ class DBStorableSet extends StaticStorableSet
 		if(isset($args['limit'])) $this->limit = $args['limit'];
 		$this->rewind();
 	}
+
+	protected function updateCurrent()
+	{
+		$this->EOF = $this->rs->EOF;
+		if(($this->data = $this->rs->fields))
+		{
+			if($this->data['uuid'] != $this->key)
+			{
+				$this->count++;
+				$this->key = $this->data['uuid'];
+				$data = json_decode($this->data['data'], true);
+				$this->current = $this->storableForEntry($data, $this->data);
+			}
+		}
+		else
+		{
+			$this->key = $this->current = null;
+		}
+	}
+
+	public function valid()
+	{
+		$r = $this->rs->valid();
+		$this->updateCurrent();
+		return $r;
+	}
+
+	public function current()
+	{
+		$this->rs->current();
+		$this->updateCurrent();
+		return $this->current;
+	}
 	
 	public function key()
 	{
+		$this->rs->key();
+		$this->updateCurrent();
 		return $this->key;
 	}
 		
 	public function next()
 	{
 		$this->rs->next();
-		if(($this->data = $this->rs->fields))
-		{
-			$this->count++;
-			$this->key = $this->data['uuid'];
-			$data = json_decode($this->data['data'], true);
-			$this->current = $this->storableForEntry($data, $this->data);
-		}
-		else
-		{
-			$this->key = $this->current = null;
-		}
-		$this->EOF = $this->rs->EOF;
+		$this->updateCurrent();
 		return $this->current;
 	}
 	
 	public function rewind()
 	{	
-		$this->count = 0;
+		$this->count = 0;		
 		$this->rs->rewind();
-		if(($this->data = $this->rs->fields))
-		{
-			$this->key = $this->data['uuid'];
-			$data = json_decode($this->data['data'], true);
-			$this->current = $this->storableForEntry($data, $this->data);			
-		}
-		else
-		{
-			$this->key = $this->current = null;
-		}
-		$this->EOF = $this->rs->EOF;
-	}	
+		$this->updateCurrent();
+	}
+	
+	public function count()
+	{
+		return $this->total;
+	}
 }
 
 class Store extends Model
