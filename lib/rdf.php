@@ -1,295 +1,222 @@
 <?php
 
-/* Copyright 2010 Mo McRoberts.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 3. The names of the author(s) of this software may not be used to endorse
- *    or promote products derived from this software without specific prior
- *    written permission.
- *
- * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, 
- * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY 
- * AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL
- * AUTHORS OF THIS SOFTWARE BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
- * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
- * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF 
- * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING 
- * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-
-/* These classes provide a wrapper around the Redland RDF extension, which
- * must be installed and loaded in order to use them. See
- * http://librdf.org/bindings/INSTALL.html
- */
-
-abstract class RedlandBase
+class RDFDocument
 {
-	protected static $defaultWorld;
+	protected $graphs = array();
+	protected $namespaces = array();
+	protected $qnames = array();
+	public $fileURI;
+	public $primaryTopic;
 
-	protected $resource;
-	protected $world;
-
-	public static function world($world = null)
+	public function __construct($fileURI = null, $primaryTopic = null)
 	{
-		if($world !== null)
-		{
-			return $world;
-		}
-		if(!self::$defaultWorld)
-		{
-			self::$defaultWorld = new RedlandWorld();
-		}
-		return self::$defaultWorld;
+		$this->fileURI = $fileURI;
+		$this->primaryTopic = $primaryTopic;
+		$this->namespaces['http://www.w3.org/1999/02/22-rdf-syntax-ns#'] = 'rdf';
+		$this->namespaces['http://www.w3.org/2000/01/rdf-schema#'] = 'rdfs';
+		$this->namespaces['http://www.w3.org/2002/07/owl#'] = 'owl';
+		$this->namespaces['http://xmlns.com/foaf/0.1/'] = 'foaf';
+		$this->namespaces['http://purl.org/dc/elements/1.1/'] = 'dc';
+		$this->namespaces['http://purl.org/dc/terms/'] = 'dct';
+		$this->namespaces['http://www.w3.org/2008/05/skos#'] = 'skos';
+		$this->namespaces['http://www.w3.org/2006/time#'] = 'time';
 	}
 
-	protected function __construct($res, $world = null)
+	public function graph($uri, $type = null)
 	{
-		$this->resource = $res;
-		$this->world = $world;
+		if(isset($this->graphs[$uri]))
+		{
+			return $this->graphs[$uri];
+		}
+		if($type === null && !strcmp($uri, $this->fileURI))
+		{
+			$type = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Description';
+		}
+		$this->graphs[$uri] = new RDFGraph($uri, $type);
+		return $this->graphs[$uri];
+	}
+
+	public function namespace($uri, $suggestedPrefix)
+	{
+		if(!isset($this->namespaces[$uri]))
+		{
+			$this->namespaces[$uri] = $suggestedPrefix;
+		}
+		return $this->namespaces[$uri];
 	}
 	
-	protected function parseOptions($options)
+	public function asXML()
 	{
-		if(is_array($options))
+		$xml = array();
+		foreach($this->graphs as $g)
 		{
-			$opts = array();
-			foreach($options as $k => $v)
+			$x = $g->asXML($this);
+			if(is_array($x))
 			{
-				if($v === true)
+				$x = implode("\n", $x);
+			}
+			$xml[] = $x . "\n";
+		}
+		$nslist = array();
+		foreach($this->namespaces as $ns => $prefix)
+		{
+			$nslist[] = 'xmlns:' . $prefix . '="' . _e($ns) . '"';
+		}
+		array_unshift($xml, '<rdf:RDF ' . implode(' ', $nslist) . '>' . "\n");
+		$xml[] = '</rdf:RDF>';
+		array_unshift($xml, '<?xml version="1.0" encoding="UTF-8"?>');
+					 
+		return $xml;
+	}
+
+	public function namespacedName($qname)
+	{
+		$qname = strval($qname);
+		if(!isset($this->qnames[$qname]))
+		{
+			if(false !== ($p = strrpos($qname, '#')))
+			{
+				$ns = substr($qname, 0, $p + 1);
+				$lname = substr($qname, $p + 1);
+			}
+			else if(false !== ($p = strrpos($qname, '/')))
+			{
+				$ns = substr($qname, 0, $p + 1);
+				$lname = substr($qname, $p + 1);
+			}				
+			if(!isset($this->namespaces[$ns]))
+			{
+				$this->namespaces[$ns] = 'ns' . count($this->namespaces);
+			}
+			$pname = $this->namespaces[$ns] . ':' . $lname;
+			$this->qnames[$qname] = $pname;
+		}
+		return $this->qnames[$qname];
+	}
+}
+
+class RDFGraph
+{
+	public function __construct($uri, $type = null)
+	{
+		$this->{'http://www.w3.org/1999/02/22-rdf-syntax-ns#about'}[] = new RDFURI($uri);
+		if(strlen($type))
+		{
+			$this->{'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'}[] = new RDFURI($type);
+		}
+	}
+
+	public function asXML($doc)
+	{
+		if(!isset($this->{'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'}))
+		{
+			return null;
+		}
+		$types = $this->{'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'};
+		$primaryType = $doc->namespacedName(array_shift($types));
+		if(isset($this->{'http://www.w3.org/1999/02/22-rdf-syntax-ns#about'}))
+		{
+			$about = $this->{'http://www.w3.org/1999/02/22-rdf-syntax-ns#about'};
+		}
+		else
+		{
+			$about = array();
+		}
+		$rdf = array();
+		if(count($about))
+		{
+			$rdf[] = '<' . $primaryType . ' rdf:about="' . _e(array_shift($about)) . '">';
+		}
+		else
+		{
+			$rdf[] = '<' . $primaryType . '>';
+		}
+		$props = get_object_vars($this);
+		$c = 0;
+		foreach($props as $name => $values)
+		{
+			if($name == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#about')
+			{
+				$values = $about;
+			}
+			else if($name == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type')
+			{
+				$values = $types;
+			}
+			if(!count($values))
+			{
+				continue;
+			}
+			$pname = $doc->namespacedName($name);
+			foreach($values as $v)
+			{
+				if($v instanceof RDFURI)
 				{
-					$v = 'yes';
+					$rdf[] = '<' . $pname . ' rdf:resource="' . _e($v) . '" />';
 				}
-				else if($v === false)
+				else if($v instanceof RDFGraph)
 				{
-					$v = 'false';
+					$val = $v->asXML($doc);
+					if(is_array($val))
+					{
+						$val = implode("\n", $val);
+					}
+					$rdf[] = $val;
+				}
+				else if(is_object($v) && isset($v->{'http://www.w3.org/1999/02/22-rdf-syntax-ns#dataType'}))
+				{
+					$type = $v->{'http://www.w3.org/1999/02/22-rdf-syntax-ns#dataType'}[0];
+					$rdf[] = '<' . $pname . ' rdf:dataType="' . _e($type) . '">' . _e($v) . '</' . $pname . '>';
 				}
 				else
 				{
-					$v = "'" . $v . "'";
+					$rdf[] = '<' . $pname . '>' . _e($v) . '</' . $pname . '>';
 				}
-				$opts[] = $k . '=' . $v;
 			}
-			return implode(',', $opts);
 		}
-		return $options;
-	}
-	
-	protected function parseURI($uri, $world = null)
-	{
-		if(!$world)
-		{
-			$world = $this->world;
-		}
-		if(is_resource($uri))
-		{
-			return $uri;
-		}
-		if(is_object($uri))
-		{
-			return $uri;
-		}
-		if($world && is_string($uri))
-		{
-			return librdf_new_uri($world->resource, $uri);
-		}
-		return null;
+		$rdf[] = '</' . $primaryType . '>';
+		return $rdf;
 	}
 }
 
-class RedlandWorld extends RedlandBase
+class RDFURI
 {
-	const FEATURE_GENID_BASE = 'http://feature.librdf.org/genid-base';
-	const FEATURE_GENID_COUNTER = 'http://feature.librdf.org/genid-counter';
-	
-	public function __construct()
+	public $uri;
+
+	public function __construct($uri)
 	{
-		parent::__construct(librdf_new_world());
+		$this->uri = $uri;
 	}
 	
-	public function __destruct()
+	public function __toString()
 	{
-		if($this->resource)
-		{
-			librdf_free_world($this->resource);
-		}
-	}
-	
-	public function open()
-	{
-		librdf_world_open($this->resource);
-	}
-	
-	public function getFeature($feature)
-	{
-		return librdf_world_get_feature($this->resource, $this->parseURI($feature, $this));
+		return $this->uri;
 	}
 }
 
-class RedlandStorage extends RedlandBase
+class RDFComplexLiteral
 {
-	protected static $storageIndex = 1;
-	
-	public function __construct($storageName, $name = null, $options = null, $world = null)
+	public $value;
+
+	public function __construct($type = null, $value = null)
 	{
-		$world = RedlandBase::world($world);
-		if(!strlen($name))
+		if($type !== null)
 		{
-			$name = get_class($this) . self::$storageIndex;
+			$this->{'http://www.w3.org/1999/02/22-rdf-syntax-ns#dataType'}[] = $type;
 		}
-		self::$storageIndex++;
-		parent::__construct(librdf_new_storage($world->resource, $storageName, $name, $this->parseOptions($options)), $world);
+		$this->value = $value;
 	}
 	
-	public function __destruct()
+	public function __toString()
 	{
-		if($this->resource)
-		{
-			librdf_free_storage($this->resource);
-		}
+		return $this->value;
 	}
 }
 
-class RedlandModel extends RedlandBase
+class RDFDateTime extends RDFComplexLiteral
 {
-	protected $storage = null;
-	
-	public function __construct($storage = null, $options = null, $world = null)
+	public function __construct($when)
 	{
-		$world = RedlandBase::world($world);
-		if(!$storage)
-		{
-			$storage = new RedlandStorage('hashes', null, array('new' => true, 'hash-type' => 'memory'));
-		}
-		$this->storage = $storage;
-		parent::__construct(librdf_new_model($world->resource, $storage->resource, $this->parseOptions($options)), $world);
-	}
-	
-	public function __destruct()
-	{
-		if($this->resource)
-		{
-			librdf_free_model($this->resource);
-		}
-	}
-	
-	public function __get($name)
-	{
-		if($name == 'size')
-		{
-			return librdf_model_size($this->resource);
-		}
-		return null;
-	}
-}
-
-class RedlandParser extends RedlandBase
-{
-	protected $world;
-	
-	public function __construct($name = null, $mime = null, $type = null, $world = null)
-	{
-		$world = RedlandBase::world($world);	
-		parent::__construct(librdf_new_parser($world->resource, $name, $mime, $this->parseURI($type)), $world);
-	}
-	
-	public function __destruct()
-	{
-		if($this->resource)
-		{
-			librdf_free_parser($this->resource);
-		}
-	}
-
-	public function parseFileIntoModel($filename, $baseURI, $model)
-	{
-		return $this->parseIntoModel('file://' . realpath($filename), $baseURI, $model);
-	}
-	
-	public function parseIntoModel($uri, $baseURI, $model)
-	{
-		if(0 == librdf_parser_parse_into_model($this->resource, $this->parseURI($uri), $this->parseURI($baseURI), $model->resource))
-		{
-			return true;
-		}
-		return false;		
-	}
-	
-	public function parseStringIntoModel($string, $baseURI, $model)
-	{
-		if(0 == librdf_parser_parse_string_into_model($this->resource, $string, $this->parseURI($baseURI), $model->resource))
-		{
-			return true;
-		}
-		return false;
-	}
-}
-
-class RedlandURI extends RedlandBase
-{
-	public function __construct($uri, $world = null)
-	{
-		$world = RedlandBase::world($world);	
-		return parent::__construct(librdf_new_uri($world->resource, $uri), $world);
-	}
-	
-	public function __destruct()
-	{
-		if($this->resource)
-		{
-			librdf_free_uri($this->resource);
-		}
-	}
-}
-
-class RedlandSerializer extends RedlandBase
-{
-	public function __construct($name, $mime = null, $uri = null, $world = null)
-	{
-		$world = RedlandBase::world($world);	
-		parent::__construct(librdf_new_serializer($world->resource, $name, $mime, $this->parseURI($mime)), $world);
-	}
-	
-	public function __destruct()
-	{
-		if($this->resource)
-		{
-			librdf_free_serializer($this->resource);
-		}
-	}
-	
-	public function serializeModelToString($model, $baseURI = null)
-	{
-		return librdf_serializer_serialize_model_to_string($this->resource, $this->parseURI($baseURI), $model->resource);
-	}
-
-	public function serializeModelToFile($model, $fileName, $baseURI = null)
-	{
-		return librdf_serializer_serialize_model_to_string($this->resource, $fileName, $this->parseURI($baseURI), $model->resource);
-	}
-}
-
-class RedlandJSONSerializer extends RedlandSerializer
-{
-	public function __construct($name = 'json', $mime = null, $uri = null, $world = null)
-	{
-		parent::__construct($name, $mime, $uri, $world);
-	}
-}
-
-class RedlandJSONTriplesSerializer extends RedlandSerializer
-{
-	public function __construct($name = 'json-triples', $mime = null, $uri = null, $world = null)
-	{
-		parent::__construct($name, $mime, $uri, $world);
+		parent::__construct('http://www.w3.org/2001/XMLSchema#dateTime', strftime('%Y-%m-%dT%H:%M:%SZ', parse_datetime($when)));
 	}
 }
