@@ -277,6 +277,7 @@ class SQLite3Set extends DBDataSet
 	
 	protected function row()
 	{
+		$this->fetched = true;
 		return ($this->fields = $this->resource->fetchArray(SQLITE3_ASSOC));
 	}
 	
@@ -284,6 +285,7 @@ class SQLite3Set extends DBDataSet
 	{
 		$this->EOF = false;
 		$this->fields = null;
+		$this->fetched = false;
 		if(false == $this->resource->reset())
 		{
 			$this->EOF = true;

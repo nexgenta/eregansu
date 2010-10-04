@@ -247,12 +247,14 @@ class MySQLSet extends DBDataSet
 	
 	protected function row()
 	{
+		$this->fetched = true;
 		return ($this->fields = mysql_fetch_assoc($this->resource));
 	}
 	
 	public function rewind()
 	{
 		$this->EOF = false;
+		$this->fetched = false;
 		$this->fields = null;
 		if(false == @mysql_data_seek($this->resource, 0))
 		{
