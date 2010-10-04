@@ -60,8 +60,12 @@ class Routable implements IRequestProcessor
 		$this->addCrumb($req);
 	}
 	
-	protected function addCrumb(Request $req)
+	protected function addCrumb(Request $req = null)
 	{
+		if($req === null)
+		{
+			return;
+		}
 		if($this->crumbName !== null)
 		{
 			$req->addCrumb(array('name' => $this->crumbName, 'class' => $this->crumbClass));
@@ -542,6 +546,15 @@ class Proxy extends Router
 			$r = $this->perform_GET($type);
 		}
 		return $r;
+	}
+
+	protected function addCrumb(Request $req = null)
+	{
+		if(!$req)
+		{
+			$req = $this->request;
+		}
+		parent::addCrumb($req);
 	}
 	
 	protected function error($code, Request $req = null, $object = null, $detail = null)
