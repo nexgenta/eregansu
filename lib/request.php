@@ -436,7 +436,17 @@ class HTTPRequest extends Request
 		$this->method = strtoupper($_SERVER['REQUEST_METHOD']);
 		if(strpos($this->method, '_') !== false) $this->method = 'GET';
 		$this->uri = $_SERVER['REQUEST_URI'];
-		if(isset($_SERVER['QUERY_STRING']))
+		/* On at least some lighttpd+fcgi setups, QUERY_STRING ends up
+		 * empty while REQUEST_URI contains ?query...
+		 */
+		if(($pos = strpos($this->uri, '?')))
+		{
+			$qs = substr($this->uri, $pos + 1);
+			$this->uri = substr($this->uri, 0, $pos);
+			$qs = str_replace(';', '&', $qs);
+			parse_str($qs, $this->query);
+		}
+		else if(isset($_SERVER['QUERY_STRING']))
 		{
 			$qs = $_SERVER['QUERY_STRING'];
 			$l = strlen($qs);
