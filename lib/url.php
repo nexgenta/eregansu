@@ -158,6 +158,29 @@ abstract class URL
 		}
 		return realpath($path);
 	}
-	
+
+	public static function merge($url, $base, $onlyIfNonEmpty = false)
+	{
+		$url = strval($url);
+		$base = strval($base);
+		if(!strlen($url) && $onlyIfNonempty)
+		{
+			return $url;
+		}
+		if(!strlen($base))
+		{
+			return $url;
+		}
+		$url = parse_url($url);
+		$base = parse_url($base);
+		if(!isset($url['scheme']) || !isset($url['host']))
+		{
+			$url['scheme'] = $base['scheme'];
+			$url['host'] = $base['host'];
+			if(isset($base['port'])) $url['port'] = $base['port'];
+		}
+		if(!isset($url['path'])) $url['path'] = '/';
+		return $url['scheme'] . '://' . $url['host'] . (isset($url['port']) ? ':' . $url['port'] : null) . $url['path'] . (isset($url['query']) ? '?' . $url['query'] : null) . (isset($url['fragment']) ? '#' . $url['fragment'] : null);		
+	}
 }
  
