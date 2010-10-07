@@ -1,5 +1,184 @@
 <?php
 
+/* Copyright 2010 Mo McRoberts.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. The names of the author(s) of this software may not be used to endorse
+ *    or promote products derived from this software without specific prior
+ *    written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, 
+ * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY 
+ * AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL
+ * AUTHORS OF THIS SOFTWARE BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF 
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING 
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+require_once(dirname(__FILE__) . '/date.php');
+require_once(dirname(__FILE__) . '/xmlns.php');
+require_once(dirname(__FILE__) . '/url.php');
+
+abstract class RDF extends XMLNS
+{
+	const rdf = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#';
+	const rdfs = 'http://www.w3.org/2000/01/rdf-schema#';
+	const owl = 'http://www.w3.org/2002/07/owl#';
+	const foaf = 'http://xmlns.com/foaf/0.1/';
+	const skos = 'http://www.w3.org/2008/05/skos#';
+	const time = 'http://www.w3.org/2006/time#';
+	
+	public static $ontologies = array();
+
+	public static function documentFromDOM($dom, $location = null)
+	{
+		$doc = new RDFDocument();
+		$doc->fileURI = $location;
+		$doc->fromDOM($dom);
+		return $doc;
+	}
+	
+	public static function documentFromXMLString($string, $location = null)
+	{
+		$xml = simplexml_load_string($string);
+		if(!is_object($xml))
+		{
+			return null;
+		}
+		$dom = dom_import_simplexml($xml);
+		if(!is_object($dom))
+		{
+			return null;
+		}
+		return self::documentFromDOM($dom, $location);
+	}
+
+	public static function documentFromURL($location)
+	{
+		$ct = null;
+		$doc = self::fetch($location, $ct, 'application/rdf+xml');
+		if($doc === null)
+		{
+			return null;
+		}
+		if($ct == 'text/html' || $ct == 'application/xhtml+xml')
+		{
+			return self::documentFromHTML($doc, $location);
+		}
+		if($ct == 'application/rdf+xml')
+		{
+			return self::documentFromXMLString($doc, $location);
+		}
+		return null;
+	}
+	
+	protected static function documentFromHTML($doc, $location)
+	{
+		require_once(dirname(__FILE__) . '/../simplehtmldom/simple_html_dom.php');
+		$html = new simple_html_dom();
+		$html->load($doc);
+		$links = array();
+		foreach($html->find('link') as $link)
+		{
+			$l = array(
+				'rel' => @$link->attr['rel'],
+				'type' => @$link->attr['type'],
+				'href' => @$link->attr['href'],
+				);
+			if(strpos(' ' . $l['rel'] . ' ', ' alternate ') === false)
+			{
+				continue;
+			}
+			if(!strcmp($l['type'], 'application/rdf+xml'))
+			{
+				$links['rdf'] = $l;
+			}
+			$links[] = $l;
+		}
+		if(isset($links['rdf']))
+		{
+			if(null == ($href = URL::merge($links['rdf']['href'], $url)))
+			{
+				return null;
+			}
+		}
+		else
+		{
+			$href = $url;
+			if(false !== ($p = strrpos($href, '#')))
+			{
+				$href = substr($href, 0, $p);
+			}
+			if(false !== ($p = strrpos($href, '.html')))
+			{
+				$href = substr($href, 0, $p);
+			}
+			$href .= '.rdf';
+		}
+		$doc = self::fetch($href, $ct, 'application/rdf+xml');
+		if($ct == 'application/rdf+xml')
+		{
+			return self::documentFromXMLString($doc, $url);
+		}
+		return null;
+	}
+	
+	protected static function fetch($url, &$contentType, $accept = null)
+	{
+		require_once(dirname(__FILE__) . '/curl.php');
+		$contentType = null;
+		if(strncmp($url, 'http:', 5))
+		{
+			trigger_error("RDF::fetch(): Sorry, only http URLs are supported", E_USER_ERROR);
+			return null;
+		}
+		if(false !== ($p = strrpos($url, '#')))
+		{
+			$url = substr($url, 0, $p);
+		}
+		if(defined('CACHE_DIR'))
+		{
+			$curl = new CurlCache($url);
+		}
+		else
+		{
+			$curl = new Curl($url);
+		}
+		if(!is_array($accept))
+		{
+			if(strlen($accept))
+			{
+				$accept = array($accept);
+			}
+			else
+			{
+				$accept = array();
+			}
+		}
+		$accept[] = '*/*';
+		$curl->returnTransfer = true;
+		$curl->followLocation = true;
+		$curl->headers = array('Accept: ' . implode(',', $accept));
+		$buf = $curl->exec();
+		$info = $curl->info;
+		$c = explode(';', $info['content_type']);
+		$contentType = $c[0];	
+		return strval($buf);
+	}
+}
+
 class RDFDocument
 {
 	protected $graphs = array();
@@ -12,28 +191,77 @@ class RDFDocument
 	{
 		$this->fileURI = $fileURI;
 		$this->primaryTopic = $primaryTopic;
-		$this->namespaces['http://www.w3.org/1999/02/22-rdf-syntax-ns#'] = 'rdf';
-		$this->namespaces['http://www.w3.org/2000/01/rdf-schema#'] = 'rdfs';
-		$this->namespaces['http://www.w3.org/2002/07/owl#'] = 'owl';
-		$this->namespaces['http://xmlns.com/foaf/0.1/'] = 'foaf';
-		$this->namespaces['http://purl.org/dc/elements/1.1/'] = 'dc';
-		$this->namespaces['http://purl.org/dc/terms/'] = 'dct';
-		$this->namespaces['http://www.w3.org/2008/05/skos#'] = 'skos';
-		$this->namespaces['http://www.w3.org/2006/time#'] = 'time';
+		$this->namespaces[RDF::rdf] = 'rdf';
+		$this->namespaces[RDF::rdfs] = 'rdfs';
+		$this->namespaces[RDF::owl] = 'owl';
+		$this->namespaces[RDF::foaf] = 'foaf';
+		$this->namespaces[RDF::skos] = 'skos';
+		$this->namespaces[RDF::time] = 'time';
+		$this->namespaces[RDF::dc] = 'dc';
+		$this->namespaces[RDF::dcterms] = 'dct';
 	}
 
-	public function graph($uri, $type = null)
+	public function graph($uri, $type = null, $create = true)
 	{
+		$uri = strval($uri);
 		if(isset($this->graphs[$uri]))
 		{
 			return $this->graphs[$uri];
 		}
+		foreach($this->graphs as $g)
+		{
+			if(isset($g->{RDF::rdf . 'about'}[0]) && !strcmp($g->{RDF::rdf . 'about'}[0], $uri))
+			{
+				return $g;
+			}
+		}
+		if(!$create)
+		{
+			return false;
+		}
 		if($type === null && !strcmp($uri, $this->fileURI))
 		{
-			$type = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Description';
+			$type = RDF::rdf . 'Description';
 		}
 		$this->graphs[$uri] = new RDFGraph($uri, $type);
 		return $this->graphs[$uri];
+	}
+
+	public function primaryTopic()
+	{
+		if(isset($this->primaryTopic))
+		{
+			return $this->graph($this->primaryTopic, null, false);
+		}
+		$top = null;
+		if(isset($this->fileURI))
+		{
+			$top = $this->graph($this->fileURI, null, false);
+			if(!isset($top->{RDF::foaf . 'primaryTopic'}))
+			{
+				$top = null;
+			}
+		}
+		if(!$top)
+		{
+			foreach($this->graphs as $g)
+			{
+				if(isset($g->{RDF::rdf . 'type'}[0]) && !strcmp($g->{RDF::rdf . 'type'}[0], RDF::rdf . 'Description'))
+				{
+					$top = $g;
+					break;
+				}
+			}
+		}
+		if($top && isset($g->{RDF::foaf . 'primaryTopic'}[0]))
+		{
+			$uri = strval($g->{RDF::foaf . 'primaryTopic'}[0]);
+			return $this->graph($uri, null, false);
+		}		
+		foreach($this->graphs as $g)
+		{			
+			return $g;
+		}
 	}
 
 	public function namespace($uri, $suggestedPrefix)
@@ -83,7 +311,11 @@ class RDFDocument
 			{
 				$ns = substr($qname, 0, $p + 1);
 				$lname = substr($qname, $p + 1);
-			}				
+			} 
+			else
+			{
+				return $qname;
+			}			
 			if(!isset($this->namespaces[$ns]))
 			{
 				$this->namespaces[$ns] = 'ns' . count($this->namespaces);
@@ -93,30 +325,95 @@ class RDFDocument
 		}
 		return $this->qnames[$qname];
 	}
+
+	public function fromDOM($root)
+	{
+		for($node = $root->firstChild; $node; $node = $node->nextSibling)
+		{
+			if(!($node instanceof DOMElement))
+			{
+				continue;
+			}
+			$g = null;
+			if(isset(RDF::$ontologies[$node->namespaceURI]))
+			{
+				$g = call_user_func(array(RDF::$ontologies[$node->namespaceURI], 'rdfInstance'), $node->namespaceURI, $node->localName);
+			}
+			if(!$g)
+			{
+				$g = new RDFGraph();
+			}
+			$g->fromDOM($node, $this);
+			$g->transform();
+			if(null !== ($s = $g->subject()))
+			{
+				$this->graphs[strval($s)] = $g;
+			}
+			else
+			{
+				$this->graphs[] = $g;
+			}
+		}
+	}
+
+	public function __get($name)
+	{
+		if($name == 'graphs')
+		{
+			return $this->graphs;
+		}
+	}
 }
 
 class RDFGraph
 {
-	public function __construct($uri, $type = null)
+	public function __construct($uri = null, $type = null)
 	{
-		$this->{'http://www.w3.org/1999/02/22-rdf-syntax-ns#about'}[] = new RDFURI($uri);
+		if(strlen($uri))
+		{
+			$this->{RDF::rdf . 'about'}[] = new RDFURI($uri);
+		}
 		if(strlen($type))
 		{
-			$this->{'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'}[] = new RDFURI($type);
+			$this->{RDF::rdf . 'type'}[] = new RDFURI($type);
 		}
+	}
+
+	public function isA($type)
+	{
+		if(isset($this->{RDF::rdf . 'type'}))
+		{
+			foreach($this->{RDF::rdf . 'type'} as $t)
+			{
+				if(!strcmp($t, $type))
+				{
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	public function first($key)
+	{
+		if(isset($this->{$key}))
+		{
+			return $this->{$key}[0];
+		}
+		return null;
 	}
 
 	public function asXML($doc)
 	{
-		if(!isset($this->{'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'}))
+		if(!isset($this->{RDF::rdf . 'type'}))
 		{
 			return null;
 		}
-		$types = $this->{'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'};
+		$types = $this->{RDF::rdf . 'type'};
 		$primaryType = $doc->namespacedName(array_shift($types));
-		if(isset($this->{'http://www.w3.org/1999/02/22-rdf-syntax-ns#about'}))
+		if(isset($this->{RDF::rdf . 'about'}))
 		{
-			$about = $this->{'http://www.w3.org/1999/02/22-rdf-syntax-ns#about'};
+			$about = $this->{RDF::rdf . 'about'};
 		}
 		else
 		{
@@ -125,21 +422,22 @@ class RDFGraph
 		$rdf = array();
 		if(count($about))
 		{
-			$rdf[] = '<' . $primaryType . ' rdf:about="' . _e(array_shift($about)) . '">';
+			$top = $primaryType . ' rdf:about="' . _e(array_shift($about)) . '"';
 		}
 		else
 		{
-			$rdf[] = '<' . $primaryType . '>';
+			$top = $primaryType;
 		}
+		$rdf[] = '<' . $top . '>';
 		$props = get_object_vars($this);
 		$c = 0;
 		foreach($props as $name => $values)
 		{
-			if($name == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#about')
+			if($name == RDF::rdf . 'about')
 			{
 				$values = $about;
 			}
-			else if($name == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type')
+			else if($name == RDF::rdf . 'type')
 			{
 				$values = $types;
 			}
@@ -150,6 +448,7 @@ class RDFGraph
 			$pname = $doc->namespacedName($name);
 			foreach($values as $v)
 			{
+				$c++;
 				if($v instanceof RDFURI)
 				{
 					$rdf[] = '<' . $pname . ' rdf:resource="' . _e($v) . '" />';
@@ -163,10 +462,23 @@ class RDFGraph
 					}
 					$rdf[] = $val;
 				}
-				else if(is_object($v) && isset($v->{'http://www.w3.org/1999/02/22-rdf-syntax-ns#dataType'}))
+				else if(is_object($v))
 				{
-					$type = $v->{'http://www.w3.org/1999/02/22-rdf-syntax-ns#dataType'}[0];
-					$rdf[] = '<' . $pname . ' rdf:dataType="' . _e($type) . '">' . _e($v) . '</' . $pname . '>';
+					$props = get_object_vars($v);
+					$attrs = array();
+					foreach($props as $k => $values)
+					{
+						if($k == 'value')
+						{
+							continue;
+						}
+						$attrs[] = $doc->namespacedName($k) . '="' . _e($values[0]) . '"';
+					}
+					if(!($v instanceof RDFXMLLiteral))
+					{
+						$v = _e($v);
+					}
+					$rdf[] = '<' . $pname . (count($attrs) ? ' ' . implode(' ', $attrs) : '') . '>' . $v . '</' . $pname . '>';
 				}
 				else
 				{
@@ -174,23 +486,153 @@ class RDFGraph
 				}
 			}
 		}
+		if(!$c)
+		{
+			return '<' . $top . ' />';
+		}
 		$rdf[] = '</' . $primaryType . '>';
 		return $rdf;
 	}
-}
 
-class RDFURI
-{
-	public $uri;
-
-	public function __construct($uri)
+	public function fromDOM($root, $doc)
 	{
-		$this->uri = $uri;
+		$this->{'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'}[] = new RDFURI($root->namespaceURI . $root->localName);
+		foreach($root->attributes as $attr)
+		{
+			$v = strval($attr->value);
+			if($attr->namespaceURI == RDF::rdf)
+			{
+				if($attr->localName == 'about' || $attr->localName == 'resource')
+				{
+					$v = new RDFURI(URL::merge($v, $doc->fileURI));
+				}
+			}
+			$this->{$attr->namespaceURI . $attr->localName}[] = $v;
+		}
+		for($node = $root->firstChild; $node; $node = $node->nextSibling)
+		{
+			if(!($node instanceof DOMElement))
+			{
+				continue;
+			}
+			$parseType = null;
+			$type = null;
+			$nattr = 0;
+			
+			if($node->hasAttributes())
+			{
+				foreach($node->attributes as $attr)
+				{
+					if($attr->namespaceURI == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#' &&
+					   $attr->localName == 'datatype')
+					{
+						$type = $attr->value;
+					}
+					else if($attr->namespaceURI == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#' &&
+							$attr->localName == 'parseType')
+					{
+						$parseType = $attr->value;
+						$nattr++;
+					}
+					else
+					{
+						$nattr++;
+					}
+				}
+			}
+			$parseType = strtolower($parseType);
+			if($node->hasChildNodes() || $parseType == 'literal')
+			{
+				/* Might be a literal, a complex literal, or a graph */
+				$child = $node->firstChild;
+				if($parseType == 'literal' || ($child instanceof DOMCharacterData && !$child->nextSibling))
+				{
+					$value = $child->textContent;
+					if($parseType == 'literal')
+					{
+						$v = new RDFXMLLiteral();
+					}
+					else if(strlen($type) || $nattr)
+					{
+						if($type == 'http://www.w3.org/2001/XMLSchema#dateTime')
+						{
+							$v = new RDFDateTime();
+						}
+						else
+						{
+							$v = new RDFComplexLiteral();
+						}
+					}
+					else
+					{
+						$v = $value;
+					}
+					if(is_object($v))
+					{
+						$v->fromDOM($node, $doc);
+					}
+					$this->{$node->namespaceURI . $node->localName}[] = $v;
+				}
+				else
+				{
+					$v = null;
+					if(isset(RDF::$ontologies[$node->namespaceURI]))
+					{
+						$v = call_user_func(array(RDF::$ontologies[$node->namespaceURI], 'rdfInstance'), $node->namespaceURI, $node->localName);
+					}
+					if(!$v)
+					{
+						$v = new RDFGraph();
+					}
+					$v->fromDOM($node, $doc);
+					$this->{$node->namespaceURI . $node->localName}[] = $v;
+				}
+			}
+			else
+			{
+				/* If there's only one attribute and it's rdf:resource, we
+				 * can compress the whole thing to an RDFURI instance.
+				 */
+				$uri = null;
+				foreach($node->attributes as $attr)
+				{
+					if($uri !== null)
+					{
+						$uri = null;
+						break;
+					}
+					if($attr->namespaceURI != 'http://www.w3.org/1999/02/22-rdf-syntax-ns#' ||
+					   $attr->localName != 'resource')
+					{
+						break;
+					}
+					$uri = $attr->value;
+				}
+				if($uri !== null)
+				{
+					$v = new RDFURI(URL::merge($uri, $doc->fileURI));
+				}
+				else
+				{
+					$v = new RDFGraph();
+					$v->fromDOM($node, $doc);
+					$v->transform();
+				}
+				$this->{$node->namespaceURI . $node->localName}[] = $v;
+			}
+		}
 	}
 	
-	public function __toString()
+	public function subject()
 	{
-		return $this->uri;
+		if(null !== ($s = $this->first(RDF::rdf . 'about')))
+		{
+			return $s;
+		}
+	}
+
+	public function transform()
+	{
 	}
 }
 
@@ -198,13 +640,30 @@ class RDFComplexLiteral
 {
 	public $value;
 
+	protected function setValue($value)
+	{
+		$this->value = $value;
+	}
+
 	public function __construct($type = null, $value = null)
 	{
 		if($type !== null)
 		{
 			$this->{'http://www.w3.org/1999/02/22-rdf-syntax-ns#dataType'}[] = $type;
 		}
-		$this->value = $value;
+		if($value !== null)
+		{
+			$this->setValue($value);
+		}
+	}
+
+	public function fromDOM($node, $doc)
+	{
+		foreach($node->attributes as $attr)
+		{
+			$this->{$attr->namespaceURI . $attr->localName}[] = $attr->value;
+		}
+		$this->setValue($node->textContent);
 	}
 	
 	public function __toString()
@@ -213,10 +672,45 @@ class RDFComplexLiteral
 	}
 }
 
+class RDFURI extends RDFComplexLiteral
+{
+	public function __construct($uri)
+	{
+		$this->value = $uri;
+	}
+	
+	public function __toString()
+	{
+		return $this->value;
+	}
+}
+
+class RDFXMLLiteral extends RDFComplexLiteral
+{
+	public function fromDOM($node, $pdoc)
+	{
+		parent::fromDOM($node);
+		$doc = array();
+		for($c = $node->firstChild; $c; $c = $c->nextSibling)
+		{
+			$doc[] = $node->ownerDocument->saveXML($c);
+		}
+		$this->value = implode('', $doc);
+	}
+}
+
 class RDFDateTime extends RDFComplexLiteral
 {
-	public function __construct($when)
+	public function __construct($when = null)
 	{
-		parent::__construct('http://www.w3.org/2001/XMLSchema#dateTime', strftime('%Y-%m-%dT%H:%M:%SZ', parse_datetime($when)));
+		if($when !== null)
+		{
+			parent::__construct('http://www.w3.org/2001/XMLSchema#dateTime', $when);
+		}
+	}
+	
+	protected function setValue($value)
+	{
+		$this->value = strftime('%Y-%m-%dT%H:%M:%SZ', parse_datetime($value));
 	}
 }
