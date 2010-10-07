@@ -298,7 +298,108 @@ if(function_exists('curl_init'))
 				return;
 			}
 			trigger_error('Warning: attempt to set undefined Curl option ' . $name, E_USER_WARNING);
+		}		
+	}
+
+	class CurlCache extends Curl
+	{
+		public $cacheDir = null;
+		public $cacheTime = null;
+		public $cacheErrors = false;
+		protected $cachedInfo = null;
+
+		public function exec()
+		{
+			$this->cachedInfo = null;
+			$fetch = true;
+			$store = true;
+			$dir = $this->cacheDir;
+			$time = $this->cacheTime;
+			if(!strlen($dir))
+			{
+				if(defined('CACHE_DIR'))
+				{
+					$dir = CACHE_DIR;
+				}
+				else
+				{
+					trigger_error('Warning: $this->cacheDir is not set and CACHE_DIR is not defined', E_USER_WARNING);
+					$fetch = false;
+					$store = false;
+				}
+			}
+			if($time === null)
+			{
+				if(defined('CACHE_TIME'))
+				{
+					$time = intval(CACHE_TIME);
+				}
+				else
+				{
+					$time = 600;
+				}
+			}
+			else
+			{
+				$time = intval($time);
+			}
+			if(empty($this->options['httpGET']))
+			{
+				$fetch = false;
+				$store = false;
+			}
+			if($fetch || $store)
+			{
+				$hash = md5(json_encode($this->options));
+				$cacheFile = CACHE_DIR . $hash;
+			}
+			if(file_exists($cacheFile) && file_exists($cacheFile . '.json'))
+			{
+				if($time > 0)
+				{
+					$info = stat($cacheFile);
+					if($info['mtime'] + $time > time())
+					{
+						$fetch = false;
+					}
+				}
+				if($fetch)
+				{
+					unlink($cacheFile);
+					unlink($cacheFile . '.json');
+				}
+			}
+			if($fetch)
+			{
+				$buf = parent::exec();
+				$info = curl_getinfo($this->handle);
+				if($store && ($buf !== false || $this->cacheErrors))
+				{
+					$f = fopen($cacheFile, 'w');
+					fwrite($f, $buf);
+					fclose($f);
+					$f = fopen($cacheFile . '.json', 'w');
+					fwrite($f, json_encode($info));
+					fclose($f);
+				}
+			}
+			else
+			{
+				$buf = file_get_contents($cacheFile);
+				$info = json_decode(file_get_contents($cacheFile . '.json'), true);
+			}
+			$this->cachedInfo = $info;
+			return $buf;
 		}
-		
+
+		public function __get($name)
+		{
+			if($name == 'info')
+			{
+				return $this->cachedInfo;
+			}
+			return parent::__get($name);
+		}
+
 	}
 }
