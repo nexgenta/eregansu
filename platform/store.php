@@ -632,8 +632,18 @@ class Store extends Model
 		{
 			if($table != 'obj')
 			{
-				$tlist[] = '{' . $tables[$table] . '} "' . $table . '"';
-				$where[] = '"' . $table . '"."uuid" = "obj"."uuid"';
+				if(is_array($tables[$table]))
+				{
+					$tname = $tables[$table]['name'];
+					$tjoin = $tables[$table]['clause'];
+				}
+				else
+				{
+					$tname = $tables[$table];
+					$tjoin = '"' . $table . '"."uuid" = "obj"."uuid"';
+				}
+				$tlist[] = '{' . $tname . '} "' . $table . '"';
+				$where[] = $tjoin;
 			}
 			foreach($clauses as $c)
 			{
@@ -678,6 +688,7 @@ class Store extends Model
 		{
 			$qstr .= ' WHERE ' . implode(' AND ', $where);
 		}
+		$qstr .= ' GROUP BY "obj"."uuid"';
 		if(count($olist))
 		{
 			$qstr .= ' ORDER BY ' . implode(', ', $olist);
