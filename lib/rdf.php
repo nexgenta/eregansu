@@ -233,10 +233,10 @@ class RDFDocument
 		{
 			return $this->graph($this->primaryTopic, null, false);
 		}
-		$top = null;
+		$top = $file = null;
 		if(isset($this->fileURI))
 		{
-			$top = $this->graph($this->fileURI, null, false);
+			$top = $file = $this->graph($this->fileURI, null, false);
 			if(!isset($top->{RDF::foaf . 'primaryTopic'}))
 			{
 				$top = null;
@@ -258,8 +258,12 @@ class RDFDocument
 			$uri = strval($g->{RDF::foaf . 'primaryTopic'}[0]);
 			return $this->graph($uri, null, false);
 		}		
+		if($file)
+		{
+			return $file;
+		}
 		foreach($this->graphs as $g)
-		{			
+		{ 
 			return $g;
 		}
 	}
@@ -347,12 +351,20 @@ class RDFDocument
 			$g->transform();
 			if(null !== ($s = $g->subject()))
 			{
-				$this->graphs[strval($s)] = $g;
+				$s = strval($s);
+				if(isset($this->graphs[$s]))
+				{
+					$this->graphs[$s]->mergeFromGraph($g);
+				}
+				else
+				{
+					$this->graphs[$s] = $g;
+				}
 			}
 			else
 			{
 				$this->graphs[] = $g;
-			}
+			}			
 		}
 	}
 
@@ -392,6 +404,17 @@ class RDFGraph
 			}
 		}
 		return false;
+	}
+
+	public function mergeFromGraph(RDFGraph $source)
+	{
+		foreach($source as $prop => $values)
+		{
+			foreach($values as $value)
+			{
+				$this->{$prop}[] = $value;
+			}
+		}
 	}
 
 	public function first($key)
