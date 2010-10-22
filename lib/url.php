@@ -163,7 +163,7 @@ abstract class URL
 	{
 		$url = strval($url);
 		$base = strval($base);
-		if(!strlen($url) && $onlyIfNonempty)
+		if(!strlen($url) && $onlyIfNonEmpty)
 		{
 			return $url;
 		}
