@@ -54,6 +54,11 @@ function parse_datetime($s)
 		$s = preg_replace('/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})Z?/', '\1 \2', $s);
 		return strtotime($s);
 	}
+	else if(preg_match('/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})?Z?$/', $s, $match))
+	{
+		$s = $match[1] . '-' . $match[2] . '-' . $match[3] . ' ' . $match[4] . ':' . $match[5] . ':' . (isset($match[6]) ? $match[6] : '00');
+		return strtotime($s);
+	}
 	else if(preg_match('/^\d{4}-\d{2}-\d{2}$/', $s))
 	{
 		return strtotime($s . ' 00:00:00');
@@ -66,7 +71,7 @@ function parse_datetime($s)
 	{
 		return strtotime($s . '-01-01 00:00:00');
 	}
-	trigger_error('Unsupported date format', E_USER_NOTICE);
+	trigger_error('Unsupported date format while parsing "' . $s . '"', E_USER_NOTICE);
 	return null;
 }
 
