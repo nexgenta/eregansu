@@ -34,4 +34,26 @@ abstract class XMLNS
 	const xhtml = 'http://www.w3.org/1999/xhtml';
 	const dc = 'http://purl.org/dc/elements/1.1/';
 	const dcterms = 'http://purl.org/dc/terms/';
+	
+	public static function fqname($namespace, $local = null)
+	{
+		if($local == null)
+		{
+			if(is_object($namespace))
+			{
+				$local = $namespace->localName;
+				$namespace = $namespace->namespaceURI;
+			}
+			else
+			{
+				return $namespace;
+			}
+		}
+		$t = substr($namespace, -1);
+		if(!ctype_alnum($t))
+		{
+			return $namespace . $local;
+		}
+		return $namespace . ' ' . $local;
+	}
 }
