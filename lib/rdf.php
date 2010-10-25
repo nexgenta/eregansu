@@ -110,7 +110,9 @@ abstract class RDF extends XMLNS
 				'type' => @$link->attr['type'],
 				'href' => @$link->attr['href'],
 				);
-			if(strpos(' ' . $l['rel'] . ' ', ' alternate ') === false)
+			if(strlen($l['rel']) &&
+			   strpos(' ' . $l['rel'] . ' ', ' alternate ') === false &&
+			   strpos(' ' . $l['rel'] . ' ', ' meta ') === false)
 			{
 				continue;
 			}
