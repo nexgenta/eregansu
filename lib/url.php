@@ -2,7 +2,7 @@
 
 /* Eregansu: Additional stream wrapper support (copying, symbolic links)
  *
- * Copyright 2009 Mo McRoberts.
+ * Copyright 2009, 2010 Mo McRoberts.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,10 +37,98 @@
  * wrapper class doesn’t have an entry in $VFS.
  */
  
-abstract class URL
+class URL
 {
 	protected static $registered = false;
 	
+	public $scheme = null;
+	public $port = null;
+	public $host = null;
+	public $user = null;
+	public $pass = null;
+	public $path = null;
+	public $query = null;
+	public $fragment = null;
+	public $options = array();
+
+	public function __construct($url, $base = null)
+	{
+		if(!is_array($url))
+		{
+			$url = self::parseForOptions($url);
+		}
+		if(isset($url['scheme']) && strlen($url['scheme'])) $this->scheme = $url['scheme'];
+		if(isset($url['host']) && strlen($url['host'])) $this->host = $url['host'];
+		if(isset($url['port']) && strlen($url['port'])) $this->port = $url['port'];
+		if(isset($url['user']) && strlen($url['user'])) $this->user = $url['user'];
+		if(isset($url['pass']) && strlen($url['pass'])) $this->pass = $url['pass'];
+		if(isset($url['path']) && strlen($url['path'])) $this->path = $url['path'];
+		if(isset($url['query']) && strlen($url['query'])) $this->query = $url['query'];
+		if(isset($url['fragment']) && strlen($url['fragment'])) $this->fragment = $url['fragment'];
+		$this->options = $url['options'];
+		if($base !== null)
+		{
+			if(is_string($base) || is_array($base))
+			{
+				$base = new URL($base);
+			}
+			if(!isset($this->scheme))
+			{
+				$this->scheme = $base->scheme;
+				if(!isset($this->host))
+				{
+					$this->host = $base->host;
+					$this->port = $base->port;
+					$this->user = $base->user;
+					$this->pass = $base->pass;
+					if(!isset($this->path))
+					{
+						$this->path = $base->path;
+						if(!isset($this->query))
+						{
+							$this->query = $base->query;
+							$this->options = $base->options;
+							if(!isset($this->fragment))
+							{
+								$this->fragment = $base->fragment;
+							}
+						}
+					}
+					else if(substr($this->path, 0, 1) != '/')
+					{
+						/* Normalise path */
+						$p = $base->path;
+						if(substr($p, 0, 1) == '/') $p = substr($p, 1);
+						$p1 = explode('/', $p);
+						if(count($p1) == 1 && $p1[0] == '')
+						{
+							$p1 = array();
+						}
+						$p2 = explode('/', $this->path);					  
+						array_pop($p1);
+						foreach($p2 as $k => $v)
+						{
+							if($v == '..')
+							{
+								array_pop($p1);
+							}
+							else if($v != '.')
+							{
+								$p1[] = $v;
+							}
+						}
+						$this->path = '/' . implode('/', $p1);
+					}
+				}
+			}
+		}
+	}
+
+	public function __toString()
+	{
+		return $this->scheme . '://' . $this->host . (isset($this->port) ? ':' . $this->port : null) . $this->path . (isset($this->query) ? '?' . $this->query : null) . (isset($this->fragment) ? '#' . $this->fragment : null);
+	}
+
 	public static function register()
 	{
 		global $VFS;
@@ -92,6 +180,10 @@ abstract class URL
 			foreach($q as $qv)
 			{
 				$kv = explode('=', $qv, 2);
+				if(!isset($kv[1]))
+				{
+					$kv[1] = null;
+				}
 				$url['options'][urldecode($kv[0])] = urldecode($kv[1]);
 			}
 		}
@@ -173,14 +265,28 @@ abstract class URL
 		}
 		$url = parse_url($url);
 		$base = parse_url($base);
+		if(!isset($base['path']))
+		{
+			$base['path'] = '/';
+		}
 		if(!isset($url['scheme']) || !isset($url['host']))
 		{
 			$url['scheme'] = $base['scheme'];
 			$url['host'] = $base['host'];
 			if(isset($base['port'])) $url['port'] = $base['port'];
+			if(!isset($url['path']) || !strlen($url['path']))
+			{
+				$url['path'] = $base['path'];
+			}
 		}
-		if(!isset($url['path'])) $url['path'] = '/';
-		return $url['scheme'] . '://' . $url['host'] . (isset($url['port']) ? ':' . $url['port'] : null) . $url['path'] . (isset($url['query']) ? '?' . $url['query'] : null) . (isset($url['fragment']) ? '#' . $url['fragment'] : null);		
+		else
+		{
+			if(!isset($url['path']) || !strlen($url['path']))
+			{
+				$url['path'] = '/';
+			}
+		}
+		return $url['scheme'] . '://' . $url['host'] . (isset($url['port']) ? ':' . $url['port'] : null) . $url['path'] . (isset($url['query']) ? '?' . $url['query'] : null) . (isset($url['fragment']) ? '#' . $url['fragment'] : null);
 	}
 }
  
