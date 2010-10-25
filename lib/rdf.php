@@ -77,9 +77,22 @@ abstract class RDF extends XMLNS
 		{
 			return self::documentFromHTML($doc, $location);
 		}
-		if($ct == 'application/rdf+xml')
+		if($ct == 'application/rdf+xml' || $ct == 'text/xml' || $ct == 'application/xml')
 		{
 			return self::documentFromXMLString($doc, $location);
+		}
+		if($ct == 'application/x-unknown' || $ct == 'application/octet-stream' || $ct == 'text/plain')
+		{			
+			/* Content sniffing, kill me now! */
+			$x = substr($doc, 0, 1024);
+			if(stripos($x, '<html') !== false)
+			{
+				return self::documentFromHTML($doc, $location);
+			}
+			if(stripos($x, 'xmlns=') !== false || strpos($x, 'xmlns:') !== false)
+			{
+				return self::documentFromXMLString($doc, $location);
+			}
 		}
 		return null;
 	}
@@ -109,14 +122,11 @@ abstract class RDF extends XMLNS
 		}
 		if(isset($links['rdf']))
 		{
-			if(null == ($href = URL::merge($links['rdf']['href'], $url)))
-			{
-				return null;
-			}
+			$href = new URL($links['rdf']['href'], $location);
 		}
 		else
 		{
-			$href = $url;
+			$href = $location;
 			if(false !== ($p = strrpos($href, '#')))
 			{
 				$href = substr($href, 0, $p);
@@ -130,7 +140,7 @@ abstract class RDF extends XMLNS
 		$doc = self::fetch($href, $ct, 'application/rdf+xml');
 		if($ct == 'application/rdf+xml')
 		{
-			return self::documentFromXMLString($doc, $url);
+			return self::documentFromXMLString($doc, $href);
 		}
 		return null;
 	}
@@ -214,10 +224,14 @@ class RDFDocument
 			{
 				return $g;
 			}
+			if(isset($g->{RDF::rdf . 'ID'}[0]) && !strcmp($g->{RDF::rdf . 'ID'}[0], $uri))
+			{
+				return $g;
+			}
 		}
 		if(!$create)
 		{
-			return false;
+			return null;
 		}
 		if($type === null && !strcmp($uri, $this->fileURI))
 		{
@@ -251,21 +265,38 @@ class RDFDocument
 					$top = $g;
 					break;
 				}
+			}			
+		}
+		if(!$top)
+		{
+			foreach($this->graphs as $g)
+			{
+				$top = $g;
+				break;
 			}
 		}
-		if($top && isset($g->{RDF::foaf . 'primaryTopic'}[0]))
+		if(!$top)
 		{
-			$uri = strval($g->{RDF::foaf . 'primaryTopic'}[0]);
-			return $this->graph($uri, null, false);
-		}		
+			return null;
+		}
+		if(isset($top->{RDF::foaf . 'primaryTopic'}[0]))
+		{
+			if($top->{RDF::foaf . 'primaryTopic'}[0] instanceof RDFGraph)
+			{
+				return $top->{RDF::foaf . 'primaryTopic'}[0];
+			}
+			$uri = strval($top->{RDF::foaf . 'primaryTopic'}[0]);
+			$g = $this->graph($uri, null, false);
+			if($g)
+			{
+				return $g;
+			}
+		}
 		if($file)
 		{
 			return $file;
 		}
-		foreach($this->graphs as $g)
-		{ 
-			return $g;
-		}
+		return $top;
 	}
 
 	public function namespace($uri, $suggestedPrefix)
@@ -412,7 +443,22 @@ class RDFGraph
 		{
 			foreach($values as $value)
 			{
-				$this->{$prop}[] = $value;
+				$match = false;
+				if(isset($this->{$prop}))
+				{
+					foreach($this->{$prop} as $val)
+					{
+						if($val == $value)
+						{
+							$match = true;
+							break;
+						}
+					}
+				}
+				if(!$match)
+				{
+					$this->{$prop}[] = $value;
+				}
 			}
 		}
 	}
@@ -519,7 +565,7 @@ class RDFGraph
 
 	public function fromDOM($root, $doc)
 	{
-		$this->{'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'}[] = new RDFURI($root->namespaceURI . $root->localName);
+		$this->{'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'}[] = new RDFURI(XMLNS::fqname($root));
 		foreach($root->attributes as $attr)
 		{
 			$v = strval($attr->value);
@@ -527,10 +573,14 @@ class RDFGraph
 			{
 				if($attr->localName == 'about' || $attr->localName == 'resource')
 				{
-					$v = new RDFURI(URL::merge($v, $doc->fileURI));
+					$v = new RDFURI($v, $doc->fileURI);
+				}
+				else if($attr->localName == 'ID')
+				{
+					$v = new RDFURI('#' . $v, $doc->fileURI);
 				}
 			}
-			$this->{$attr->namespaceURI . $attr->localName}[] = $v;
+			$this->{XMLNS::fqname($attr)}[] = $v;
 		}
 		for($node = $root->firstChild; $node; $node = $node->nextSibling)
 		{
@@ -594,7 +644,7 @@ class RDFGraph
 					{
 						$v->fromDOM($node, $doc);
 					}
-					$this->{$node->namespaceURI . $node->localName}[] = $v;
+					$this->{XMLNS::fqname($node)}[] = $v;
 				}
 				else
 				{
@@ -608,7 +658,7 @@ class RDFGraph
 						$v = new RDFGraph();
 					}
 					$v->fromDOM($node, $doc);
-					$this->{$node->namespaceURI . $node->localName}[] = $v;
+					$this->{XMLNS::fqname($node)}[] = $v;
 				}
 			}
 			else
@@ -633,7 +683,7 @@ class RDFGraph
 				}
 				if($uri !== null)
 				{
-					$v = new RDFURI(URL::merge($uri, $doc->fileURI));
+					$v = new RDFURI($uri, $doc->fileURI);
 				}
 				else
 				{
@@ -641,7 +691,7 @@ class RDFGraph
 					$v->fromDOM($node, $doc);
 					$v->transform();
 				}
-				$this->{$node->namespaceURI . $node->localName}[] = $v;
+				$this->{XMLNS::fqname($node)}[] = $v;
 			}
 		}
 	}
@@ -649,6 +699,10 @@ class RDFGraph
 	public function subject()
 	{
 		if(null !== ($s = $this->first(RDF::rdf . 'about')))
+		{
+			return $s;
+		}
+		if(null !== ($s = $this->first(RDF::rdf . 'ID')))
 		{
 			return $s;
 		}
@@ -684,7 +738,7 @@ class RDFComplexLiteral
 	{
 		foreach($node->attributes as $attr)
 		{
-			$this->{$attr->namespaceURI . $attr->localName}[] = $attr->value;
+			$this->{XMLNS::fqname($attr)}[] = $attr->value;
 		}
 		$this->setValue($node->textContent);
 	}
@@ -695,11 +749,12 @@ class RDFComplexLiteral
 	}
 }
 
-class RDFURI extends RDFComplexLiteral
+class RDFURI extends URL
 {
-	public function __construct($uri)
+	public function __construct($uri, $base = null)
 	{
-		$this->value = $uri;
+		parent::__construct($uri, $base);		
+		$this->value = parent::__toString();
 	}
 	
 	public function __toString()
