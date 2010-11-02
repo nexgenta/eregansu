@@ -65,6 +65,45 @@ abstract class RDF extends XMLNS
 		return self::documentFromDOM($dom, $location);
 	}
 
+	protected static function isXML($doc, $ct)
+	{
+		if($doc === null)
+		{
+			return null;
+		}
+		if($ct == 'application/rdf+xml' || $ct == 'text/xml' || $ct == 'application/xml')
+		{
+			return true;
+		}
+		if($ct == 'application/x-unknown' || $ct == 'application/octet-stream' || $ct == 'text/plain')
+		{			
+			/* Content sniffing, kill me now! */
+			$x = substr($doc, 0, 1024);
+			if(stripos($x, 'xmlns=') !== false || strpos($x, 'xmlns:') !== false)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	protected static function isHTML($doc, $ct)
+	{
+		if($ct == 'text/html' || $ct == 'application/xhtml+xml')
+		{
+			return true;
+		}
+		if($ct == 'application/x-unknown' || $ct == 'application/octet-stream' || $ct == 'text/plain')
+		{			
+			/* Content sniffing, kill me now! */
+			$x = substr($doc, 0, 1024);
+			if(stripos($x, '<html') !== false)
+			{
+				return true;
+			}
+		}
+	}
+
 	public static function documentFromURL($location)
 	{
 		$ct = null;
@@ -73,26 +112,13 @@ abstract class RDF extends XMLNS
 		{
 			return null;
 		}
-		if($ct == 'text/html' || $ct == 'application/xhtml+xml')
+		if(self::isHTML($doc, $ct))
 		{
 			return self::documentFromHTML($doc, $location);
 		}
-		if($ct == 'application/rdf+xml' || $ct == 'text/xml' || $ct == 'application/xml')
+		if(self::isXML($doc, $ct))
 		{
 			return self::documentFromXMLString($doc, $location);
-		}
-		if($ct == 'application/x-unknown' || $ct == 'application/octet-stream' || $ct == 'text/plain')
-		{			
-			/* Content sniffing, kill me now! */
-			$x = substr($doc, 0, 1024);
-			if(stripos($x, '<html') !== false)
-			{
-				return self::documentFromHTML($doc, $location);
-			}
-			if(stripos($x, 'xmlns=') !== false || strpos($x, 'xmlns:') !== false)
-			{
-				return self::documentFromXMLString($doc, $location);
-			}
 		}
 		return null;
 	}
@@ -140,7 +166,7 @@ abstract class RDF extends XMLNS
 			$href .= '.rdf';
 		}
 		$doc = self::fetch($href, $ct, 'application/rdf+xml');
-		if($ct == 'application/rdf+xml')
+		if(self::isXML($doc, $ct))
 		{
 			return self::documentFromXMLString($doc, $href);
 		}
@@ -150,6 +176,7 @@ abstract class RDF extends XMLNS
 	protected static function fetch($url, &$contentType, $accept = null)
 	{
 		require_once(dirname(__FILE__) . '/curl.php');
+		$url = strval($url);
 		$contentType = null;
 		if(strncmp($url, 'http:', 5))
 		{
