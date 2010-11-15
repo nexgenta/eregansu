@@ -2,7 +2,7 @@
 
 /* Eregansu - A lightweight web application platform
  *
- * Copyright 2009 Mo McRoberts.
+ * Copyright 2009, 2010 Mo McRoberts.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -29,19 +29,40 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/* This script is usually included by an instance's index.php and is
+ * responsible for dragging in all of the pieces of Eregansu and getting
+ * the environment ready for routing a request. By the time the end of
+ * the script is reached, all an application typically has to do is
+ * call:
+ *
+ * $app->process($request);
+ *
+ * ...but it is, of course, free to do whatever it wants.
+ */
+
 /**
  * @framework Eregansu
  */
 
+/* In a future version, __EREGANSU__ will be defined to a release tag
+ * or commit hash, substituted by an installation script. The
+ * percent-percent-version-percent-percent comment is a placeholder
+ * to indicate which line should be replaced.
+ */
+define('__EREGANSU__', 'master'); /* %%version%% */
+
 if(defined('WP_CONTENT_URL') && defined('ABSPATH'))
 {
+	/* If we're being included inside WordPress, just perform
+	 * minimal amounts of setup.
+	 */
 	define('EREGANSU_MINIMAL_CORE', true);
 	define('INSTANCE_ROOT', ABSPATH);
 	define('CONFIG_ROOT', INSTANCE_ROOT . 'config/');
-	define('PLATFORM_ROOT', ABSPATH . 'platform/');
+	define('PLATFORM_ROOT', INSTANCE_ROOT . 'eregansu/');
 	define('PLATFORM_LIB', PLATFORM_ROOT . 'lib/');
 	define('PLATFORM_PATH', PLATFORM_ROOT . 'platform/');
-	define('MODULES_ROOT', ABSPATH . 'app/');
+	define('MODULES_ROOT', INSTANCE_ROOT . 'app/');
 	
 	global $MODULE_ROOT;
 	

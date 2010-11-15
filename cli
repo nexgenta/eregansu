@@ -1,0 +1,59 @@
+#! /bin/sh
+
+## Eregansu command-line script
+
+## In an instance which has previously been configured, this script is
+## just invoked as ./cli 
+##
+## Otherwise, on a newly-minted instance, this script can be invoked
+## from the eregansu platform tree. e.g.:
+##
+## cd /www/docs/demo && /opt/packages/eregansu/cli
+##
+## If no index.php is located in the instance directory, this script
+## automatically invokes eregansu/index.install.php to execute the first-run
+## process.
+
+## Environment variables:
+##
+## PHP_5 (defaults to 'php')   The name or path to the PHP interpreter
+## EREGANSU_PAUSE_ON_EXIT      If non-empty, don't terminate the script
+##                             immediately after the instance has been
+##                             finished executing the commands.
+
+if test x"${PHP_5}" = x"" ; then
+	PHP_5="php"
+fi
+
+platform=`dirname "$0"`
+here=`pwd`
+if test -d "$dir/eregansu" && test -f "$dir/eregansu/platform.php" ; then
+	platform=`cd "$dir/eregansu" && pwd`
+elif test -d ./eregansu ; then
+	platform=`cd "./eregansu" && pwd`
+elif test -d "$dir/platform" && test -f "$dir/platform/platform.php" ; then
+	platform=`cd "$dir/platform" && pwd`
+elif test -d ./platform ; then
+	platform=`cd ./platform && pwd`
+fi
+cd "$here"
+
+if test -r index.php ; then
+	if test x"$EREGANSU_PAUSE_ON_EXIT" = x"" ; then
+		exec ${PHP_5} -f index.php "$@"
+	else
+		${PHP_5} -f index.php "$@"
+		status=$?
+		echo "*** Subprocess exited with status $status" >&2
+		read dummy
+		exit $status
+	fi
+fi
+
+if test -r "$platform/index.install.php" ; then
+	echo ">>> index.php does not exist, running 'cli insall'" >&2
+	exec ${PHP_5} -f "$platform/index.install.php"
+fi
+
+echo "$0: cannot find index.php or $dir/index.install.php" >&2
+exit 1
