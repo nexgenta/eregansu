@@ -270,6 +270,39 @@ class RDFDocument
 		return $this->graphs[$uri];
 	}
 
+	public function setGraph($graph)
+	{
+		$uri = null;
+		if(isset($graph->{RDF::rdf . 'about'}[0]))
+		{
+			$uri = strval($graph->{RDF::rdf . 'about'}[0]);
+		}
+		if(isset($graph->{RDF::rdf . 'ID'}[0]))
+		{
+			$uri = strval($graph->{RDF::rdf . 'ID'}[0]);
+		}
+		if($uri === null)
+		{
+			$this->graphs[] = $graph;
+			return $graph;
+		}
+		foreach($this->graphs as $k => $g)
+		{
+			if(isset($g->{RDF::rdf . 'about'}[0]) && !strcmp($g->{RDF::rdf . 'about'}[0], $uri))
+			{
+				$this->graphs[$k] = $graph;
+				return $graph;
+			}
+			if(isset($g->{RDF::rdf . 'ID'}[0]) && !strcmp($g->{RDF::rdf . 'ID'}[0], $uri))
+			{
+				$this->graphs[$k] = $graph;
+				return $graph;
+			}
+		}
+		$this->graphs[$uri] = $graph;
+		return $graph;
+	}
+
 	public function primaryTopic()
 	{
 		if(isset($this->primaryTopic))
@@ -531,7 +564,8 @@ class RDFGraph
 		$c = 0;
 		foreach($props as $name => $values)
 		{
-			if($name == RDF::rdf . 'about')
+			if(substr($name, 0, 1) == '_') continue;
+			if($name == RDF::rdf . 'about')				
 			{
 				$values = $about;
 			}
@@ -755,7 +789,7 @@ class RDFComplexLiteral
 	{
 		if($type !== null)
 		{
-			$this->{'http://www.w3.org/1999/02/22-rdf-syntax-ns#dataType'}[] = $type;
+			$this->{'http://www.w3.org/1999/02/22-rdf-syntax-ns#datatype'}[] = $type;
 		}
 		if($value !== null)
 		{
