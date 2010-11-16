@@ -126,6 +126,10 @@ class URL
 
 	public function __toString()
 	{
+		if($this->scheme == 'urn' || $this->scheme == 'tag' || $this->scheme == 'javascript' || $this->scheme == 'about' || $this->scheme == 'wysiwyg' || $this->scheme == 'view-source')
+		{
+			return $this->scheme . ':' . $this->path;
+		}
 		return $this->scheme . '://' . $this->host . (isset($this->port) ? ':' . $this->port : null) . $this->path . (isset($this->query) ? '?' . $this->query : null) . (isset($this->fragment) ? '#' . $this->fragment : null);
 	}
 
