@@ -130,7 +130,7 @@ class URL
 		{
 			return $this->scheme . ':' . $this->path;
 		}
-		return $this->scheme . '://' . $this->host . (isset($this->port) ? ':' . $this->port : null) . $this->path . (isset($this->query) ? '?' . $this->query : null) . (isset($this->fragment) ? '#' . $this->fragment : null);
+		return (isset($this->scheme) ? ($this->scheme . '://' . $this->host . (isset($this->port) ? ':' . $this->port : null)) : '') . $this->path . (isset($this->query) ? '?' . $this->query : null) . (isset($this->fragment) ? '#' . $this->fragment : null);
 	}
 
 	public static function register()
