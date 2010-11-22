@@ -191,8 +191,15 @@ abstract class Request
 			$x = explode('.', $p);
 			if(count($x) > 1)
 			{
-				$this->params[$k] = $x[0];
 				$ext = $x[count($x) - 1];
+				if(isset($this->typeMap[$ext]))
+				{
+					$this->params[$k] = $x[0];
+				}
+				else
+				{
+					$ext = null;
+				}
 			}
 		}
 		foreach($this->objects as $k => $p)
@@ -585,9 +592,9 @@ class HTTPRequest extends Request
 	}
 	
 	
-	public function redirect($uri, $status = 301, $useHTML = false)
+	public function redirect($uri, $status = 301, $useHTML = false, $passSid = true)
 	{
-		if($this->session)
+		if($passSid && $this->session)
 		{
 			if(($p = strpos($uri, '?')) !== false)
 			{
