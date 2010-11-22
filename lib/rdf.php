@@ -484,6 +484,15 @@ class RDFGraph
 		}
 	}
 
+	public function __toString()
+	{
+		if(isset($this->{RDF::rdf . 'about'}))
+		{
+			return strval($this->{RDF::rdf . 'about'}[0]);
+		}
+		return '';
+	}
+
 	public function isA($type)
 	{
 		if(isset($this->{RDF::rdf . 'type'}))
