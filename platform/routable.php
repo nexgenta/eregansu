@@ -85,10 +85,25 @@ class Redirect extends Routable
 {
 	protected $target = '';
 	protected $useBase = true;
-	
+	protected $fromPage = false;
+
 	public function process(Request $req)
 	{
 		$targ = $this->target;
+		$useBase = $this->useBase;
+		$fromPage = $this->fromPage;
+		if(isset($req->data['target']))
+		{
+			$targ = $req->data['target'];
+		}
+		if(isset($req->data['useBase']))
+		{
+			$useBase = $req->data['useBase'];
+		}
+		if(isset($req->data['fromPage']))
+		{
+			$fromPage = $req->data['fromPage'];
+		}
 		if(substr($targ, 0, 1) == '/')
 		{
 			$targ = substr($targ, 1);
@@ -98,8 +113,12 @@ class Redirect extends Routable
 			}
 			$req->redirect($req->root . $targ);
 		}
-		else if(strlen($targ))
+		else if($fromPage || strpos($targ, ':') === false)
 		{
+			$req->redirect($req->pageUri . $targ);
+		}
+		else if(strlen($targ))
+		{			
 			$req->redirect($targ);
 		}
 	}
