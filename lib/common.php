@@ -209,9 +209,13 @@ date_default_timezone_set('UTC');
 putenv('TZ=UTC');
 ini_set('date.timezone', 'UTC');
 set_error_handler('exception_error_handler');
+if(!defined('PUBLIC_ROOT'))
+{
+	define('PUBLIC_ROOT', (isset($_SERVER['SCRIPT_FILENAME']) ? dirname(realpath($_SERVER['SCRIPT_FILENAME'])) : realpath(dirname(__FILE__ ) . '/../../')) . '/');
+}
 if(!defined('INSTANCE_ROOT'))
 {
-	define('INSTANCE_ROOT', (isset($_SERVER['SCRIPT_FILENAME']) ? dirname(realpath($_SERVER['SCRIPT_FILENAME'])) : realpath(dirname(__FILE__ ) . '/../../')) . '/');
+	define('INSTANCE_ROOT', PUBLIC_ROOT);
 }
 if(!defined('PLATFORM_ROOT'))
 {

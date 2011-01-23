@@ -130,7 +130,7 @@ abstract class Request
 	{
 		$this->stderr = fopen('php://stderr', 'w');
 		$this->sapi = php_sapi_name();
-		$this->siteRoot = (defined('INSTANCE_ROOT') ? INSTANCE_ROOT : dirname($_SERVER['SCRIPT_FILENAME']));
+		$this->siteRoot = (defined('PUBLIC_ROOT') ? PUBLIC_ROOT : dirname($_SERVER['SCRIPT_FILENAME']));
 		if(substr($this->siteRoot, -1) != '/') $this->siteRoot .= '/';
 		$this->init();
 		$this->determineTypes();

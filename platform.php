@@ -2,7 +2,7 @@
 
 /* Eregansu - A lightweight web application platform
  *
- * Copyright 2009, 2010 Mo McRoberts.
+ * Copyright 2009, 2010, 2011 Mo McRoberts.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -58,6 +58,7 @@ if(defined('WP_CONTENT_URL') && defined('ABSPATH'))
 	 */
 	define('EREGANSU_MINIMAL_CORE', true);
 	define('INSTANCE_ROOT', ABSPATH);
+	define('PUBLIC_ROOT', ABSPATH);
 	define('CONFIG_ROOT', INSTANCE_ROOT . 'config/');
 	define('PLATFORM_ROOT', INSTANCE_ROOT . 'eregansu/');
 	define('PLATFORM_LIB', PLATFORM_ROOT . 'lib/');
