@@ -104,6 +104,18 @@ abstract class RDF extends XMLNS
 		}
 	}
 
+	public static function documentFromFile($path, $location = null)
+	{
+		if(!strlen($location))
+		{
+			$location = 'file://' . realpath($path);
+		}
+		if(($buf = file_get_contents($path)) !== false)
+		{
+			return self::documentFromXMLString($buf, $location);
+		}
+	}
+
 	public static function documentFromURL($location)
 	{
 		$ct = null;
@@ -370,6 +382,29 @@ class RDFDocument
 		return $this->namespaces[$uri];
 	}
 	
+	public function asTurtle()
+	{
+		$turtle = array();
+		foreach($this->graphs as $g)
+		{
+			$x = $g->asTurtle($this);
+			if(is_array($x))
+			{
+				$x = implode("\n", $x);
+			}
+			$turtle[] = $x . "\n";
+		}
+		if(count($this->namespaces))
+		{
+			array_unshift($turtle, '');
+			foreach($this->namespaces as $ns => $prefix)
+			{
+				array_unshift($turtle, '@prefix ' . $prefix . ': <' . $ns . '>');
+			}
+		}
+		return $turtle;
+	}
+
 	public function asXML()
 	{
 		$xml = array();
@@ -541,6 +576,102 @@ class RDFGraph
 			return $this->{$key}[0];
 		}
 		return null;
+	}
+
+	public function asTurtle($doc)
+	{
+		$turtle = array();
+		if(isset($this->{RDF::rdf . 'about'}))
+		{
+			$about = $this->{RDF::rdf . 'about'};
+		}
+		else
+		{
+			$about = array();
+		}
+		if(count($about))
+		{
+			$first = array_shift($about);
+			$turtle[] = '<' . $first . '>';
+		}
+		else
+		{
+			$turtle[] = '_:anonymous';
+		}
+		if(isset($this->{RDF::rdf . 'type'}))
+		{
+			$types = $this->{RDF::rdf . 'type'};
+			$tlist = array();
+			foreach($types as $t)
+			{
+				$tlist[] = $doc->namespacedName(strval($t));
+			}
+			$turtle[] = "\t" . 'a ' . implode(' , ', $tlist) . ' ;';
+		}
+		if(count($about))
+		{
+			$tlist = array();
+			foreach($about as $u)
+			{
+				$list[] = '<' . $u . '>';
+			}
+			$turtle[] = "\t" . ' rdf:about ' . implode(' , ', $tlist) . ' ;';
+		}
+		$props = get_object_vars($this);
+		$c = 0;
+		foreach($props as $name => $values)
+		{
+			if(substr($name, 0, 1) == '_') continue;
+			if($name == RDF::rdf . 'about')				
+			{
+				continue;
+			}
+			else if($name == RDF::rdf . 'type')
+			{
+				continue;
+			}
+			if(!count($values))
+			{
+				continue;
+			}
+			$name = $doc->namespacedName($name);
+			$vlist = array();
+			foreach($values as $v)
+			{
+				if(is_string($v) || $v instanceof RDFComplexLiteral)
+				{
+					$suffix = null;
+					if(is_object($v))
+					{
+						if(isset($v->{RDF::rdf . 'datatype'}) && count($v->{RDF::rdf . 'datatype'}))
+						{
+							$suffix = '^^' . $doc->namespacedName($v->{RDF::rdf . 'datatype'}[0]);
+						}
+						else if(isset($v->{XML::xml . ' lang'}) && count($v->{XML::xml . ' lang'}))
+						{
+							$suffix = '@' . $v->{XML::xml . ' lang'}[0];
+						}
+						$v = strval($v);
+					}
+					if(strpos($v, "\n") !== false || strpos($v, '"') !== false)
+					{
+						$vlist[] = '"""' . $v . '"""' . $suffix;
+					}
+					else
+					{
+						$vlist[] = '"' . $v . '"' . $suffix;
+					}
+				}
+				else if($v instanceof RDFURI)
+				{
+					$vlist[] = '<' . $v . '>';
+				}
+			}
+			$turtle[] = "\t" . $name . ' ' . implode(" ,\n\t\t", $vlist) . ' ;';
+		}
+		$last = array_pop($turtle);
+		$turtle[] = substr($last, 0, -1) . '.';
+		return $turtle;
 	}
 
 	public function asXML($doc)
