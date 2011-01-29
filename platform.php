@@ -79,7 +79,7 @@ if(defined('WP_CONTENT_URL') && defined('ABSPATH'))
  
 function uses()
 {
-	static $_lib_modules = array('base32', 'cli', 'curl', 'date', 'db', 'dbschema', 'execute', 'form', 'ldap', 'mime', 'rdf', 'redland', 'request', 'session', 'url', 'uuid', 'xmlns');
+	static $_lib_modules = array('base32', 'cli', 'curl', 'date', 'db', 'dbschema', 'execute', 'form', 'ldap', 'mime', 'rdf', 'redland', 'request', 'session', 'url', 'uuid', 'xmlns', 'csv-import');
 	
 	$_modules = func_get_args();
 	foreach($_modules as $_mod)
