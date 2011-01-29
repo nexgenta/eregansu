@@ -26,6 +26,7 @@ if test x"${PHP_5}" = x"" ; then
 fi
 
 platform=`dirname "$0"`
+root="$platform"
 here=`pwd`
 if test -d "$dir/eregansu" && test -f "$dir/eregansu/platform.php" ; then
 	platform=`cd "$dir/eregansu" && pwd`
@@ -38,22 +39,30 @@ elif test -d ./platform ; then
 fi
 cd "$here"
 
-if test -r index.php ; then
-	if test x"$EREGANSU_PAUSE_ON_EXIT" = x"" ; then
-		exec ${PHP_5} -f index.php "$@"
-	else
-		${PHP_5} -f index.php "$@"
-		status=$?
-		echo "*** Subprocess exited with status $status" >&2
-		read dummy
-		exit $status
+php_script=''
+if test -r "$root/public/index.php" ; then
+	php_script="$root/public/index.php"
+elif test -r "$root/index.php" ; then
+	php_script="$root/public/index.php"
+elif test -r public/index.php ; then
+	php_script="public/index.php"
+elif test -r index.php ; then
+	php_script="index.php"
+else
+	if test -r "$platform/index.install.php" ; then
+		echo ">>> index.php does not exist, running 'cli insall'" >&2
+		exec ${PHP_5} -f "$platform/index.install.php"
 	fi
+	echo "$0: cannot find index.php or $dir/index.install.php" >&2
+	exit 1
 fi
 
-if test -r "$platform/index.install.php" ; then
-	echo ">>> index.php does not exist, running 'cli insall'" >&2
-	exec ${PHP_5} -f "$platform/index.install.php"
+if test x"$EREGANSU_PAUSE_ON_EXIT" = x"" ; then
+	exec ${PHP_5} -f "$php_script" "$@"
+else
+  	${PHP_5} -f "$php_script" "$@"
+	status=$?
+	echo "*** Subprocess exited with status $status" >&2
+	read dummy
+	exit $status
 fi
-
-echo "$0: cannot find index.php or $dir/index.install.php" >&2
-exit 1
