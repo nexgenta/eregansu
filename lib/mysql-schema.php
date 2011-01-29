@@ -245,7 +245,7 @@ class MySQLTable extends DBTable
 				break;
 			case DBIndex::UNIQUE:
 				$info['spec'] = 'UNIQUE KEY "' . $info['name'] . '" (' . implode(', ', $cols) . ')';
-				$info['fullspec'] = 'CREATE UNIQUE INDEX "' . $this->name . '_' .  $info['name'] . '" {' . $this->name . '} (' . implode(', ', $cols) . ')';
+				$info['fullspec'] = 'CREATE UNIQUE INDEX "' . $this->name . '_' .  $info['name'] . '" ON {' . $this->name . '} (' . implode(', ', $cols) . ')';
 				break;
 			default:
 				trigger_error('MySQLTable: Unsupported index type ' . $info['type'], E_USER_NOTICE);
