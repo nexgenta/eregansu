@@ -713,7 +713,7 @@ class RDFGraph
 			{
 				$values = $types;
 			}
-			if(!count($values))
+			if(!is_array($values) || !count($values))
 			{
 				continue;
 			}
