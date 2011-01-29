@@ -63,6 +63,8 @@ class CliSetup extends CommandLine
 	{
 		global $SETUP_MODULES;
 		
+		uses('module');
+
 		if(!isset($SETUP_MODULES) || !is_array($SETUP_MODULES) || !count($SETUP_MODULES))
 		{
 			echo "setup: No modules are configured, nothing to do.\n";
