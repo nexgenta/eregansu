@@ -18,7 +18,7 @@
 abstract class XMLNS
 {
 	const xml = 'http://www.w3.org/XML/1998/namespace';
-	const xmlns = 'http://www.w3.org/XML/1998/namespace';
+	const xmlns = 'http://www.w3.org/2000/xmlns/';
 	const xhtml = 'http://www.w3.org/1999/xhtml';
 	const dc = 'http://purl.org/dc/elements/1.1/';
 	const dcterms = 'http://purl.org/dc/terms/';
