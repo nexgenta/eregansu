@@ -123,17 +123,42 @@ class MySQLTable extends DBTable
 	);
 	
 	protected function retrieve()
-	{
+	{		
+		$catalog = null;
 		$table = $this->schema->db->row('SELECT * FROM "INFORMATION_SCHEMA"."TABLES" WHERE "TABLE_CATALOG" IS NULL AND "TABLE_SCHEMA" = ? AND "TABLE_NAME" = ?', $this->schema->db->dbName, $this->name);
+		if(!$table)
+		{
+			$catalog = 'def';
+			$table = $this->schema->db->row('SELECT * FROM "INFORMATION_SCHEMA"."TABLES" WHERE "TABLE_CATALOG" = ? AND "TABLE_SCHEMA" = ? AND "TABLE_NAME" = ?', $catalog, $this->schema->db->dbName, $this->name);
+		}
+		if(!is_array($table))
+		{
+			return;
+		}
+		$this->exists = true;
 		$this->nativeCreateOptions['ENGINE'] = $table['ENGINE'];
 		$this->nativeCreateOptions['DEFAULT COLLATE'] = $table['TABLE_COLLATION'];
 		$this->nativeCreateOptions['COMMENT'] = $table['TABLE_COMMENT'];
-		$info = $this->schema->db->rows('SELECT * FROM "INFORMATION_SCHEMA"."COLUMNS" WHERE "TABLE_CATALOG" IS NULL AND "TABLE_SCHEMA" = ? AND "TABLE_NAME" = ? ORDER BY "ORDINAL_POSITION" ASC', $this->schema->db->dbName, $this->name);
+		if($catalog !== null)
+		{
+			$info = $this->schema->db->rows('SELECT * FROM "INFORMATION_SCHEMA"."COLUMNS" WHERE "TABLE_CATALOG" = ? AND "TABLE_SCHEMA" = ? AND "TABLE_NAME" = ? ORDER BY "ORDINAL_POSITION" ASC', $catalog, $this->schema->db->dbName, $this->name);
+		}
+		else
+		{
+			$info = $this->schema->db->rows('SELECT * FROM "INFORMATION_SCHEMA"."COLUMNS" WHERE "TABLE_CATALOG" IS NULL AND "TABLE_SCHEMA" = ? AND "TABLE_NAME" = ? ORDER BY "ORDINAL_POSITION" ASC', $this->schema->db->dbName, $this->name);
+		}
 		foreach($info as $field)
 		{
 			$this->columns[$field['COLUMN_NAME']] = $this->columnFromNative($field);
 		}
-		$info = $this->schema->db->rows('SELECT * FROM "INFORMATION_SCHEMA"."STATISTICS" WHERE "TABLE_CATALOG" IS NULL AND "TABLE_SCHEMA" = ? AND "TABLE_NAME" = ? ORDER BY "INDEX_NAME", "SEQ_IN_INDEX" ASC', $this->schema->db->dbName, $this->name);
+		if($catalog !== null)
+		{
+			$info = $this->schema->db->rows('SELECT * FROM "INFORMATION_SCHEMA"."STATISTICS" WHERE "TABLE_CATALOG" = ? AND "TABLE_SCHEMA" = ? AND "TABLE_NAME" = ? ORDER BY "INDEX_NAME", "SEQ_IN_INDEX" ASC', $catalog, $this->schema->db->dbName, $this->name);
+		}
+		else
+		{
+			$info = $this->schema->db->rows('SELECT * FROM "INFORMATION_SCHEMA"."STATISTICS" WHERE "TABLE_CATALOG" IS NULL AND "TABLE_SCHEMA" = ? AND "TABLE_NAME" = ? ORDER BY "INDEX_NAME", "SEQ_IN_INDEX" ASC', $this->schema->db->dbName, $this->name);
+		}
 		$this->indices = array();
 		foreach($info as $index)
 		{
