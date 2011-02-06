@@ -128,6 +128,7 @@ abstract class DBTable
 	public $name;
 	public $options;
 
+	protected $exists;
 	protected $columns = array();
 	protected $indices = array();
 	protected $changes = array();
@@ -139,7 +140,7 @@ abstract class DBTable
 		$this->name = $name;
 		$this->options = $options;
 		
-		if($options == self::EXISTING)
+		if($options == self::EXISTING || $options == self::CREATE_IF_NEEDED)
 		{
 			$this->retrieve();
 		}
@@ -376,6 +377,10 @@ abstract class DBTable
 		$cl = array();
 		if($this->options == self::CREATE_IF_NEEDED)
 		{
+			if($this->exists)
+			{
+				return true;
+			}
 			$create = 'CREATE TABLE IF NOT EXISTS {' . $this->name . '} (';
 		}
 		else
