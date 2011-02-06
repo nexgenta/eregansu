@@ -32,6 +32,11 @@
 	<?php if(isset($doc)) { ?>
 	<hr>
 	<section>
+	  <h2>Dump</h2>
+	 <?php echo $doc->dump(); ?>
+	</section>
+	<hr>
+	<section>
 	  <h2>RDF/XML</h2>
 	  <pre><?php
 $r = $doc->asXML();
