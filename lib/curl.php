@@ -315,6 +315,8 @@ if(function_exists('curl_init'))
 			$store = true;
 			$dir = $this->cacheDir;
 			$time = $this->cacheTime;
+			$cacheFile = null;
+			$info = null;
 			if(!strlen($dir))
 			{
 				if(defined('CACHE_DIR'))
@@ -353,7 +355,7 @@ if(function_exists('curl_init'))
 				$hash = md5(json_encode($this->options));
 				$cacheFile = CACHE_DIR . $hash;
 			}
-			if(file_exists($cacheFile) && file_exists($cacheFile . '.json'))
+			if(strlen($cacheFile) && file_exists($cacheFile) && file_exists($cacheFile . '.json'))
 			{
 				if($time > 0)
 				{
@@ -381,12 +383,17 @@ if(function_exists('curl_init'))
 					$f = fopen($cacheFile . '.json', 'w');
 					fwrite($f, json_encode($info));
 					fclose($f);
+					$info['fetched'] = true;
 				}
 			}
-			else
+			else if(strlen($cacheFile))
 			{
 				$buf = file_get_contents($cacheFile);
 				$info = json_decode(file_get_contents($cacheFile . '.json'), true);
+			}
+			else
+			{
+				$buf = $info = null;
 			}
 			$this->cachedInfo = $info;
 			return $buf;
