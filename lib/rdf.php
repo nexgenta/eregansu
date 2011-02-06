@@ -1,6 +1,6 @@
 <?php
 
-/* Copyright 2010 Mo McRoberts.
+/* Copyright 2010-2011 Mo McRoberts.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,9 +39,17 @@ abstract class RDF extends XMLNS
 	const foaf = 'http://xmlns.com/foaf/0.1/';
 	const skos = 'http://www.w3.org/2008/05/skos#';
 	const time = 'http://www.w3.org/2006/time#';
-	
+	const rdfg = 'http://www.w3.org/2004/03/trix/rdfg-1/';
+
+	const frbr = 'http://purl.org/vocab/frbr/core#';
+	const mo = 'http://purl.org/ontology/mo/';
+	const theatre = 'http://purl.org/theatre#';
+	const participation = 'http://purl.org/vocab/participation/schema#';
+
+	/* Registered ontology handlers */
 	public static $ontologies = array();
 
+	/* Create a new RDFDocument given an RDF/XML DOMElement */
 	public static function documentFromDOM($dom, $location = null)
 	{
 		$doc = new RDFDocument();
@@ -50,9 +58,10 @@ abstract class RDF extends XMLNS
 		return $doc;
 	}
 	
+	/* Create a new RDFDocument given a string containing an RDF/XML document */
 	public static function documentFromXMLString($string, $location = null)
 	{
-		$xml = simplexml_load_string($string);
+		$xml = @simplexml_load_string($string);
 		if(!is_object($xml))
 		{
 			return null;
@@ -65,6 +74,41 @@ abstract class RDF extends XMLNS
 		return self::documentFromDOM($dom, $location);
 	}
 
+	/* Construct an RDFDocument from an on-disk file */
+	public static function documentFromFile($path, $location = null)
+	{
+		if(!strlen($location))
+		{
+			$location = 'file://' . realpath($path);
+		}
+		if(($buf = file_get_contents($path)) !== false)
+		{
+			return self::documentFromXMLString($buf, $location);
+		}
+	}
+
+	/* Construct an RDFDocument from a URL */
+	public static function documentFromURL($location)
+	{
+		$ct = null;
+		$doc = self::fetch($location, $ct, 'application/rdf+xml');
+		if($doc === null)
+		{
+			return null;
+		}
+		if(self::isHTML($doc, $ct))
+		{
+			return self::documentFromHTML($doc, $location);
+		}
+		if(self::isXML($doc, $ct))
+		{
+			return self::documentFromXMLString($doc, $location);
+		}
+		return null;
+	}
+
+
+	/* Attempt to determine whether a resource is XML */
 	protected static function isXML($doc, $ct)
 	{
 		if($doc === null)
@@ -87,6 +131,7 @@ abstract class RDF extends XMLNS
 		return false;
 	}
 
+	/* Attempt to determine whether a document is HTML */
 	protected static function isHTML($doc, $ct)
 	{
 		if($ct == 'text/html' || $ct == 'application/xhtml+xml')
@@ -97,44 +142,16 @@ abstract class RDF extends XMLNS
 		{			
 			/* Content sniffing, kill me now! */
 			$x = substr($doc, 0, 1024);
-			if(stripos($x, '<html') !== false)
+			if(stripos($x, '<html') !== false || stripos($x, '<!DOCTYPE html') !== false)
 			{
 				return true;
 			}
 		}
 	}
 
-	public static function documentFromFile($path, $location = null)
-	{
-		if(!strlen($location))
-		{
-			$location = 'file://' . realpath($path);
-		}
-		if(($buf = file_get_contents($path)) !== false)
-		{
-			return self::documentFromXMLString($buf, $location);
-		}
-	}
-
-	public static function documentFromURL($location)
-	{
-		$ct = null;
-		$doc = self::fetch($location, $ct, 'application/rdf+xml');
-		if($doc === null)
-		{
-			return null;
-		}
-		if(self::isHTML($doc, $ct))
-		{
-			return self::documentFromHTML($doc, $location);
-		}
-		if(self::isXML($doc, $ct))
-		{
-			return self::documentFromXMLString($doc, $location);
-		}
-		return null;
-	}
-	
+	/* Attempt to construct an RDFDocument instance given an HTML document
+	 * (no RDFa parsing -- yet)
+	 */
 	protected static function documentFromHTML($doc, $location)
 	{
 		require_once(dirname(__FILE__) . '/../simplehtmldom/simple_html_dom.php');
@@ -185,6 +202,7 @@ abstract class RDF extends XMLNS
 		return null;
 	}
 	
+	/* Wrapper around Curl to fetch a resource */
 	protected static function fetch($url, &$contentType, $accept = null)
 	{
 		require_once(dirname(__FILE__) . '/curl.php');
@@ -230,9 +248,14 @@ abstract class RDF extends XMLNS
 	}
 }
 
+/**
+ * An RDF document
+ */
+
 class RDFDocument
 {
-	protected $graphs = array();
+	protected $subjects = array();
+	protected $keySubjects = array();
 	protected $namespaces = array();
 	protected $qnames = array();
 	public $fileURI;
@@ -250,16 +273,42 @@ class RDFDocument
 		$this->namespaces[RDF::time] = 'time';
 		$this->namespaces[RDF::dc] = 'dc';
 		$this->namespaces[RDF::dcterms] = 'dct';
+		$this->namespaces[RDF::rdfg] = 'rdfg';
 	}
 
-	public function graph($uri, $type = null, $create = true)
+	/* Promote a subject to the root of the document; in RDF/XML this
+	 * means that it will appear as a child of the rdf:RDF element.
+	 * Behaviour with other serialisations may vary.
+	 */
+	public function promote($subject)
 	{
-		$uri = strval($uri);
-		if(isset($this->graphs[$uri]))
+		if($subject instanceof RDFInstance)
 		{
-			return $this->graphs[$uri];
+			$subject = $subject->subject();
 		}
-		foreach($this->graphs as $g)
+		$subject = strval($subject);
+		if(!in_array($subject, $this->keySubjects))
+		{
+			$this->keySubjects[] = $subject;
+		}
+	}
+
+	/* Locate an RDFInstance for a given subject. If $create is
+	 * true, a new instance will be created (optionally a $type).
+	 * Callers should explicitly invoke promote() if required.
+	 */
+	public function subject($uri, $type = null, $create = true)
+	{
+		if($uri instanceof RDFInstance)
+		{
+			$uri = $uri->subject();
+		}
+		$uri = strval($uri);
+		if(isset($this->subjects[$uri]))
+		{
+			return $this->subjects[$uri];
+		}
+		foreach($this->subjects as $g)
 		{
 			if(isset($g->{RDF::rdf . 'about'}[0]) && !strcmp($g->{RDF::rdf . 'about'}[0], $uri))
 			{
@@ -278,53 +327,108 @@ class RDFDocument
 		{
 			$type = RDF::rdf . 'Description';
 		}
-		$this->graphs[$uri] = new RDFGraph($uri, $type);
-		return $this->graphs[$uri];
+		$this->subjects[$uri] = new RDFInstance($uri, $type);
+		return $this->subjects[$uri];
 	}
 
-	public function setGraph($graph)
+	/* Merge all of the assertions in $subject with those already in the
+	 * document.
+	 */
+	public function merge($subject)
 	{
-		$uri = null;
-		if(isset($graph->{RDF::rdf . 'about'}[0]))
+		if($subject instanceof RDFInstance)
 		{
-			$uri = strval($graph->{RDF::rdf . 'about'}[0]);
+			$uri = strval($subject->subject());
 		}
-		if(isset($graph->{RDF::rdf . 'ID'}[0]))
+		else
 		{
-			$uri = strval($graph->{RDF::rdf . 'ID'}[0]);
+			$uri = strval($subject);
 		}
-		if($uri === null)
+		if(($s = $this->subject($uri, null, false)))
 		{
-			$this->graphs[] = $graph;
-			return $graph;
+			$s->merge($subject);
+			return $s;
 		}
-		foreach($this->graphs as $k => $g)
+		if($subject instanceof RDFInstance)
+		{
+			if(strlen($uri))
+			{
+				$this->subjects[$uri] = $subject;
+				$subject->refcount++;
+				return $subject;
+			}
+			$this->subjects[] = $subject;
+			$subject->refcount++;
+			return $subject;
+		}
+		return null;
+	}
+
+	/* Add an RDFInstance to a document at the top level. As merge(), but
+	 * always invokes promote() on the result.
+	 */
+	public function add(RDFInstance $subject)
+	{
+		if(($inst = $this->merge($subject)))
+		{
+			$this->promote($inst);
+		}
+		return $inst;
+	}
+
+	/* Completely replace all assertions about a subject in the
+	 * document with a new instance.
+	 */
+	public function replace(RDFInstance $graph, $addIfNotFound = true)
+	{		
+		$uri = strval($graph->subject());
+		if(!strlen($uri))
+		{
+			if($addIfNotFound)
+			{
+				$this->subjects[] = $graph;
+				$graph->refcount++;
+				return $graph;
+			}
+			return null;
+		}
+		foreach($this->subjects as $k => $g)
 		{
 			if(isset($g->{RDF::rdf . 'about'}[0]) && !strcmp($g->{RDF::rdf . 'about'}[0], $uri))
 			{
-				$this->graphs[$k] = $graph;
+				$graph->refcount = $this->subjects[$k]->refcount;
+				$this->subjects[$k] = $graph;
 				return $graph;
 			}
 			if(isset($g->{RDF::rdf . 'ID'}[0]) && !strcmp($g->{RDF::rdf . 'ID'}[0], $uri))
 			{
-				$this->graphs[$k] = $graph;
+				$graph->refcount = $this->subjects[$k]->refcount;
+				$this->subjects[$k] = $graph;
 				return $graph;
 			}
 		}
-		$this->graphs[$uri] = $graph;
-		return $graph;
+		if($addIfNotFound)
+		{
+			$this->subjects[$uri] = $graph;
+			$graph->refcount++;
+			return $graph;
+		}
+		return null;
 	}
 
+	/* Return the RDFInstance which is either explicitly or implicitly the
+	 * primary topic of this document.
+	 */
 	public function primaryTopic()
 	{
 		if(isset($this->primaryTopic))
 		{
-			return $this->graph($this->primaryTopic, null, false);
+			return $this->subject($this->primaryTopic, null, false);
 		}
 		$top = $file = null;
 		if(isset($this->fileURI))
 		{
-			$top = $file = $this->graph($this->fileURI, null, false);
+			$top = $file = $this->subject($this->fileURI, null, false);
 			if(!isset($top->{RDF::foaf . 'primaryTopic'}))
 			{
 				$top = null;
@@ -332,7 +436,7 @@ class RDFDocument
 		}
 		if(!$top)
 		{
-			foreach($this->graphs as $g)
+			foreach($this->subjects as $g)
 			{
 				if(isset($g->{RDF::rdf . 'type'}[0]) && !strcmp($g->{RDF::rdf . 'type'}[0], RDF::rdf . 'Description'))
 				{
@@ -343,7 +447,7 @@ class RDFDocument
 		}
 		if(!$top)
 		{
-			foreach($this->graphs as $g)
+			foreach($this->subjects as $g)
 			{
 				$top = $g;
 				break;
@@ -355,12 +459,12 @@ class RDFDocument
 		}
 		if(isset($top->{RDF::foaf . 'primaryTopic'}[0]))
 		{
-			if($top->{RDF::foaf . 'primaryTopic'}[0] instanceof RDFGraph)
+			if($top->{RDF::foaf . 'primaryTopic'}[0] instanceof RDFInstance)
 			{
 				return $top->{RDF::foaf . 'primaryTopic'}[0];
 			}
 			$uri = strval($top->{RDF::foaf . 'primaryTopic'}[0]);
-			$g = $this->graph($uri, null, false);
+			$g = $this->subject($uri, null, false);
 			if($g)
 			{
 				return $g;
@@ -373,6 +477,7 @@ class RDFDocument
 		return $top;
 	}
 
+	/* Explicitly register a namespace with a given prefix */
 	public function namespace($uri, $suggestedPrefix)
 	{
 		if(!isset($this->namespaces[$uri]))
@@ -381,54 +486,8 @@ class RDFDocument
 		}
 		return $this->namespaces[$uri];
 	}
-	
-	public function asTurtle()
-	{
-		$turtle = array();
-		foreach($this->graphs as $g)
-		{
-			$x = $g->asTurtle($this);
-			if(is_array($x))
-			{
-				$x = implode("\n", $x);
-			}
-			$turtle[] = $x . "\n";
-		}
-		if(count($this->namespaces))
-		{
-			array_unshift($turtle, '');
-			foreach($this->namespaces as $ns => $prefix)
-			{
-				array_unshift($turtle, '@prefix ' . $prefix . ': <' . $ns . '>');
-			}
-		}
-		return $turtle;
-	}
 
-	public function asXML()
-	{
-		$xml = array();
-		foreach($this->graphs as $g)
-		{
-			$x = $g->asXML($this);
-			if(is_array($x))
-			{
-				$x = implode("\n", $x);
-			}
-			$xml[] = $x . "\n";
-		}
-		$nslist = array();
-		foreach($this->namespaces as $ns => $prefix)
-		{
-			$nslist[] = 'xmlns:' . $prefix . '="' . _e($ns) . '"';
-		}
-		array_unshift($xml, '<rdf:RDF ' . implode(' ', $nslist) . '>' . "\n");
-		$xml[] = '</rdf:RDF>';
-		array_unshift($xml, '<?xml version="1.0" encoding="UTF-8"?>');
-					 
-		return $xml;
-	}
-
+	/* Given a URI, generate a prefix:short form name */
 	public function namespacedName($qname)
 	{
 		$qname = strval($qname);
@@ -457,7 +516,90 @@ class RDFDocument
 		}
 		return $this->qnames[$qname];
 	}
+	
+	/* Serialise a document as Turtle */
+	public function asTurtle()
+	{
+		$turtle = array();
+		foreach($this->subjects as $g)
+		{
+			if($g->refcount < 2) continue;
+			$x = $g->asTurtle($this);
+			if(is_array($x))
+			{
+				$x = implode("\n", $x);
+			}
+			$turtle[] = $x . "\n";
+		}
+		if(count($this->namespaces))
+		{
+			array_unshift($turtle, '');
+			foreach($this->namespaces as $ns => $prefix)
+			{
+				array_unshift($turtle, '@prefix ' . $prefix . ': <' . $ns . '>');
+			}
+		}
+		return $turtle;
+	}
 
+	/* Serialise a document as RDF/XML */
+	public function asXML()
+	{
+		$xml = array();
+		foreach($this->subjects as $g)
+		{
+			$found = false;
+			if(!$g->refcount || $g->refcount > 2)
+			{
+				$found = true;
+			}
+			else				
+			{
+				$uris = $g->subjects();
+				foreach($uris as $u)
+				{
+					if(in_array(strval($u), $this->keySubjects))
+					{
+						$found = true;
+						break;
+					}
+				}
+			}
+			if(!$found)
+			{
+				break;
+			}
+			$x = $g->asXML($this);
+			if(is_array($x))
+			{
+				$x = implode("\n", $x);
+			}
+			$xml[] = $x . "\n";
+		}
+		$nslist = array();
+		foreach($this->namespaces as $ns => $prefix)
+		{
+			$nslist[] = 'xmlns:' . $prefix . '="' . _e($ns) . '"';
+		}
+		array_unshift($xml, '<rdf:RDF ' . implode(' ', $nslist) . '>' . "\n");
+		$xml[] = '</rdf:RDF>';
+		array_unshift($xml, '<?xml version="1.0" encoding="UTF-8"?>');					 
+		return implode("\n", $xml);
+	}
+	
+    /* Serialise a document as JSON */
+	public function asJSON()
+	{
+		$array = array();
+		foreach($this->subjects as $subj)
+		{
+			if($subj->refcount < 2) continue;
+			$array[] = $subj->asArray();
+		}
+		return str_replace('\/', '/', json_encode($array));
+	}
+
+	/* Import sets of triples from an (RDF/XML) DOMElement instance */
 	public function fromDOM($root)
 	{
 		for($node = $root->firstChild; $node; $node = $node->nextSibling)
@@ -473,40 +615,131 @@ class RDFDocument
 			}
 			if(!$g)
 			{
-				$g = new RDFGraph();
+				$g = new RDFInstance();
 			}
 			$g->fromDOM($node, $this);
-			$g->transform();
-			if(null !== ($s = $g->subject()))
-			{
-				$s = strval($s);
-				if(isset($this->graphs[$s]))
-				{
-					$this->graphs[$s]->mergeFromGraph($g);
-				}
-				else
-				{
-					$this->graphs[$s] = $g;
-				}
-			}
-			else
-			{
-				$this->graphs[] = $g;
-			}			
+			$g->refcount++;
+			$g = $this->merge($g);
+			$this->promote($g);
+			$g->transform();			
 		}
 	}
 
 	public function __get($name)
 	{
-		if($name == 'graphs')
+		if($name == 'subjects')
 		{
-			return $this->graphs;
+			return $this->subjects;
 		}
+		return $this->subject($name, null, false);
 	}
 }
 
-class RDFGraph
+/* A set of objects for a given predicate on a subject; returned by
+ * $subject->all($predicate)
+ */
+class RDFSet implements Countable
 {
+	protected $values = array();
+	
+	public function __construct($values = null)
+	{
+		if($values === null) return;
+		if(is_array($values))
+		{
+			$this->values = $values;
+		}
+		else
+		{
+			$this->values[] = $values;
+		}
+	}
+
+	/* Return a simple human-readable representation of the property values */
+	public function __toString()
+	{
+		return $this->join(', ');
+	}
+	
+	/* Return the first value in the set */
+	public function first()
+	{
+		if(count($this->values))
+		{
+			return $this->values[0];
+		}
+		return null;
+	}
+	
+	/* Return a string joining the values with the given string */
+	public function join($by)
+	{
+		if(count($this->values))
+		{
+			return implode($by, $this->values);
+		}
+	}
+
+	/* Return the number of values held in this set; can be
+	 * called as count($set) instead of $set->count().
+	 */
+	public function count()
+	{
+		return count($this->values);
+	}
+	
+	/* Return the value matching the specified language. If $lang
+	 * is an array, it specifies a list of languages in order of
+	 * preference. if $fallbackFirst is true, return the first
+	 * value instead of null if no language match could be found.
+	 * $langs may be an array of languages, or a comma- or space-
+	 * separated list in a string.
+	 */
+	public function lang($langs, $fallbackFirst = false)
+	{
+		if(!is_array($langs))
+		{
+			$langs = explode(',', str_replace(' ', ',', $lang));
+		}
+		foreach($langs as $lang)
+		{
+			$lang = trim($lang);
+			if(!strlen($lang)) continue;
+			foreach($this->values as $value)
+			{
+				if($value instanceof RDFComplexLiteral && isset(
+					   $value->{XMLNS::xml . ' lang'}) && $value->{XMLNS::xml . ' lang'}[0] == $lang)
+				{
+					return strval($value);
+				}
+			}
+		}
+		foreach($this->values as $value)
+		{
+			if(is_string($value) || ($value instanceof RDFComplexLiteral && !isset($value->{XMLNS::xml . ' lang'})))
+			{
+				return strval($value);
+			}
+		}
+		if($fallbackFirst)
+		{
+			foreach($this->values as $value)
+			{
+				return strval($value);
+			}
+		}
+		return null;
+	}
+}
+
+/* An RDF instance: an object representing a subject, where predicates are
+ * properties, and objects are property values. Every property is a stringified
+ * URI, and its native value is an indexed array.
+ */
+class RDFInstance
+{
+	public $refcount = 0;
+
 	public function __construct($uri = null, $type = null)
 	{
 		if(strlen($uri))
@@ -519,17 +752,24 @@ class RDFGraph
 		}
 	}
 
+	/* An instance's "value" is the URI  of its subject */
 	public function __toString()
 	{
-		if(isset($this->{RDF::rdf . 'about'}))
-		{
-			return strval($this->{RDF::rdf . 'about'}[0]);
-		}
-		return '';
+		return strval($this->subject());
 	}
 
+	/* If this instance is a $type, return true. If $type is an instance,
+	 * we compare our rdf:type against its subject, allowing, for example:
+	 *
+	 * $class = $doc['http://purl.org/example#Class'];
+	 * if($thing->isA($class)) ...
+	 */
 	public function isA($type)
 	{
+		if($type instanceof RDFInstance)
+		{
+			$type = $type->subject();
+		}
 		if(isset($this->{RDF::rdf . 'type'}))
 		{
 			foreach($this->{RDF::rdf . 'type'} as $t)
@@ -543,8 +783,10 @@ class RDFGraph
 		return false;
 	}
 
-	public function mergeFromGraph(RDFGraph $source)
+	/* Merge the assertions in $source into this instance. */
+	public function merge(RDFInstance $source)
 	{
+		$this->refcount += $source->refcount;
 		foreach($source as $prop => $values)
 		{
 			foreach($values as $value)
@@ -567,8 +809,10 @@ class RDFGraph
 				}
 			}
 		}
+		return $this;
 	}
 
+	/* Return the first value for the given predicate */
 	public function first($key)
 	{
 		if(isset($this->{$key}))
@@ -578,6 +822,67 @@ class RDFGraph
 		return null;
 	}
 
+	/* Return the values of a given predicate */
+	public function all($key, $nullOnEmpty = false)
+	{
+		if(isset($this->{$key}))
+		{
+			return new RDFSet($this->{$key});
+		}
+		if($nullOnEmpty)
+		{
+			return null;
+		}
+		return new RDFSet();
+	}
+
+	/* Return the first URI this instance claims to have
+	 * as a subject.
+	 */
+	public function subject()
+	{
+		if(null !== ($s = $this->first(RDF::rdf . 'about')))
+		{
+			return $s;
+		}
+		if(null !== ($s = $this->first(RDF::rdf . 'ID')))
+		{
+			return $s;
+		}
+	}
+
+
+	/* Return the set of URIs this instance has as subjects */
+	public function subjects()
+	{
+		$subjects = array();
+		if(isset($this->{RDF::rdf . 'about'}))
+		{
+			foreach($this->{RDF::rdf . 'about'} as $u)
+			{
+				$subjects[] = $u;
+			}
+		}
+		if(isset($this->{RDF::rdf . 'ID'}))
+		{
+			foreach($this->{RDF::rdf . 'ID'} as $u)
+			{
+				$subjects[] = $u;
+			}
+		}
+		return $subjects;
+	}
+
+	/* Implemented in descendent classes; maps RDF predicate/object
+	 * pairs associated with this instance to traditional OOP
+	 * domain-specific properties. Invoked automatically after
+	 * deserialisation.
+	 */
+	public function transform()
+	{
+	}
+
+	/* Serialise this instance as Turtle */
 	public function asTurtle($doc)
 	{
 		$turtle = array();
@@ -621,7 +926,8 @@ class RDFGraph
 		$c = 0;
 		foreach($props as $name => $values)
 		{
-			if(substr($name, 0, 1) == '_') continue;
+			if(strpos($name, ':') === false) continue;
+			if(!is_array($values)) continue;
 			if($name == RDF::rdf . 'about')				
 			{
 				continue;
@@ -674,6 +980,53 @@ class RDFGraph
 		return $turtle;
 	}
 
+	/* Transform this instance into a native array which can itself be
+	 * serialised as JSON to result in RDF/JSON.
+	 */
+	public function asArray()
+	{
+		$array = array();
+		$props = get_object_vars($this);
+		foreach($props as $name => $values)
+		{
+			if(strpos($name, ':') === false) continue;
+			if(!is_array($values)) continue;
+			$array[$name] = array();
+			foreach($values as $v)
+			{
+				if($v instanceof RDFComplexLiteral)
+				{
+					$val = array('type' => 'literal', 'value' => $v->value);
+					if(isset($v->{RDF::rdf . 'type'}[0]))
+					{
+						$val['type'] = $v->{RDF::rdf . 'type'}[0];
+					}
+					if(isset($v->{XMLNS::xml . ' lang'}[0]))
+					{
+						$val['lang'] = $v->{XMLNS::xml . ' lang'}[0];
+					}
+					$array[$name][] = $val;
+				}
+				else if($v instanceof RDFInstance)
+				{
+					$array[$name][] = array('type' => 'node', 'value' => $v->asArray());
+				}
+				else if($v instanceof RDFURI)
+				{
+					$array[$name][] = array('type' => 'uri', 'value' => strval($v));
+				}
+				else
+				{
+					$array[$name][] = array('type' => 'literal', 'value' => strval($v));
+				}
+			}
+		}
+		return $array;
+	}
+
+	/* Transform this instance as a string or array of strings which represent
+	 * the instance as RDF/XML.
+	 */
 	public function asXML($doc)
 	{
 		if(!isset($this->{RDF::rdf . 'type'}))
@@ -704,8 +1057,8 @@ class RDFGraph
 		$c = 0;
 		foreach($props as $name => $values)
 		{
-			if(substr($name, 0, 1) == '_') continue;
-			if($name == RDF::rdf . 'about')				
+			if(strpos($name, ':') === false) continue;
+			if($name == RDF::rdf . 'about')
 			{
 				$values = $about;
 			}
@@ -725,14 +1078,21 @@ class RDFGraph
 				{
 					$rdf[] = '<' . $pname . ' rdf:resource="' . _e($v) . '" />';
 				}
-				else if($v instanceof RDFGraph)
+				else if($v instanceof RDFInstance)
 				{
-					$val = $v->asXML($doc);
-					if(is_array($val))
+					if($v->refcount > 1)
 					{
-						$val = implode("\n", $val);
+						$rdf[] = '<' . $pname . ' rdf:resource="' . _e($v->subject()) . '" />';
 					}
-					$rdf[] = $val;
+					else
+					{
+						$val = $v->asXML($doc);
+						if(is_array($val))
+						{
+							$val = implode("\n", $val);
+						}
+						$rdf[] = $val;
+					}
 				}
 				else if(is_object($v))
 				{
@@ -766,6 +1126,7 @@ class RDFGraph
 		return $rdf;
 	}
 
+	/* Deserialise this instance from an RDF/XML DOMElement  */
 	public function fromDOM($root, $doc)
 	{
 		$this->{'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'}[] = new RDFURI(XMLNS::fqname($root));
@@ -852,16 +1213,25 @@ class RDFGraph
 				else
 				{
 					$v = null;
-					if(isset(RDF::$ontologies[$node->namespaceURI]))
+					for($gnode = $node->firstChild; $gnode; $gnode = $gnode->nextSibling)
 					{
-						$v = call_user_func(array(RDF::$ontologies[$node->namespaceURI], 'rdfInstance'), $node->namespaceURI, $node->localName);
+						if(!($gnode instanceof DOMElement))
+						{
+							continue;
+						}
+						if(isset(RDF::$ontologies[$gnode->namespaceURI]))
+						{
+							$v = call_user_func(array(RDF::$ontologies[$gnode->namespaceURI], 'rdfInstance'), $gnode->namespaceURI, $gnode->localName);
+						}
+						if(!$v)
+						{
+							$v = new RDFInstance();
+						}
+						$v->fromDOM($gnode, $doc);
+						$v = $doc->merge($v);
+						$v->transform();
+						$this->{XMLNS::fqname($node)}[] = $v;
 					}
-					if(!$v)
-					{
-						$v = new RDFGraph();
-					}
-					$v->fromDOM($node, $doc);
-					$this->{XMLNS::fqname($node)}[] = $v;
 				}
 			}
 			else
@@ -890,35 +1260,29 @@ class RDFGraph
 				}
 				else
 				{
-					$v = new RDFGraph();
+					$v = new RDFInstance();
 					$v->fromDOM($node, $doc);
+					$v = $doc->merge($v);
 					$v->transform();
 				}
 				$this->{XMLNS::fqname($node)}[] = $v;
 			}
 		}
 	}
-	
-	public function subject()
-	{
-		if(null !== ($s = $this->first(RDF::rdf . 'about')))
-		{
-			return $s;
-		}
-		if(null !== ($s = $this->first(RDF::rdf . 'ID')))
-		{
-			return $s;
-		}
-	}
-
-	public function transform()
-	{
-	}
 }
 
 class RDFComplexLiteral
 {
 	public $value;
+
+	public static function literal($type = null, $value = null)
+	{
+		if(!strcmp($type, 'http://www.w3.org/2001/XMLSchema#dateTime'))
+		{
+			return new RDFDatetime($value);
+		}
+		return new RDFComplexLiteral($type, $value);
+	}
 
 	protected function setValue($value)
 	{
