@@ -500,17 +500,31 @@ class RDFDocument
 				$ns = substr($qname, 0, $p + 1);
 				$lname = substr($qname, $p + 1);
 			}
+			else if(false !== ($p = strrpos($qname, ' ')))
+			{
+				$ns = substr($qname, 0, $p);
+				$lname = substr($qname, $p + 1);
+			}
 			else if(false !== ($p = strrpos($qname, '/')))
 			{
 				$ns = substr($qname, 0, $p + 1);
 				$lname = substr($qname, $p + 1);
-			} 
+			}
 			else
 			{
 				return $qname;
 			}
+			if(!strcmp($ns, XMLNS::xml))
+			{
+				return 'xml:' . $lname;
+			}
+			if(!strcmp($ns, XMLNS::xmlns))
+			{
+				return 'xmlns:' . $lname;
+			}
 			if(!isset($this->namespaces[$ns]))
 			{
+				
 				if($generate)
 				{
 					$this->namespaces[$ns] = 'ns' . count($this->namespaces);
