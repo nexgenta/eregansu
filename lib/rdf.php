@@ -55,6 +55,7 @@ abstract class RDF extends XMLNS
 			return null;
 		}
 		$dom = dom_import_simplexml($xml);
+		$dom->substituteEntities = true;
 		if(!is_object($dom))
 		{
 			return null;
@@ -350,7 +351,6 @@ class RDFDocument
 				{
 					$this->subjects[$uri] = $subject;
 				}
-				$subject->refcount++;
 				return $subject;
 			}
 			if($pos !== null)
@@ -361,7 +361,6 @@ class RDFDocument
 			{
 				$this->subjects[] = $subject;
 			}
-			$subject->refcount++;
 			return $subject;
 		}
 		return null;
@@ -537,7 +536,6 @@ class RDFDocument
 		$turtle = array();
 		foreach($this->subjects as $g)
 		{
-			if($g->refcount < 2) continue;
 			$x = $g->asTurtle($this);
 			if(is_array($x))
 			{
@@ -626,7 +624,7 @@ class RDFDocument
 		$array = array();
 		foreach($this->subjects as $subj)
 		{
-			if($subj->refcount < 2) continue;
+			if(!$this->isKeySubject($subj)) continue;
 			$array[] = $subj->asArray();
 		}
 		return str_replace('\/', '/', json_encode($array));
@@ -652,8 +650,8 @@ class RDFDocument
 			}
 			$k = count($this->subjects);
 			$g->fromDOM($node, $this);
-			$g->refcount++;
 			$mg = $this->merge($g, $k);
+			$mg->refcount++;
 			$this->promote($g);
 			$g->transform();			
 		}
@@ -924,6 +922,21 @@ class RDFInstance
 	{
 	}
 
+	protected function turtleURI($doc, $v)
+	{
+		$v = strval($v instanceof RDFInstance ? $v->subject() : $v);
+		if($v[0] == '#')
+		{
+			return '_:' . substr($v, 1);
+		}
+		$vn = $doc->namespacedName($v, false);
+		if(!strcmp($vn, $v))
+		{
+			return '<' . $v . '>';
+		}
+		return $vn;
+	}
+	
 	/* Serialise this instance as Turtle */
 	public function asTurtle($doc)
 	{
@@ -932,7 +945,7 @@ class RDFInstance
 		if(count($about))
 		{
 			$first = array_shift($about);
-			$turtle[] = '<' . $first . '>';
+			$turtle[] = $this->turtleURI($doc, $first);
 		}
 		if(isset($this->{RDF::rdf . 'type'}))
 		{
@@ -949,9 +962,9 @@ class RDFInstance
 			$tlist = array();
 			foreach($about as $u)
 			{
-				$list[] = '<' . $u . '>';
+				$tlist[] = $this->turtleURI($doc, $u);
 			}
-			$turtle[] = "\t" . ' rdf:about ' . implode(' , ', $tlist) . ' ;';
+			$turtle[] = "\t" . 'rdf:about ' . implode(' , ', $tlist) . ' ;';
 		}
 		$props = get_object_vars($this);
 		$c = 0;
@@ -959,11 +972,7 @@ class RDFInstance
 		{
 			if(strpos($name, ':') === false) continue;
 			if(!is_array($values)) continue;
-			if($name == RDF::rdf . 'about')				
-			{
-				continue;
-			}
-			else if($name == RDF::rdf . 'type')
+			if(!strcmp($name, RDF::rdf . 'about') || !strcmp($name, RDF::rdf . 'ID') || !strcmp($name, RDF::rdf . 'type'))
 			{
 				continue;
 			}
@@ -971,7 +980,7 @@ class RDFInstance
 			{
 				continue;
 			}
-			$name = $doc->namespacedName($name);
+			$nname = $doc->namespacedName($name, false);
 			$vlist = array();
 			foreach($values as $v)
 			{
@@ -999,12 +1008,16 @@ class RDFInstance
 						$vlist[] = '"' . $v . '"' . $suffix;
 					}
 				}
-				else if($v instanceof RDFURI)
+				else if($v instanceof RDFURI || $v instanceof RDFInstance)
 				{
-					$vlist[] = '<' . $v . '>';
+					$vlist[] = $this->turtleURI($doc, $v);
 				}
 			}
-			$turtle[] = "\t" . $name . ' ' . implode(" ,\n\t\t", $vlist) . ' ;';
+			if(!strcmp($nname, $name))
+			{
+				$nname = '<' . $name . '>';
+			}
+			$turtle[] = "\t" . $nname . ' ' . implode(" ,\n\t\t", $vlist) . ' ;';
 		}
 		$last = array_pop($turtle);
 		$turtle[] = substr($last, 0, -1) . '.';
@@ -1328,6 +1341,7 @@ class RDFInstance
 						}
 						$v->fromDOM($gnode, $doc);
 						$v = $doc->merge($v);
+						$v->refcount++;
 						$v->transform();
 						$this->{XMLNS::fqname($node)}[] = $v;
 					}
@@ -1362,6 +1376,7 @@ class RDFInstance
 					$v = new RDFInstance();
 					$v->fromDOM($node, $doc);
 					$v = $doc->merge($v);
+					$v->refcount++;
 					$v->transform();
 				}
 				$this->{XMLNS::fqname($node)}[] = $v;
