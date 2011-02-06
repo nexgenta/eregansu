@@ -194,7 +194,7 @@ abstract class MIME
 		'html' => 'HTML',
 		'xhtml+xml' => 'HTML',
 		'rss+xml' => 'RSS',
-		'rdf+xml' => 'RDF',
+		'rdf+xml' => 'RDF/XML',
 		'atom+xml' => 'Atom',
 		'json' => 'JSON',
 		'x-yaml' => 'YAML',
