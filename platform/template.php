@@ -2,7 +2,7 @@
 
 /* Eregansu: Template engine
  *
- * Copyright 2009 Mo McRoberts.
+ * Copyright 2009-2011 Mo McRoberts.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -70,7 +70,11 @@ class Template
 	{
 		$this->vars = array_merge($vars, $this->vars);
 	}
-	
+
+	public function setArrayRef(&$vars)
+	{
+		$this->vars =& $vars;
+	}
 	
 	/* Reset the template variables to their initial values */
 	public function reset()
@@ -110,9 +114,116 @@ class Template
 		global $_EREGANSU_TEMPLATE;
 		
 		$__ot = !empty($_EREGANSU_TEMPLATE);
-		extract($this->vars);
+		extract($this->vars, EXTR_REFS);
 		$_EREGANSU_TEMPLATE = true;
 		require($this->path);
 		$_EREGANSU_TEMPLATE = $__ot;
+	}
+
+	/* Libraries */
+
+	public function useJQuery($version = '1.4.1')
+	{
+		$root = $this->request->root;
+		if(defined('SCRIPTS_IRI')) $root = SCRIPTS_IRI;
+		if(defined('SCRIPTS_USE_GAPI')) $root = 'http://ajax.googleapis.com/ajax/libs/';
+		$this->vars['scripts']['jquery'] = $root . 'jquery/' . $version . '/jquery.min.js';
+	}
+	
+	public function useGlitter($module)
+	{
+		$this->useJQuery();
+		$root = $this->request->root;
+		if(defined('SCRIPTS_IRI')) $root = SCRIPTS_IRI;
+		$this->vars['scripts']['glitter/' . $module] = $root . 'glitter/' . $module . '.js';
+	}
+	
+	public function useGlow($module = 'core', $version = '1.7.0')
+	{
+		static $hasScript = array(
+			'1.7.0' => array('core', 'widgets'),
+			'2.0.0b1' => array('core'),
+			);
+		static $hasCSS = array(
+			'1.7.0' => array('widgets'),
+			'2.0.0b1' => array('ui'),
+			);
+		static $isFlat = array('2.0.0b1');
+
+		$root = $this->request->root;
+		if(defined('SCRIPTS_IRI')) $root = SCRIPTS_IRI;
+		if($module != 'core' && !isset($this->vars['scripts']['glow-core']))
+		{
+			$this->useGlow('core', $version);
+		}
+		$flat = in_array($version, $isFlat);
+		if(isset($hasScript[$version]) && in_array($module, $hasScript[$version]))
+		{
+			if($flat)
+			{				
+				$this->vars['scripts']['glow-' . $module] = $root . 'glow/' . $version . '/' . ($module == 'core' ? 'glow' : $module) . '.js';
+			}
+			else
+			{
+				$this->vars['scripts']['glow-' . $module] = $root . 'glow/' . $version . '/' . $module . '/' . $module . '.js';
+			}
+		}
+		if(isset($hasCSS[$version]) && in_array($module, $hasCSS[$version]))
+		{
+			if($flat)
+			{
+				$path = $root . 'glow/' . $version . '/' . $module . '.css';
+			}
+			else
+			{
+				$path = $root . 'glow/' . $version . '/' . $module . '/' . $module . '.css';
+			}			
+			$this->vars['links']['glow-' . $module] = array(
+				'rel' => 'stylesheet',
+				'type' => 'text/css', 
+				'href' => $path,
+				'media' => 'screen');
+		}
+	}
+	
+	public function useChromaHash()
+	{
+		$this->useJQuery();
+		$root = $this->request->root;
+		if(defined('SCRIPTS_IRI')) $root = SCRIPTS_IRI;
+		$this->vars['scripts']['chroma-hash'] = $root . 'Chroma-Hash/chroma-hash.js';
+	}
+
+	/* Helpers which can be invoked by a template */
+
+	protected function title()
+	{
+		if(isset($this->vars['page_title']))
+		{
+			echo '<title>' . _e($this->vars['page_title']) . '</title>' . "\n";
+		}
+	}
+
+	protected function links()
+	{
+		if(!isset($this->vars['links'])) return;
+		foreach($this->vars['links'] as $link)
+		{
+			$h = array('<link');
+			foreach($link as $k => $v)
+			{
+				$h[] = $k . '="' . _e($v) . '"';
+			}
+			echo implode(' ', $h) . '>' . "\n";
+		}
+	}
+
+	protected function scripts()
+	{
+		if(!isset($this->vars['scripts'])) return;
+		foreach($this->vars['scripts'] as $script)
+		{
+			echo '<script src="' . _e($script) . '"></script>' . "\n";
+		}
 	}
 }

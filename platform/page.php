@@ -85,14 +85,14 @@ class Page extends Proxy
 				$skin = $this->request->app->skin;
 			}
 			$this->tpl = new Template($this->request, $templateName, $skin, $this->defaultSkin);
-			$this->vars = $this->request->data;
+			$this->vars = array_merge($this->request->data, $this->tpl->vars);
+			$this->vars['scripts'] =& $this->scripts;
+			$this->vars['links'] =& $this->links;
+			$this->tpl->setArrayRef($this->vars);
 			$this->assignTemplate();
 			$this->vars['page'] = $this;
-			$this->vars['scripts'] = $this->scripts;
-			$this->vars['links'] = $this->links;
 			$this->vars['objects'] = $this->objects;
 			$this->vars['object'] = $this->object;
-			$this->tpl->setArray($this->vars);
 			$this->tpl->process();
 			$this->tpl->reset();
 			$this->tpl = null;
@@ -166,46 +166,21 @@ class Page extends Proxy
 	/* Javascript libraries */
 	protected function useJQuery($version = '1.4.1')
 	{
-		$root = $this->request->root;
-		if(defined('SCRIPTS_IRI')) $root = SCRIPTS_IRI;
-		if(defined('SCRIPTS_USE_GAPI')) $root = 'http://ajax.googleapis.com/ajax/libs/';
-		$this->scripts['jquery'] = $root . 'jquery/' . $version . '/jquery.min.js';
+		$this->tpl->useJQuery($version);
 	}
 	
 	protected function useGlitter($module)
 	{
-		$this->useJQuery();
-		$root = $this->request->root;
-		if(defined('SCRIPTS_IRI')) $root = SCRIPTS_IRI;
-		$this->scripts['glitter/' . $module] = $root . 'glitter/' . $module . '.js';
+		$this->tpl->useGlitter($module);
 	}
 	
 	protected function useGlow($module = 'core', $version = '1.7.0')
 	{
-		static $hasCSS = array('1.7.0' => array('widgets' => true));
-
-		$root = $this->request->root;
-		if(defined('SCRIPTS_IRI')) $root = SCRIPTS_IRI;
-		if($module != 'core' && !isset($this->scripts['glow-core']))
-		{
-			$this->useGlow('core', $version);
-		}
-		$this->scripts['glow-' . $module] = $root . 'glow/' . $version . '/' . $module . '/' . $module . '.js';
-		if(!empty($hasCSS[$version][$module]))
-		{
-			$this->links['glow-' . $module] = array(
-				'rel' => 'stylesheet',
-				'type' => 'text/css', 
-				'href' => $root . 'glow/' . $version . '/' . $module . '/' . $module . '.css',
-				'media' => 'screen');
-		}
+		$this->tpl->useGlow($module, $version);
 	}
 	
 	protected function useChromaHash()
 	{
-		$this->useJQuery();
-		$root = $this->request->root;
-		if(defined('SCRIPTS_IRI')) $root = SCRIPTS_IRI;
-		$this->scripts['chroma-hash'] = $root . 'Chroma-Hash/chroma-hash.js';
+		$this->tpl->useChromaHash();
 	}
 }
