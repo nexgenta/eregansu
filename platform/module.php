@@ -60,6 +60,8 @@ abstract class Module extends Model
 	public $moduleId = null;
 	/* The SetupCli instance calling us */
 	protected $cli;
+	/* Can we have our own database (true), or always piggyback? (false) */
+	public $standalone = true;
 	
 	public static function getInstance($args = null)
 	{
@@ -84,7 +86,10 @@ abstract class Module extends Model
 		$this->dependencies();
 		if(!$this->db)
 		{
-			echo "Warning: skipping setup of " . $this->moduleId . " because it has no database\n";
+			if($this->standalone)
+			{
+				echo "Warning: skipping setup of " . $this->moduleId . " because it has no database\n";
+			}
 			return true;
 		}
 		$currentVersion = $this->db->schema->moduleVersion($this->moduleId);

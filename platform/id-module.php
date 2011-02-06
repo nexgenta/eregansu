@@ -6,7 +6,8 @@ class IdentityModule extends Module
 {
 	public $moduleId = 'com.nexgenta.eregansu.identity';
 	public $latestVersion = 0;
-	
+	public $standalone = false;
+
 	public static function getInstance($args = null)
 	{
 		if(!isset($args['class'])) $args['class'] = 'IdentityModule';

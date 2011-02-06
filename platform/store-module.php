@@ -39,7 +39,8 @@ class StoreModule extends Module
 	
 	public $moduleId = 'com.nexgenta.eregansu.store';
 	public $latestVersion = 4;
-	
+	public $standalone = false;
+
 	public static function getInstance($args = null)
 	{	
 		if(!isset($args['class'])) $args['class'] = 'StoreModule';
