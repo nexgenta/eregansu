@@ -322,7 +322,7 @@ class RDFDocument
 	/* Merge all of the assertions in $subject with those already in the
 	 * document.
 	 */
-	public function merge($subject)
+	public function merge($subject, $pos = null)
 	{
 		if($subject instanceof RDFInstance)
 		{
@@ -341,11 +341,26 @@ class RDFDocument
 		{
 			if(strlen($uri))
 			{
-				$this->subjects[$uri] = $subject;
+				if($pos !== null)
+				{
+					$rep = array($uri => $subject);
+					array_splice($this->subjects, $pos, 0, $rep);
+				}
+				else
+				{
+					$this->subjects[$uri] = $subject;
+				}
 				$subject->refcount++;
 				return $subject;
 			}
-			$this->subjects[] = $subject;
+			if($pos !== null)
+			{
+				array_splice($this->subjects, $pos, 0, array($subject));
+			}
+			else
+			{
+				$this->subjects[] = $subject;
+			}
 			$subject->refcount++;
 			return $subject;
 		}
@@ -476,7 +491,7 @@ class RDFDocument
 	}
 
 	/* Given a URI, generate a prefix:short form name */
-	public function namespacedName($qname)
+	public function namespacedName($qname, $generate = true)
 	{
 		$qname = strval($qname);
 		if(!isset($this->qnames[$qname]))
@@ -494,10 +509,21 @@ class RDFDocument
 			else
 			{
 				return $qname;
-			}			
+			}
 			if(!isset($this->namespaces[$ns]))
 			{
-				$this->namespaces[$ns] = 'ns' . count($this->namespaces);
+				if($generate)
+				{
+					$this->namespaces[$ns] = 'ns' . count($this->namespaces);
+				}
+				else
+				{
+					return $qname;
+				}
+			}
+			if(!strlen($lname))
+			{
+				return $qname;
 			}
 			$pname = $this->namespaces[$ns] . ':' . $lname;
 			$this->qnames[$qname] = $pname;
@@ -530,32 +556,51 @@ class RDFDocument
 		return $turtle;
 	}
 
+	protected function isKeySubject($i)
+	{
+		if($i instanceof RDFInstance)
+		{
+			if($i->refcount == 0 || $i->refcount > 1)
+			{
+				return true;
+			}
+			$i = $i->subjects();
+		}
+		if(!is_array($i))
+		{
+			$i = array($i);
+		}
+		foreach($i as $u)
+		{
+			if(in_array(strval($u), $this->keySubjects))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/* Return a nice of nicely-formatted HTML representing the document */
+	public function dump()
+	{
+		$result = array('<dl>');
+		foreach($this->subjects as $g)
+		{
+			$result[] = $g->dump($this);
+		}
+		$result[] = '</dl>';
+		return implode("\n", $result);
+	}
+
 	/* Serialise a document as RDF/XML */
 	public function asXML()
 	{
 		$xml = array();
 		foreach($this->subjects as $g)
 		{
-			$found = false;
-			if(!$g->refcount || $g->refcount > 2)
+			if(!$this->isKeySubject($g))
 			{
-				$found = true;
-			}
-			else				
-			{
-				$uris = $g->subjects();
-				foreach($uris as $u)
-				{
-					if(in_array(strval($u), $this->keySubjects))
-					{
-						$found = true;
-						break;
-					}
-				}
-			}
-			if(!$found)
-			{
-				break;
+				continue;
 			}
 			$x = $g->asXML($this);
 			if(is_array($x))
@@ -605,9 +650,10 @@ class RDFDocument
 			{
 				$g = new RDFInstance();
 			}
+			$k = count($this->subjects);
 			$g->fromDOM($node, $this);
 			$g->refcount++;
-			$g = $this->merge($g);
+			$mg = $this->merge($g, $k);
 			$this->promote($g);
 			$g->transform();			
 		}
@@ -727,6 +773,7 @@ class RDFSet implements Countable
 class RDFInstance
 {
 	public $refcount = 0;
+	protected $localId;
 
 	public function __construct($uri = null, $type = null)
 	{
@@ -738,6 +785,7 @@ class RDFInstance
 		{
 			$this->{RDF::rdf . 'type'}[] = new RDFURI($type);
 		}
+		$this->localId = new RDFURI('#' . uniqid());
 	}
 
 	/* An instance's "value" is the URI  of its subject */
@@ -777,6 +825,7 @@ class RDFInstance
 		$this->refcount += $source->refcount;
 		foreach($source as $prop => $values)
 		{
+			if(!is_array($values)) continue;
 			foreach($values as $value)
 			{
 				$match = false;
@@ -837,6 +886,7 @@ class RDFInstance
 		{
 			return $s;
 		}
+		return $this->localId;
 	}
 
 
@@ -858,6 +908,10 @@ class RDFInstance
 				$subjects[] = $u;
 			}
 		}
+		if(!count($subjects))
+		{
+			$subjects[] = $this->localId;
+		}
 		return $subjects;
 	}
 
@@ -874,22 +928,11 @@ class RDFInstance
 	public function asTurtle($doc)
 	{
 		$turtle = array();
-		if(isset($this->{RDF::rdf . 'about'}))
-		{
-			$about = $this->{RDF::rdf . 'about'};
-		}
-		else
-		{
-			$about = array();
-		}
+		$about = $this->subjects();
 		if(count($about))
 		{
 			$first = array_shift($about);
 			$turtle[] = '<' . $first . '>';
-		}
-		else
-		{
-			$turtle[] = '_:anonymous';
 		}
 		if(isset($this->{RDF::rdf . 'type'}))
 		{
@@ -941,9 +984,9 @@ class RDFInstance
 						{
 							$suffix = '^^' . $doc->namespacedName($v->{RDF::rdf . 'datatype'}[0]);
 						}
-						else if(isset($v->{XML::xml . ' lang'}) && count($v->{XML::xml . ' lang'}))
+						else if(isset($v->{XMLNS::xml . ' lang'}) && count($v->{XMLNS::xml . ' lang'}))
 						{
-							$suffix = '@' . $v->{XML::xml . ' lang'}[0];
+							$suffix = '@' . $v->{XMLNS::xml . ' lang'}[0];
 						}
 						$v = strval($v);
 					}
@@ -1113,6 +1156,74 @@ class RDFInstance
 		$rdf[] = '</' . $primaryType . '>';
 		return $rdf;
 	}
+
+	protected function dumpuri($doc, $uri, $spo)
+	{
+		$uri = strval($uri);
+		if($spo == 1 && !strcmp($uri, RDF::rdf . 'type'))
+		{
+			return 'a';
+		}
+		if($uri[0] == '#')
+		{
+			return '_:' . substr($uri, 1);
+		}
+		if($doc)
+		{
+			return $doc->namespacedName($uri, false);
+		}
+		return $uri;
+	}
+
+	/* Output style shamelessly stolen from Graphite */
+	public function dump($doc = null)
+	{
+		$result = array();
+		if(!$doc) $result[] = '<dl>';
+		$subj = $this->subject();
+		$result[] = '<dt><a class="subject" href="' . _e($subj) . '" style="color: #aa00aa;">' . _e($this->dumpuri($doc, $subj, 0)) . '</a></dt>';
+		$props = get_object_vars($this);
+		foreach($props as $name => $values)
+		{
+			if(strpos($name, ':') === false) continue;
+			if(!strcmp($name, RDF::rdf . 'about') || !strcmp($name, RDF::rdf . 'ID'))
+			{
+				if(!strcmp($values[0], $subj))
+				{
+					array_shift($values);
+				}
+			}
+			if(!strcmp($name, RDF::rdf . 'type'))
+			{
+				if(!strcmp($values[0], RDF::rdf . 'Description'))
+				{
+					array_shift($values);
+				}
+			}
+			if(!is_array($values) || !count($values)) continue;
+			$result[] = '<dd>→ <a class="prop" style="color: #0000aa;" href="' . _e($name). '">' . _e($this->dumpuri($doc, $name, 1)) . '</a> → ';
+			$vl = array();
+			foreach($values as $val)
+			{
+				if($val instanceof RDFURI)
+				{
+					$vl[] = '<a class="uri" style="color: #aa0000;" href="' . _e($val) . '">' . _e($this->dumpuri($doc, $val, 2)) . '</a>';
+				}
+				else if($val instanceof RDFInstance)
+				{
+					$v = $val->subject();
+					$vl[] = '<a class="uri" style="color: #aa0000;" href="' . _e($v) . '">' . _e($this->dumpuri($doc, $v, 2)) . '</a>';
+				}
+				else
+				{
+					$vl[] = '"<span class="literal" style="color: #00aa00;">' . _e($val) . '</span>"';
+				}
+			}
+			$result[] = implode(', ', $vl) . '</dd>';
+		}
+		if(!$doc) $result[] = '</dl>';
+		return implode("\n", $result);
+	}		
 
 	/* Deserialise this instance from an RDF/XML DOMElement  */
 	public function fromDOM($root, $doc)
