@@ -1087,11 +1087,18 @@ class RDFInstance
 	 */
 	public function asXML($doc)
 	{
-		if(!isset($this->{RDF::rdf . 'type'}))
-		{
-			return null;
+		if(isset($this->{RDF::rdf . 'type'}))
+		{			
+			$types = $this->{RDF::rdf . 'type'};
 		}
-		$types = $this->{RDF::rdf . 'type'};
+		else
+		{
+			$types = array();
+		}
+		if(!count($types))
+		{
+			$types[] = RDF::rdf . 'Description';
+		}
 		$primaryType = $doc->namespacedName(array_shift($types));
 		if(isset($this->{RDF::rdf . 'about'}))
 		{
