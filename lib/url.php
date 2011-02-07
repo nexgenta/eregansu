@@ -115,7 +115,7 @@ class URL
 
 	public function __toString()
 	{
-		if($this->scheme == 'urn' || $this->scheme == 'tag' || $this->scheme == 'javascript' || $this->scheme == 'about' || $this->scheme == 'wysiwyg' || $this->scheme == 'view-source')
+		if($this->scheme == 'urn' || $this->scheme == 'tag' || $this->scheme == 'javascript' || $this->scheme == 'about' || $this->scheme == 'wysiwyg' || $this->scheme == 'view-source' || $this->scheme == 'mailto')
 		{
 			return $this->scheme . ':' . $this->path;
 		}
