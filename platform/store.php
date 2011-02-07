@@ -701,6 +701,20 @@ class Store extends Model
 		return null;
 	}
 	
+	public function object($query)
+	{
+		if(($rs = $this->query($query)))
+		{
+			return $rs->next();
+		}
+		return null;
+	}
+	
+	public function objectForIri($iri)
+	{
+		return $this->object(array('iri' => $iri));
+	}
+	
 	public function updateObjectWithUUID($uuid)
 	{
 		if(!($row = $this->db->row('SELECT * FROM {' . $this->objects . '} WHERE "uuid" = ?', $uuid)))
