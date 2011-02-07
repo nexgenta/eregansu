@@ -55,6 +55,7 @@ class RDFStoredObject extends RDFInstance
 		}
 		foreach($data as $k => $v)
 		{
+			if(!strlen($k)) continue;
 			if(!strcmp($k, 'refcount')) continue;
 			if(is_array($v))
 			{
@@ -65,7 +66,14 @@ class RDFStoredObject extends RDFInstance
 						switch($s['type'])
 						{
 						case 'uri':
-							$v[$pk] = new RDFURI($s['value']);
+							if(isset($s['value']) && is_string($s['value']))
+							{
+								$v[$pk] = new RDFURI($s['value']);
+							}
+							else
+							{
+								unset($v[$pk]);
+							}
 							break;
 						case 'literal':
 							if(isset($s['lang']) || isset($s['datatype']))
@@ -73,7 +81,7 @@ class RDFStoredObject extends RDFInstance
 								$l = RDFComplexLiteral::literal(isset($s['datatype']) ? $s['datatype'] : null, $s['value']);
 								if(isset($s['lang']))
 								{
-									$l[RDF::xml . ' lang'] = $s['lang'];
+									$l->{RDF::xml . ' lang'}[] = $s['lang'];
 								}
 								$v[$pk] = $l;
 							}
@@ -89,14 +97,22 @@ class RDFStoredObject extends RDFInstance
 							}
 							$v[$pk] = new RDFURI($s['value']);
 							break;
+						case 'node':
+							$v[$pk] = new RDFStoredObject($s['value']);
+							break;
 						default:
-//							echo '<pre>'; print_r($data); echo '</pre>';
+							/* XXX this should go away */
+							if(isset($s['value']))
+							{
+								$v[$pk] = $s['value'];
+							}
+//							echo '<pre>'; print_r($v); echo '</pre>';
 //							throw new Exception('unhandled RDF/JSON type ' . $s['type']);
 						}
 					}
 				}
 			}
-			$this->$k = $v;
+			$this->{$k} = $v;
 		}
 	}	
 }
