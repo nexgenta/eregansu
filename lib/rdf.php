@@ -36,7 +36,9 @@ abstract class RDF extends XMLNS
 
 	/* Registered ontology handlers */
 	public static $ontologies = array();
-
+	/* Registered namespaces */
+	public static $namespaces = array();
+	
 	/* Create a new RDFDocument given an RDF/XML DOMElement */
 	public static function documentFromDOM($dom, $location = null)
 	{
@@ -235,6 +237,41 @@ abstract class RDF extends XMLNS
 		$contentType = $c[0];	
 		return strval($buf);
 	}
+
+	public static function ns($uri = null, $suggestedPrefix = null, $overwrite = false)
+	{
+		if(!count(self::$namespaces))
+		{
+			self::$namespaces = array();
+			self::$namespaces[RDF::rdf] = 'rdf';
+			self::$namespaces[RDF::rdfs] = 'rdfs';
+			self::$namespaces[RDF::owl] = 'owl';
+			self::$namespaces[RDF::foaf] = 'foaf';
+			self::$namespaces[RDF::skos] = 'skos';
+			self::$namespaces[RDF::time] = 'time';
+			self::$namespaces[RDF::dc] = 'dc';
+			self::$namespaces[RDF::dcterms] = 'dct';
+			self::$namespaces[RDF::rdfg] = 'rdfg';
+		}
+		if(strlen($uri))
+		{
+			if(strlen($suggestedPrefix) && ($overwrite || !isset(self::$namespaces[$uri])))
+			{
+				self::$namespaces[$uri] = $suggestedPrefix;
+			}
+			return isset(self::$namespaces[$uri]) ? self::$namespaces[$uri] : null;
+		}
+		if(strlen($suggestedPrefix))
+		{
+			$r = array_search($suggestPrefix, self::$namespaces);
+			if($r !== false)
+			{
+				return $r;
+			}
+		}
+		return null;
+	}
+
 }
 
 /**
@@ -254,15 +291,6 @@ class RDFDocument
 	{
 		$this->fileURI = $fileURI;
 		$this->primaryTopic = $primaryTopic;
-		$this->namespaces[RDF::rdf] = 'rdf';
-		$this->namespaces[RDF::rdfs] = 'rdfs';
-		$this->namespaces[RDF::owl] = 'owl';
-		$this->namespaces[RDF::foaf] = 'foaf';
-		$this->namespaces[RDF::skos] = 'skos';
-		$this->namespaces[RDF::time] = 'time';
-		$this->namespaces[RDF::dc] = 'dc';
-		$this->namespaces[RDF::dcterms] = 'dct';
-		$this->namespaces[RDF::rdfg] = 'rdfg';
 	}
 
 	/* Promote a subject to the root of the document; in RDF/XML this
@@ -480,7 +508,7 @@ class RDFDocument
 	}
 
 	/* Explicitly register a namespace with a given prefix */
-	public function namespace($uri, $suggestedPrefix)
+	public function ns($uri, $suggestedPrefix)
 	{
 		if(!isset($this->namespaces[$uri]))
 		{
@@ -492,6 +520,7 @@ class RDFDocument
 	/* Given a URI, generate a prefix:short form name */
 	public function namespacedName($qname, $generate = true)
 	{
+		RDF::ns();
 		$qname = strval($qname);
 		if(!isset($this->qnames[$qname]))
 		{
@@ -524,8 +553,11 @@ class RDFDocument
 			}
 			if(!isset($this->namespaces[$ns]))
 			{
-				
-				if($generate)
+				if(isset(RDF::$namespaces[$ns]))
+				{
+					$this->namespaces[$ns] = RDF::$namespaces[$ns];
+				}
+				else if($generate)
 				{
 					$this->namespaces[$ns] = 'ns' . count($this->namespaces);
 				}
@@ -1151,12 +1183,14 @@ class RDFInstance
 					}
 					else
 					{
+						$rdf[] = '<' . $pname . '>';
 						$val = $v->asXML($doc);
 						if(is_array($val))
 						{
 							$val = implode("\n", $val);
 						}
 						$rdf[] = $val;
+						$rdf[] = '</' . $pname . '>';
 					}
 				}
 				else if(is_object($v))
