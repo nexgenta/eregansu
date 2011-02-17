@@ -138,6 +138,9 @@ class Error implements IRequestProcessor
 		{
 			@header('Content-type: text/plain');			
 			echo $title . " (" . $this->status . ")\n\n";
+			/* On the command-line, we don't have to worry quite so much about who
+			 * we the detailed information to.
+			 */
 			if($this->detail)
 			{
 				echo $this->detail . "\n";
@@ -201,6 +204,10 @@ class Error implements IRequestProcessor
 		ob_start();
 		if(defined('EREGANSU_DEBUG') && EREGANSU_DEBUG)
 		{
+			if(strlen($this->detail))
+			{
+				echo '<pre>' . _e($this->detail) . '</pre>';
+			}
 			echo "\t\t" . '<hr />' . "\n";
 			$backtrace = debug_backtrace();
 			echo "\t\t" . '<h2>Backtrace:</h2>' . "\n";
