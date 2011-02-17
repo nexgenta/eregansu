@@ -28,7 +28,7 @@ abstract class RDF extends XMLNS
 	const skos = 'http://www.w3.org/2008/05/skos#';
 	const time = 'http://www.w3.org/2006/time#';
 	const rdfg = 'http://www.w3.org/2004/03/trix/rdfg-1/';
-
+	const event = 'http://purl.org/NET/c4dm/event.owl#';
 	const frbr = 'http://purl.org/vocab/frbr/core#';
 	const mo = 'http://purl.org/ontology/mo/';
 	const theatre = 'http://purl.org/theatre#';
@@ -38,7 +38,9 @@ abstract class RDF extends XMLNS
 	public static $ontologies = array();
 	/* Registered namespaces */
 	public static $namespaces = array();
-	
+	/* Preferred languages */
+	public static $langs = array('en');
+
 	/* Create a new RDFDocument given an RDF/XML DOMElement */
 	public static function documentFromDOM($dom, $location = null)
 	{
@@ -272,6 +274,42 @@ abstract class RDF extends XMLNS
 		return null;
 	}
 
+	public static function instanceForClass($classUri, $lname = null)
+	{
+		if(strlen($lname))
+		{
+			$ns = strval($classUri);
+		}
+		else
+		{
+			$qname = strval($classUri);
+			if(false !== ($p = strrpos($qname, '#')))
+			{
+				$ns = substr($qname, 0, $p + 1);
+				$lname = substr($qname, $p + 1);
+			}
+			else if(false !== ($p = strrpos($qname, ' ')))
+			{
+				$ns = substr($qname, 0, $p);
+				$lname = substr($qname, $p + 1);
+			}
+			else if(false !== ($p = strrpos($qname, '/')))
+			{
+				$ns = substr($qname, 0, $p + 1);
+				$lname = substr($qname, $p + 1);
+			}
+			else
+			{
+				return null;
+			}
+		}
+		if(isset(self::$ontologies[$ns]))
+		{
+			$className = self::$ontologies[$ns];
+			return $className::rdfInstance($ns, $lname);
+		}
+		return null;
+	}
 }
 
 /**
@@ -738,7 +776,55 @@ class RDFSet implements Countable
 	{
 		return $this->join(', ');
 	}
+
+	/* Add one or more arrays-of-properties to the set. Call as, e.g.:
+	 *
+	 * $set->add($inst->{RDF::dc.'title'}, $inst->{RDF::rdfs.'label'});
+	 *
+	 * Any of the property arrays passed may already be an RDFSet instance, so that
+	 * you can do:
+	 *
+	 * $foo = $k->all(array(RDF::dc.'title', RDF::rdfs.'label'));
+	 * $set->add($foo); 
+	 */
+	public function add($property)
+	{
+		$props = func_get_args();
+		foreach($props as $list)
+		{
+			if($list instanceof RDFSet)
+			{
+				$list = $list->values;
+			}
+			foreach($list as $value)
+			{
+				$this->values[] = $value;
+			}
+		}
+	}
 	
+	/* Add the named properties from one or more instances to the set. As with
+	 * RDFInstance::all(), $keys may be an array. Multiple instances may be
+	 * supplied, either as additional arguments, or as array arguments, or
+	 * both.
+	 */
+	public function addInstance($keys, $instance)
+	{
+		$instances = func_get_args();
+		array_shift($instances);
+		foreach($instances as $list)
+		{
+			if(!is_array($list))
+			{
+				$list = array($list);
+			}
+			foreach($list as $instance)
+			{
+				$this->add($instance->all($keys));
+			}
+		}
+	}
+
 	/* Return the first value in the set */
 	public function first()
 	{
@@ -773,8 +859,12 @@ class RDFSet implements Countable
 	 * $langs may be an array of languages, or a comma- or space-
 	 * separated list in a string.
 	 */
-	public function lang($langs, $fallbackFirst = false)
+	public function lang($langs = null, $fallbackFirst = false)
 	{
+		if($langs === null)
+		{
+			$langs = RDF::$langs;
+		}
 		if(!is_array($langs))
 		{
 			$langs = explode(',', str_replace(' ', ',', $lang));
@@ -906,9 +996,21 @@ class RDFInstance
 	/* Return the values of a given predicate */
 	public function all($key, $nullOnEmpty = false)
 	{
-		if(isset($this->{$key}))
+		if(!is_array($key)) $key = array($key);
+		$values = array();
+		foreach($key as $k)
 		{
-			return new RDFSet($this->{$key});
+			if(isset($this->{$k}))
+			{
+				foreach($this->{$k} as $value)
+				{
+					$values[] = $value;
+				}
+			}
+		}
+		if(count($values))
+		{
+			return new RDFSet($values);
 		}
 		if($nullOnEmpty)
 		{
@@ -916,6 +1018,17 @@ class RDFInstance
 		}
 		return new RDFSet();
 	}
+
+	/* Equivalent to ->all($key, false)->lang($langs, $fallbackFirst) */
+	public function lang($key, $langs = null, $fallbackFirst = true)
+	{
+		return $this->all($key, false)->lang($langs, $fallbackFirst);
+	}
+
+	public function title($langs, $fallbackFirst = true)
+	{
+		return $this->lang(array(RDF::rdfs.'label', RDF::dc.'title'), $langs, $fallbackFirst);
+	}   	
 
 	/* Return the first URI this instance claims to have
 	 * as a subject.
