@@ -43,15 +43,33 @@ class RDFStoredObject extends RDFInstance
 		{
 			self::$models[$className] = $model;
 		}
-		return new $className($data);
+		$inst = null;
+		if(isset($data[RDF::rdf.'type']))
+		{
+			foreach($data[RDF::rdf.'type'] as $type)
+			{
+				if(isset($type['type']) && $type['type'] == 'uri' && isset($type['value']))
+				{
+					if(($inst = RDF::instanceForClass($type['value'])))
+					{
+						break;
+					}
+				}
+			}
+		}
+		if(!$inst)
+		{
+			$inst = new $className();
+		}
+		self::applyProperties($inst, $data, $model);
+		return $inst;
 	}
 
-	public function __construct($data)
+	protected static function applyProperties($inst, $data, $model)
 	{
-		parent::__construct();
 		if(!is_arrayish($data))
 		{
-			throw new Exception(gettype($data) . ' passed to TroveObject::__construct(), array expected');
+			throw new Exception(gettype($data) . ' passed to RDFStoreObject::objectForData(), array expected');
 		}
 		foreach($data as $k => $v)
 		{
@@ -98,7 +116,7 @@ class RDFStoredObject extends RDFInstance
 							$v[$pk] = new RDFURI($s['value']);
 							break;
 						case 'node':
-							$v[$pk] = new RDFStoredObject($s['value']);
+							$v[$pk] = RDFStoredObject::objectForData($s['value'], $model);
 							break;
 						default:
 							/* XXX this should go away */
@@ -112,7 +130,7 @@ class RDFStoredObject extends RDFInstance
 					}
 				}
 			}
-			$this->{$k} = $v;
+			$inst->{$k} = $v;
 		}
-	}	
+	}
 }
