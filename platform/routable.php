@@ -276,7 +276,7 @@ class Router extends Routable
 		
 		if(!is_array($route))
 		{
-			return $this->error(Error::NOT_IMPLEMENTED, $req);		
+			return $this->error(Error::NOT_IMPLEMENTED, $req, null, 'The route data for this key is not an array');
 		}
 		if(!empty($route['adjustBase']) || !empty($route['adjustModuleBase']))
 		{
@@ -289,6 +289,7 @@ class Router extends Routable
 				$MODULE_ROOT .= $route['key'] . '/';
 			}
 		}
+		$f = null;
 		if(isset($route['file']))
 		{
 			$f = $route['file'];
@@ -311,20 +312,19 @@ class Router extends Routable
 		}
 		if(!isset($route['class']) || !class_exists($route['class']))
 		{
-			$req->err('Class ' . $route['class'] . ' is not implemented in ' . get_class($this) . "\n");
-			return $this->error(Error::NOT_IMPLEMENTED, $req);
+			return $this->error(Error::NOT_IMPLEMENTED, $req, null, 'Class ' . $route['class'] . ' is not implemented in ' . (isset($f) ? $f : " current context"));
 		}
 		$target = new $route['class']();
 		if(!$target instanceof IRequestProcessor)
 		{
-			return $this->error(Error::ROUTE_NOT_PROCESSOR, $req);
+			return $this->error(Error::ROUTE_NOT_PROCESSOR, $req, null, 'Class ' . $route['class'] . ' is not an instance of IRequestProcessor');
 		}
 		return $target;		
 	}
 	
 	protected function unmatched(Request $req)
 	{
-		return $this->error(Error::ROUTE_NOT_MATCHED, $req);	
+		return $this->error(Error::ROUTE_NOT_MATCHED, $req, null, 'No suitable route could be located for the specified path');
 	}
 }
 
@@ -501,8 +501,7 @@ class Proxy extends Router
 		if(!in_array($method, $this->supportedMethods))
 		{
 			$req->method = $method;
-			$req->err('Method ' . $method . ' is not supported by ' . get_class($this) . "\n");
-			return $this->error(Error::METHOD_NOT_ALLOWED);
+			return $this->error(Error::METHOD_NOT_ALLOWED, $req, null, 'Method ' . $method . ' is not supported by ' . get_class($this));
 		}
 		$type = null;
 		foreach($req->types as $atype)
@@ -526,7 +525,7 @@ class Proxy extends Router
 		}
 		if($type == null)
 		{
-			return $this->error(Error::TYPE_NOT_SUPPORTED);
+			return $this->error(Error::TYPE_NOT_SUPPORTED, $req, null, "None of the requested MIME types matched the route instance's list of supported types");
 		}
 		if(self::$willPerformMethod)
 		{
@@ -544,8 +543,7 @@ class Proxy extends Router
 		$methodName = 'perform_' . preg_replace('/[^A-Za-z0-9_]+/', '_', $method);
 		if(!method_exists($this, $methodName))
 		{
-			$req->err('Method ' . $methodName . ' is not implemented by ' . get_class($this) . "\n");
-			return $this->error(Error::METHOD_NOT_IMPLEMENTED);
+			return $this->error(Error::METHOD_NOT_IMPLEMENTED, $req, null, 'Method ' . $methodName . ' is not implemented by ' . get_class($this));
 		}
 		$r = $this->$methodName($type);
 		if($r && !in_array($method, $this->noFallThroughMethods))
@@ -648,7 +646,7 @@ class Proxy extends Router
 
 	protected function perform_POST($type)
 	{
-		return $this->error(Error::UNSUPPORTED_MEDIA_TYPE);
+		return $this->error(Error::UNSUPPORTED_MEDIA_TYPE, null, null, get_class($this) . '::perform_POST() cannot handle this request');
 	}
 
 	protected function perform_PUT($type)
@@ -664,13 +662,13 @@ class Proxy extends Router
 					$data = @json_decode($data, true);
 					if($data == null)
 					{
-						return $this->error(Error::BAD_REQUEST);
+						return $this->error(Error::BAD_REQUEST, null, null, 'Failed to unserialise the JSON blob');
 					}
 					return $this->putObject($data);
 				}
-				return $this->error(Error::BAD_REQUEST);
+				return $this->error(Error::BAD_REQUEST, null, null, 'An PUT was attempted but there was no request body');
 		}
-		return $this->error(Error::UNSUPPORTED_MEDIA_TYPE);
+		return $this->error(Error::UNSUPPORTED_MEDIA_TYPE, null, null, $this->request->contentType . ' is not supported by ' . get_class($this) . '::perform_PUT()');
 	}
 	
 	protected function perform_DELETE($type)
