@@ -709,7 +709,8 @@ class RDFDocument
 		foreach($this->subjects as $subj)
 		{
 			if(!$this->isKeySubject($subj)) continue;
-			$array[] = $subj->asArray();
+			$x = $subj->asArray();
+			$array[] = $x['value'];
 		}
 		return str_replace('\/', '/', json_encode($array));
 	}
@@ -801,6 +802,43 @@ class RDFSet implements Countable
 				$this->values[] = $value;
 			}
 		}
+	}
+
+	/* Return all of the values as an array */
+	public function values($stringify = false)
+	{
+		return $this->values;
+	}
+
+	/* Return all of the values as an array of strings */
+	public function strings()
+	{
+		$list = array();
+		foreach($this->values as $v)
+		{
+			$list[] = strval($v);
+		}
+		return $list;
+	}
+
+	/* Return all of the values which are URIs (or instances) as an array
+	 * of RDFURI instances
+	 */
+	public function uris()
+	{
+		$list = array();
+		foreach($this->values as $v)
+		{
+			if($v instanceof RDFURI)
+			{
+				$list[] = $v;
+			}
+			else if($v instanceof RDFInstance)
+			{
+				$list[] = $v->subject();
+			}
+		}
+		return $list;
 	}
 	
 	/* Add the named properties from one or more instances to the set. As with
@@ -900,6 +938,37 @@ class RDFSet implements Countable
 	}
 }
 
+/* A triple: a subject, a predicate, and an object. The object may be an
+ * instance, but the subject and predicate are always URIs.
+ */
+
+class RDFTriple
+{
+	public $subject;
+	public $predicate;
+	public $object;
+
+	public function __construct($subject, $predicate, $object)
+	{
+		$this->subject = $this->coerce($subject);
+		$this->predicate = $this->coerce($predicate);
+		$this->object = $object;
+	}
+	
+	protected function coerce($thing)
+	{
+		if($thing instanceof RDFURI)
+		{
+			return $thing;
+		}
+		if($thing instanceof RDFInstance)
+		{
+			return $thing->subject();
+		}
+		return new RDFURI(strval($thing));
+	}
+}
+
 /* An RDF instance: an object representing a subject, where predicates are
  * properties, and objects are property values. Every property is a stringified
  * URI, and its native value is an indexed array.
@@ -986,7 +1055,7 @@ class RDFInstance
 	/* Return the first value for the given predicate */
 	public function first($key)
 	{
-		if(isset($this->{$key}))
+		if(isset($this->{$key}) && count($this->{$key}))
 		{
 			return $this->{$key}[0];
 		}
@@ -1025,7 +1094,7 @@ class RDFInstance
 		return $this->all($key, false)->lang($langs, $fallbackFirst);
 	}
 
-	public function title($langs, $fallbackFirst = true)
+	public function title($langs = null, $fallbackFirst = true)
 	{
 		return $this->lang(array(RDF::rdfs.'label', RDF::dc.'title'), $langs, $fallbackFirst);
 	}   	
@@ -1197,26 +1266,9 @@ class RDFInstance
 			$array[$name] = array();
 			foreach($values as $v)
 			{
-				if($v instanceof RDFComplexLiteral)
+				if(is_object($v))
 				{
-					$val = array('type' => 'literal', 'value' => $v->value);
-					if(isset($v->{RDF::rdf . 'type'}[0]))
-					{
-						$val['type'] = $v->{RDF::rdf . 'type'}[0];
-					}
-					if(isset($v->{XMLNS::xml . ' lang'}[0]))
-					{
-						$val['lang'] = $v->{XMLNS::xml . ' lang'}[0];
-					}
-					$array[$name][] = $val;
-				}
-				else if($v instanceof RDFInstance)
-				{
-					$array[$name][] = array('type' => 'node', 'value' => $v->asArray());
-				}
-				else if($v instanceof RDFURI)
-				{
-					$array[$name][] = array('type' => 'uri', 'value' => strval($v));
+					$array[$name][] = $v->asArray();
 				}
 				else
 				{
@@ -1224,7 +1276,7 @@ class RDFInstance
 				}
 			}
 		}
-		return $array;
+		return array('type' => 'node', 'value' => $array);
 	}
 
 	/* Transform this instance as a string or array of strings which represent
@@ -1583,6 +1635,20 @@ class RDFComplexLiteral
 		}
 	}
 
+	public function asArray()
+	{
+		$val = array('type' => 'literal', 'value' => $this->value);
+		if(isset($this->{RDF::rdf . 'type'}[0]))
+		{
+			$val['type'] = $this->{RDF::rdf . 'type'}[0];
+		}
+		if(isset($this->{XMLNS::xml . ' lang'}[0]))
+		{
+			$val['lang'] = $this->{XMLNS::xml . ' lang'}[0];
+		}
+		return $val;
+	}
+
 	public function fromDOM($node, $doc)
 	{
 		foreach($node->attributes as $attr)
@@ -1609,6 +1675,11 @@ class RDFURI extends URL
 	public function __toString()
 	{
 		return $this->value;
+	}
+
+	public function asArray()
+	{
+		return array('type' => 'uri', 'value' => $this->value);
 	}
 }
 
