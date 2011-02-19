@@ -101,6 +101,7 @@ class Page extends Proxy
 		$this->vars['site_root'] = $this->request->root;
 		$this->vars['uri'] = $this->request->uri;
 		$this->vars['pageUri'] = $this->request->pageUri;
+		$this->vars['proxyUri'] = $this->proxyUri;
 		$this->vars['request'] = $this->request;
 		$this->vars['session'] = $this->session;
 		$this->vars['crumb'] =& $this->request->crumb;
