@@ -478,6 +478,7 @@ class Proxy extends Router
 	public static $willPerformMethod;
 
 	public $request;
+	public $proxyUri;
 	protected $supportedTypes = array();
 	protected $supportedMethods = array('GET','HEAD');
 	protected $noFallThroughMethods = array('GET', 'HEAD', '__CLI__', '__MQ__');
@@ -487,6 +488,7 @@ class Proxy extends Router
 	protected function unmatched(Request $req)
 	{
 		$this->request = $req;
+		$this->proxyUri = $this->request->pageUri;
 		$method = $req->method;
 		if($req->method == 'POST' && isset($req->postData['__method']))
 		{
