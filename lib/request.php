@@ -65,7 +65,7 @@ abstract class Request
 	public $backRef = null; /**< A reference to the last-but-one entry in the $crumb array */
 	public $lastRef = null; /**< A reference to the last entry in the $crumb array */
 	public $stderr;
-	
+	public $explicitSuffix = null; /**< The suffix supplied in the URI, if any (e.g., '.html') */
 	public $sessionInitialised; /**< A <a href="http://www.php.net/callback">callback</a> which if specified is invoked when the \P{$session} associated with the request is initialised. */
 	
 	protected $session;
@@ -201,6 +201,7 @@ abstract class Request
 		}
 		if($ext !== null)
 		{
+			$this->explicitSuffix = '.' . $ext;
 			if(isset($this->typeMap[$ext]))
 			{
 				if(is_array($this->typeMap[$ext]))
