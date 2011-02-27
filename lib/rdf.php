@@ -30,6 +30,8 @@ abstract class RDF extends XMLNS
 	const rdfg = 'http://www.w3.org/2004/03/trix/rdfg-1/';
 	const event = 'http://purl.org/NET/c4dm/event.owl#';
 	const frbr = 'http://purl.org/vocab/frbr/core#';
+	const dcmi = 'http://purl.org/dc/dcmitype/';
+	const geo = 'http://www.w3.org/2003/01/geo/wgs84_pos#';
 	const mo = 'http://purl.org/ontology/mo/';
 	const theatre = 'http://purl.org/theatre#';
 	const participation = 'http://purl.org/vocab/participation/schema#';
@@ -254,6 +256,10 @@ abstract class RDF extends XMLNS
 			self::$namespaces[RDF::dc] = 'dc';
 			self::$namespaces[RDF::dcterms] = 'dct';
 			self::$namespaces[RDF::rdfg] = 'rdfg';
+			self::$namespaces[RDF::geo] = 'geo';
+			self::$namespaces[RDF::frbr] = 'frbr';
+			self::$namespaces[RDF::xhtml] = 'xhtml';
+			self::$namespaces[RDF::xhtml . '/vocab#'] = 'xhv';
 		}
 		if(strlen($uri))
 		{
@@ -759,6 +765,25 @@ class RDFSet implements Countable
 {
 	protected $values = array();
 	
+	public static function setFromInstances($keys, $instances /* ... */)
+	{
+		$set = new RDFSet();
+		$instances = func_get_args();
+		array_shift($instances);
+		foreach($instances as $list)
+		{
+			if(!is_array($list))
+			{
+				$list = array($list);
+			}
+			foreach($list as $instance)
+			{
+				$set->add($instance->all($keys));
+			}
+		}
+		return $set;
+	}
+	
 	public function __construct($values = null)
 	{
 		if($values === null) return;
@@ -808,6 +833,33 @@ class RDFSet implements Countable
 	public function values($stringify = false)
 	{
 		return $this->values;
+	}
+
+	/* Return an array containing one value per language */
+	public function valuePerLanguage()
+	{
+		$langs = array();
+		$list = array();
+		foreach($this->values as $val)
+		{
+			if(!($val instanceof RDFComplexLiteral) || !isset($val->{RDF::xml . ' lang'}))
+			{
+				$l = '';
+			}
+			else
+			{
+				$l = $val->{RDF::xml . ' lang'}[0];
+			}
+			if(!in_array($l, $langs))
+			{
+				$langs[] = $l;
+			}
+		}
+		foreach($langs as $l)
+		{
+			$list[] = $this->lang($l, false);
+		}
+		return $list;
 	}
 
 	/* Return all of the values as an array of strings */
@@ -905,7 +957,7 @@ class RDFSet implements Countable
 		}
 		if(!is_array($langs))
 		{
-			$langs = explode(',', str_replace(' ', ',', $lang));
+			$langs = explode(',', str_replace(' ', ',', $langs));
 		}
 		foreach($langs as $lang)
 		{
@@ -935,6 +987,24 @@ class RDFSet implements Countable
 			}
 		}
 		return null;
+	}
+	
+	/* Return the values as an array of RDF/JSON-structured values */
+	public function asArray()
+	{
+		$list = array();
+		foreach($this->values as $value)
+		{
+			if(is_object($value))
+			{
+				$list[] = $value->asArray();
+			}
+			else
+			{
+				$list[] = array('type' => 'literal', 'value' => $value);
+			}
+		}
+		return $list;
 	}
 }
 
@@ -1096,8 +1166,50 @@ class RDFInstance
 
 	public function title($langs = null, $fallbackFirst = true)
 	{
-		return $this->lang(array(RDF::rdfs.'label', RDF::dc.'title'), $langs, $fallbackFirst);
-	}   	
+		return $this->lang(array(RDF::skos.'prefLabel', RDF::foaf.'name', RDF::rdfs.'label', RDF::dc.'title'), $langs, $fallbackFirst);
+	}
+
+	public function description($langs = null, $fallbackFirst = true)
+	{
+		return $this->lang(
+			array(
+				'http://purl.org/ontology/po/medium',
+				RDF::rdfs . 'comment',
+				'http://purl.org/ontology/po/short_synopsis',
+				'http://purl.org/ontology/po/long_synopsis',
+				RDF::dcterms . 'description',
+				'http://dbpedia.org/ontology/abstract',
+				RDF::dc . 'description',
+				), $langs, $fallbackFirst);
+	}
+	
+	public function shortDesc($langs = null, $fallbackFirst = true)
+	{
+		return $this->lang(
+			array(
+				'http://purl.org/ontology/po/short_synopsis',
+				), $langs, $fallbackFirst);
+	}
+
+	public function mediumDesc($langs = null, $fallbackFirst = true)
+	{
+		return $this->lang(
+			array(
+				'http://purl.org/ontology/po/medium',
+				RDF::rdfs . 'comment',
+				), $langs, $fallbackFirst);
+	}
+
+	public function longDesc($langs = null, $fallbackFirst = true)
+	{
+		return $this->lang(
+			array(
+				'http://purl.org/ontology/po/long_synopsis',
+				RDF::dcterms . 'description',
+				'http://dbpedia.org/ontology/abstract',
+				RDF::dc . 'description',
+				), $langs, $fallbackFirst);
+	}
 
 	/* Return the first URI this instance claims to have
 	 * as a subject.
