@@ -57,9 +57,17 @@ class RDFStoredObject extends RDFInstance
 				}
 			}
 		}
-		if(!$inst)
+		if($inst)
+		{
+			$className = get_class($inst);
+		}
+		else
 		{
 			$inst = new $className();
+		}
+		if(!isset(self::$models[$className]))
+		{
+			self::$models[$className] = $model;
 		}
 		self::applyProperties($inst, $data, $model);
 		return $inst;
@@ -70,6 +78,10 @@ class RDFStoredObject extends RDFInstance
 		if(!is_arrayish($data))
 		{
 			throw new Exception(gettype($data) . ' passed to RDFStoreObject::objectForData(), array expected');
+		}
+		if(!is_object($inst))
+		{
+			throw new Exception($inst . ' is not an object');
 		}
 		foreach($data as $k => $v)
 		{

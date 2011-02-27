@@ -326,6 +326,7 @@ class DBStorableSet extends StorableSet
 	
 	public function __construct($model, $args)
 	{
+		$this->model = $model;
 		$this->rs = $args['recordSet'];
 		if(isset($args['storableClass']))
 		{
