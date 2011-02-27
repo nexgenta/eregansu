@@ -271,7 +271,7 @@ abstract class RDF extends XMLNS
 		}
 		if(strlen($suggestedPrefix))
 		{
-			$r = array_search($suggestPrefix, self::$namespaces);
+			$r = array_search($suggestedPrefix, self::$namespaces);
 			if($r !== false)
 			{
 				return $r;
@@ -932,6 +932,7 @@ class RDFSet implements Countable
 		{
 			return implode($by, $this->values);
 		}
+		return '';
 	}
 
 	/* Return the number of values held in this set; can be
@@ -1024,7 +1025,8 @@ class RDFTriple
 		$this->predicate = $this->coerce($predicate);
 		$this->object = $object;
 	}
-	
+
+	/* Ensure that $thing is a RDFURI */
 	protected function coerce($thing)
 	{
 		if($thing instanceof RDFURI)
@@ -1043,7 +1045,7 @@ class RDFTriple
  * properties, and objects are property values. Every property is a stringified
  * URI, and its native value is an indexed array.
  */
-class RDFInstance
+class RDFInstance implements ArrayAccess
 {
 	public $refcount = 0;
 	protected $localId;
@@ -1067,6 +1069,61 @@ class RDFInstance
 		return strval($this->subject());
 	}
 
+	/**** ArrayAccess methods ****/
+
+	public function offsetExists($offset)
+	{
+		$offset = $this->translateQName($offset);
+		if(isset($this->{$offset}) && is_array($this->{$offset}) && count($this->{$offset}))
+		{
+			return true;
+		}
+	}
+	
+	public function offsetGet($offset)
+	{
+		return $this->all($offset);
+	}
+	
+	public function offsetSet($offset, $value)
+	{
+		if($offset === null)
+		{
+			/* $inst[] = $value; -- meaningless unless $value is a triple */
+			if($value instanceof RDFTriple)
+			{
+				$offset = strval($value->predicate);
+				$value = $value->object;
+			}
+			else
+			{
+				return;
+			}
+		}
+		else
+		{
+			$offset = $this->translateQName($offset);
+		}
+		if(is_array($value))
+		{
+			$this->{$offset} = $value;
+		}
+		else if($value instanceof RDFSet)
+		{
+			$this->{$offset} = $value->values();
+		}
+		else
+		{
+			$this->{$offset} = array($value);
+		}
+	}
+
+	public function offsetUnset($offset)
+	{
+		$offset = $this->translateQName($offset);
+		unset($this->{$offset});
+	}
+
 	/* If this instance is a $type, return true. If $type is an instance,
 	 * we compare our rdf:type against its subject, allowing, for example:
 	 *
@@ -1074,10 +1131,14 @@ class RDFInstance
 	 * if($thing->isA($class)) ...
 	 */
 	public function isA($type)
-	{
-		if($type instanceof RDFInstance)
+	{		
+		if(is_string($type))
 		{
-			$type = $type->subject();
+			$type = $this->translateQName($type);
+		}
+		else if($type instanceof RDFInstance)
+		{
+			$type = strval($type->subject());
 		}
 		if(isset($this->{RDF::rdf . 'type'}))
 		{
@@ -1122,16 +1183,47 @@ class RDFInstance
 		return $this;
 	}
 
+	/* Return a URI for a QName (used by all(), first(), etc. to translate predicate names) */
+	protected function translateQName($qn)
+	{
+		if(!strcasecmp($qn, 'subject')) return RDF::rdf . 'about';
+
+		$s = explode(':', $qn, 2);
+		if(count($s) == 2)
+		{
+			switch($s[0])
+			{
+			case 'http':
+			case 'https':
+			case 'urn':
+			case 'tag':
+			case 'info':
+			case 'file':
+				return $qn;
+			case 'xml':
+				return RDF::xml . ' ' . $s[1];
+			default:
+				$base = RDF::ns(null, $s[0]);
+				if(strlen($base))
+				{
+					return $base . $s[1];
+				}			
+			}
+		}
+		return $qn;
+	}
+
 	/* Return the first value for the given predicate */
 	public function first($key)
 	{
+		$key = $this->translateQName($key);
 		if(isset($this->{$key}) && count($this->{$key}))
 		{
 			return $this->{$key}[0];
 		}
 		return null;
 	}
-
+	
 	/* Return the values of a given predicate */
 	public function all($key, $nullOnEmpty = false)
 	{
@@ -1139,6 +1231,7 @@ class RDFInstance
 		$values = array();
 		foreach($key as $k)
 		{
+			$k = $this->translateQName($k);
 			if(isset($this->{$k}))
 			{
 				foreach($this->{$k} as $value)
@@ -1262,6 +1355,7 @@ class RDFInstance
 	{
 	}
 
+	/* Format an RDFURI for output as Turtle */
 	protected function turtleURI($doc, $v)
 	{
 		$v = strval($v instanceof RDFInstance ? $v->subject() : $v);
@@ -1799,7 +1893,7 @@ class RDFXMLLiteral extends RDFComplexLiteral
 {
 	public function fromDOM($node, $pdoc)
 	{
-		parent::fromDOM($node);
+		parent::fromDOM($node, $pdoc);
 		$doc = array();
 		for($c = $node->firstChild; $c; $c = $c->nextSibling)
 		{
