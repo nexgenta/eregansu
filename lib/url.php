@@ -42,9 +42,13 @@ class URL
 
 	public function __construct($url, $base = null)
 	{
-		if(!is_array($url))
+		if(!strncmp($url, '_:', 2))
 		{
-			$url = self::parseForOptions($url);
+			$url = array('scheme' => '_', 'path' => substr($url, 2), 'options' => array());
+		}
+		else if(!is_array($url))
+		{			
+			$url = self::parseForOptions($url);		   
 		}
 		if(isset($url['scheme']) && strlen($url['scheme'])) $this->scheme = $url['scheme'];
 		if(isset($url['host']) && strlen($url['host'])) $this->host = $url['host'];
@@ -115,7 +119,7 @@ class URL
 
 	public function __toString()
 	{
-		if($this->scheme == 'urn' || $this->scheme == 'tag' || $this->scheme == 'javascript' || $this->scheme == 'about' || $this->scheme == 'wysiwyg' || $this->scheme == 'view-source' || $this->scheme == 'mailto')
+		if($this->scheme == 'urn' || $this->scheme == 'tag' || $this->scheme == 'javascript' || $this->scheme == 'about' || $this->scheme == 'wysiwyg' || $this->scheme == 'view-source' || $this->scheme == 'mailto' || $this->scheme == '_')
 		{
 			return $this->scheme . ':' . $this->path;
 		}
