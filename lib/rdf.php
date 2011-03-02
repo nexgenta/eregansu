@@ -51,9 +51,35 @@ abstract class RDF extends XMLNS
 		$doc->fromDOM($dom);
 		return $doc;
 	}
+
+	/* Create a new set of triples from an RDF/XML DOMElement */
+	public static function tripleSetFromDOM($dom, $location = null)
+	{
+		$set = new RDFTripleSet();
+		$set->fileURI = $location;
+		$set->fromDOM($dom);
+		return $set;
+	}
 	
 	/* Create a new RDFDocument given a string containing an RDF/XML document */
 	public static function documentFromXMLString($string, $location = null)
+	{
+		$xml = simplexml_load_string($string);
+		if(!is_object($xml))
+		{
+			return null;
+		}
+		$dom = dom_import_simplexml($xml);
+		if(!is_object($dom))
+		{
+			return null;
+		}
+		$dom->substituteEntities = true;
+		return self::documentFromDOM($dom, $location);
+	}
+
+	/* Create a new RDFTripleSet given a string containing an RDF/XML document */
+	public static function tripleSetFromXMLString($string, $location = null)
 	{
 		$xml = @simplexml_load_string($string);
 		if(!is_object($xml))
@@ -61,12 +87,12 @@ abstract class RDF extends XMLNS
 			return null;
 		}
 		$dom = dom_import_simplexml($xml);
-		$dom->substituteEntities = true;
 		if(!is_object($dom))
 		{
 			return null;
 		}
-		return self::documentFromDOM($dom, $location);
+		$dom->substituteEntities = true;
+		return self::tripleSetFromDOM($dom, $location);
 	}
 
 	/* Construct an RDFDocument from an on-disk file */
@@ -85,6 +111,7 @@ abstract class RDF extends XMLNS
 	/* Construct an RDFDocument from a URL */
 	public static function documentFromURL($location)
 	{
+		$location = strval($location);
 		$ct = null;
 		$doc = self::fetch($location, $ct, 'application/rdf+xml');
 		if($doc === null)
@@ -102,6 +129,26 @@ abstract class RDF extends XMLNS
 		return null;
 	}
 
+	/* Construct an RDFTripleSet from a URL */
+	public static function tripleSetFromURL($location)
+	{
+		$location = strval($location);
+		$ct = null;
+		$doc = self::fetch($location, $ct, 'application/rdf+xml');
+		if($doc === null)
+		{
+			return null;
+		}
+		if(self::isHTML($doc, $ct))
+		{
+			return self::tripleSetFromHTML($doc, $location);
+		}
+		if(self::isXML($doc, $ct))
+		{
+			return self::tripleSetFromXMLString($doc, $location);
+		}
+		return null;
+	}
 
 	/* Attempt to determine whether a resource is XML */
 	protected static function isXML($doc, $ct)
@@ -202,10 +249,14 @@ abstract class RDF extends XMLNS
 	{
 		require_once(dirname(__FILE__) . '/curl.php');
 		$url = strval($url);
-		$contentType = null;
-		if(strncmp($url, 'http:', 5))
+		if(php_sapi_name() == 'cli')
 		{
-			trigger_error("RDF::fetch(): Sorry, only http URLs are supported", E_USER_ERROR);
+			echo "RDF::fetch(): Attempting to fetch $url\n";
+		}
+		$contentType = null;
+		if(strncmp($url, 'http:', 5) && strncmp($url, 'https:', 5))
+		{
+			trigger_error("RDF::fetch(): Sorry, only http URLs are supported", E_USER_WARNING);
 			return null;
 		}
 		if(false !== ($p = strrpos($url, '#')))
@@ -238,7 +289,11 @@ abstract class RDF extends XMLNS
 		$buf = $curl->exec();
 		$info = $curl->info;
 		$c = explode(';', $info['content_type']);
-		$contentType = $c[0];	
+		$contentType = $c[0];
+		if(php_sapi_name() == 'cli')
+		{
+			echo "RDF::fetch(): Retrieved $contentType\n";
+		}
 		return strval($buf);
 	}
 
@@ -724,11 +779,13 @@ class RDFDocument
 	/* Import sets of triples from an (RDF/XML) DOMElement instance */
 	public function fromDOM($root)
 	{
-		for($node = $root->firstChild; $node; $node = $node->nextSibling)
+		$node = $root->firstChild;
+		while(is_object($node))
 		{
-			if(!($node instanceof DOMElement))
+			while(!($node instanceof DOMElement))
 			{
-				continue;
+				$node = $node->nextSibling;
+				if(!is_object($node)) return;
 			}
 			$g = null;
 			if(isset(RDF::$ontologies[$node->namespaceURI]))
@@ -744,7 +801,8 @@ class RDFDocument
 			$mg = $this->merge($g, $k);
 			$mg->refcount++;
 			$this->promote($g);
-			$g->transform();			
+			$g->transform();
+			$node = $node->nextSibling;
 		}
 	}
 
@@ -1009,6 +1067,304 @@ class RDFSet implements Countable
 	}
 }
 
+/* A set of triples */
+class RDFTripleSet
+{
+	public $triples = array();
+	public $fileURI;
+	public $primaryTopic;
+
+	/* Add the contents of the RDF/XML DOM tree to the set */
+	public function fromDOM($root)
+	{
+		$node = $root->firstChild;
+		while(is_object($node))
+		{
+			while(!($node instanceof DOMElement))
+			{
+				$node = $node->nextSibling;
+				if(!is_object($node)) return;
+			}
+			$this->triplesFromNode($node);
+			$node = $node->nextSibling;
+		}
+	}
+
+	/* Return the array of triples with the given subject */
+	public function subject($uri)
+	{
+		if(is_string($uri))
+		{
+			$uri = new RDFURI($uri, $this->fileURI);
+		}
+		$uri = strval($uri);
+		echo "[Looking for $uri]\n";
+		if(isset($this->triples[$uri]))
+		{
+			echo "[Found triples with $uri as subject]\n";
+			return $this->triples[$uri];
+		}
+		print_r($this);
+		echo "[Failed to find $uri]\n";
+	}
+		
+	/* Return the array of triples which have the primary topic of the document as their subject */
+	public function primaryTopic()
+	{
+		if(isset($this->primaryTopic))
+		{
+			if(($triples = $this->subject($this->primaryTopic)))
+			{
+				return $triples;
+			}
+		}
+		$top = $file = null;
+		if(isset($this->fileURI))
+		{
+			$top = $file = $this->subject($this->fileURI);
+			$foundPT = false;
+			if(isset($top))
+			{
+				foreach($top as $triple)
+				{
+					if(!strcmp($triple->predicate, RDF::foaf . 'primaryTopic'))
+					{
+						$foundPT = true;
+						break;
+					}
+				}
+			}
+			if(!$foundPT)
+			{
+				$top = null;
+			}
+		}
+		if(!$top)
+		{
+			foreach($this->triples as $g)
+			{
+				$haveDesc = false;
+				foreach($g as $triple)
+				{
+					if(!strcmp($triple->predicate, RDF::rdf.'type') && strcmp($triple->object, RDF::rdf.'Description'))
+					{
+						$haveDesc = true;
+						break;
+					}
+				}
+				if(!$haveDesc)
+				{
+					$top = $g;
+					break;
+				}
+			}			
+		}
+		if(!$top)
+		{
+			foreach($this->triples as $g)
+			{
+				$top = $g;
+				break;
+			}
+		}
+		if(!$top)
+		{
+			return null;
+		}
+		$uri = null;
+		foreach($top as $triple)
+		{
+			if(!strcmp($triple->predicate, RDF::foaf.'primaryTopic'))
+			{
+				$uri = strval($triple->object);
+				break;
+			}
+		}
+		if(strlen($uri))
+		{		   
+			$g = $this->subject($uri);
+			if($g)
+			{
+				return $g;
+			}
+		}
+		if($file)
+		{
+			return $file;
+		}
+		return $top;
+	}
+
+	/* Add the contents of the given instance node to the set */
+	protected function triplesFromNode($root)
+	{
+		$subject = null;
+		$set = array();
+
+		foreach($root->attributes as $attr)
+		{
+			$predicate = XMLNS::fqname($attr);
+			$v = strval($attr->value);
+			if($attr->namespaceURI == RDF::rdf)
+			{
+				if($attr->localName == 'about' || $attr->localName == 'resource')
+				{
+					$v = new RDFURI($v, $this->fileURI);
+					$subject = strval($v);
+				}
+				else if($attr->localName == 'ID')
+				{
+					$v = new RDFURI('#' . $v, $this->fileURI);
+					$subject = strval($v);
+				}
+			}
+			$set[] = new RDFTriple(null, $predicate, $v);
+		}
+		/* Parse the children of this node, if any */
+		$node = $root->firstChild;		
+		while(is_object($node))
+		{
+			while(!($node instanceof DOMElement))
+			{
+				$node = $node->nextSibling;
+				if(!is_object($node)) break;;
+			}
+			if(!is_object($node)) break;
+			$parseType = null;
+			$type = null;
+			$nattr = 0;			
+			if($node->hasAttributes())
+			{
+				foreach($node->attributes as $attr)
+				{
+					if($attr->namespaceURI == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#' &&
+					   $attr->localName == 'datatype')
+					{
+						$type = $attr->value;
+					}
+					else if($attr->namespaceURI == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#' &&
+							$attr->localName == 'parseType')
+					{
+						$parseType = $attr->value;
+						$nattr++;
+					}
+					else
+					{
+						$nattr++;
+					}
+				}
+			}
+			$parseType = strtolower($parseType);
+			if($node->hasChildNodes() || $parseType == 'literal')
+			{
+				/* Might be a literal, a complex literal, or a graph */
+				$child = $node->firstChild;
+				if($parseType == 'literal' || ($child instanceof DOMCharacterData && !$child->nextSibling))
+				{
+					$value = $child->textContent;
+					if($parseType == 'literal')
+					{
+						$v = new RDFXMLLiteral();
+					}
+					else if(strlen($type) || $nattr)
+					{
+						if($type == 'http://www.w3.org/2001/XMLSchema#dateTime')
+						{
+							$v = new RDFDateTime();
+						}
+						else
+						{
+							$v = new RDFComplexLiteral();
+						}
+					}
+					else
+					{
+						$v = $value;
+					}
+					if(is_object($v))
+					{
+						$v->fromDOM($node);
+					}
+					$set[] = new RDFTriple(null, XMLNS::fqname($node), $v);
+				}
+				else
+				{
+					$v = null;
+					$gnode = $node->firstChild;
+					while(is_object($gnode))
+					{
+						while(!($gnode instanceof DOMElement))
+						{
+							$gnode = $gnode->nextSibling;
+							if(!is_object($gnode)) break;
+						}
+						if(!is_object($gnode)) break;
+						$childSubj = $this->triplesFromNode($gnode);
+						if(strlen($childSubj))
+						{
+							$set[] = new RDFTriple(null, XMLNS::fqname($node), $childSubj);
+						}
+						$gnode = $gnode->nextSibling;
+					}
+				}
+			}
+			else
+			{
+				/* If there's only one attribute and it's rdf:resource, we
+				 * can compress the whole thing to an RDFURI instance.
+				 */
+				$uri = null;
+				foreach($node->attributes as $attr)
+				{
+					if($uri !== null)
+					{
+						$uri = null;
+						break;
+					}
+					if($attr->namespaceURI != 'http://www.w3.org/1999/02/22-rdf-syntax-ns#' ||
+					   $attr->localName != 'resource')
+					{
+						break;
+					}
+					$uri = $attr->value;
+				}
+				if($uri !== null)
+				{
+					/* Do we have an rdf:resource attribute? */
+					$set[] = new RDFTriple(null, XMLNS::fqname($node), new RDFURI($uri, $this->fileURI));
+				}
+				else
+				{
+					/* No... it's a whole other set of triples */
+					$childSubj = $this->triplesFromNode($node);
+					if($childSubj !== null)
+					{
+						$set[] = new RDFTriple(null, XMLNS::fqname($node), $childSubj);
+					}
+				}
+			}
+			$node = $node->nextSibling;
+		}
+		/* Generate a bnode subject if we need one */
+		if($subject === null)
+		{
+			$subject = '_:' . uniqid();
+		}
+		$subject = new RDFURI($subject, $this->fileURI);
+		$subjectKey = strval($subject);
+		/* Add all of the triples to our overall set */
+		foreach($set as $k => $triple)
+		{
+			if($triple->subject === null)
+			{
+				$triple->subject = $subject;
+			}
+			$this->triples[$subjectKey][] = $triple;
+		}
+		return $subject;
+	}	
+}
+
 /* A triple: a subject, a predicate, and an object. The object may be an
  * instance, but the subject and predicate are always URIs.
  */
@@ -1021,13 +1377,31 @@ class RDFTriple
 
 	public function __construct($subject, $predicate, $object)
 	{
-		$this->subject = $this->coerce($subject);
-		$this->predicate = $this->coerce($predicate);
+		$this->subject = $subject;
+		$this->predicate = $predicate;
 		$this->object = $object;
 	}
 
+	public function subject()
+	{
+		if($this->subject instanceof RDFURI || $this->subject === null)
+		{
+			return $this->subject;
+		}
+		return $this->coerce($this->subject);
+	}
+
+	public function predicate()
+	{
+		if($this->predicate instanceof RDFURI || $this->predicate === null)
+		{
+			return $this->predicate;
+		}
+		return $this->coerce($this->predicate);
+	}		
+
 	/* Ensure that $thing is a RDFURI */
-	protected function coerce($thing)
+	protected function coerce(&$thing)
 	{
 		if($thing instanceof RDFURI)
 		{
@@ -1035,9 +1409,13 @@ class RDFTriple
 		}
 		if($thing instanceof RDFInstance)
 		{
-			return $thing->subject();
+			$thing = $thing->subject();
 		}
-		return new RDFURI(strval($thing));
+		else
+		{
+			$thing = new RDFURI(strval($thing));
+		}
+		return $thing;
 	}
 }
 
@@ -1664,6 +2042,37 @@ class RDFInstance implements ArrayAccess
 		return implode("\n", $result);
 	}		
 
+	/* Populate this instance from an array of triples. It is assumed that all of the triples
+	 * have the same subject.
+	 */
+	public function fromTriples($set)
+	{
+		if($set instanceof RDFTripleSet)
+		{
+			$set = $set->subjects;
+		}
+		foreach($set as $triple)
+		{
+			$predicate = strval($triple->predicate);
+			$match = false;
+			if(isset($this->{$predicate}))
+			{
+				foreach($this->{$predicate} as $val)
+				{
+					if($val == $triple->object)
+					{
+						$match = true;
+						break;
+					}
+				}
+			}
+			if(!$match)
+			{
+				$this->{$predicate}[] = $triple->object;
+			}
+		}
+	}
+
 	/* Deserialise this instance from an RDF/XML DOMElement  */
 	public function fromDOM($root, $doc)
 	{
@@ -1684,12 +2093,15 @@ class RDFInstance implements ArrayAccess
 			}
 			$this->{XMLNS::fqname($attr)}[] = $v;
 		}
-		for($node = $root->firstChild; $node; $node = $node->nextSibling)
+		$node = $root->firstChild;		
+		while(is_object($node))
 		{
-			if(!($node instanceof DOMElement))
+			while(!($node instanceof DOMElement))
 			{
-				continue;
+				$node = $node->nextSibling;
+				if(!is_object($node)) return;
 			}
+			echo "[Parsing node {$node->namespaceURI}{$node->localName} = {$node->nodeValue}]\n";
 			$parseType = null;
 			$type = null;
 			$nattr = 0;
@@ -1751,12 +2163,15 @@ class RDFInstance implements ArrayAccess
 				else
 				{
 					$v = null;
-					for($gnode = $node->firstChild; $gnode; $gnode = $gnode->nextSibling)
+					$gnode = $node->firstChild;
+					while(is_object($gnode))
 					{
-						if(!($gnode instanceof DOMElement))
+						while(!($gnode instanceof DOMElement))
 						{
-							continue;
+							$gnode = $gnode->nextSibling;
+							if(!is_object($gnode)) break;
 						}
+						if(!is_object($gnode)) break;
 						if(isset(RDF::$ontologies[$gnode->namespaceURI]))
 						{
 							$v = call_user_func(array(RDF::$ontologies[$gnode->namespaceURI], 'rdfInstance'), $gnode->namespaceURI, $gnode->localName);
@@ -1770,6 +2185,7 @@ class RDFInstance implements ArrayAccess
 						$v->refcount++;
 						$v->transform();
 						$this->{XMLNS::fqname($node)}[] = $v;
+						$gnode = $gnode->nextSibling;
 					}
 				}
 			}
@@ -1807,7 +2223,54 @@ class RDFInstance implements ArrayAccess
 				}
 				$this->{XMLNS::fqname($node)}[] = $v;
 			}
+			$node = $node->nextSibling;
 		}
+	}
+
+	/* Fetch all of the instances which are the same as this; returns an array of instances.
+	 * If $doc is specified, adds each to the document. If $doc is specified and $useDoc is
+	 * true, subjects will be looked up against $doc first, and won't be fetched if they're
+	 * already present.
+	 */
+	public function fetchSameAs($doc = null, $useDoc = true)
+	{
+		$sameAs = array();
+		if(isset($this->{RDF::owl.'sameAs'}))
+		{
+			foreach($this->{RDF::owl.'sameAs'} as $k => $inst)
+			{
+				if(!($inst instanceof RDFURI))
+				{
+					continue;
+				}
+				if($doc && $useDoc)
+				{
+					if(($subj = $doc->subject($inst, null, false)))
+					{
+						$subj->refcount++;
+						$this->{RDF::owl.'sameAs'}[$k] = $subj;
+						$sameAs[] = $subj;
+						continue;
+					}
+				}
+				if(($ndoc = RDF::tripleSetFromURL($inst)))
+				{
+					$ndoc->primaryTopic = $inst;
+					if(($triples = $ndoc->primaryTopic()))
+					{
+						$inst = new RDFInstance();
+						$inst->fromTriples($triples);
+						if($doc)
+						{
+							$doc->add($inst);
+						}
+						$sameAs[] = $inst;
+						continue;
+					}
+				}
+			}
+		}
+		return $sameAs;
 	}
 }
 
@@ -1855,7 +2318,7 @@ class RDFComplexLiteral
 		return $val;
 	}
 
-	public function fromDOM($node, $doc)
+	public function fromDOM($node, $doc = null)
 	{
 		foreach($node->attributes as $attr)
 		{
@@ -1891,7 +2354,7 @@ class RDFURI extends URL
 
 class RDFXMLLiteral extends RDFComplexLiteral
 {
-	public function fromDOM($node, $pdoc)
+	public function fromDOM($node, $pdoc = null)
 	{
 		parent::fromDOM($node, $pdoc);
 		$doc = array();
