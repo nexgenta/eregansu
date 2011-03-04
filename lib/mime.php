@@ -142,6 +142,7 @@ abstract class MIME
 		'text' => 'text/plain',
 		'rtf' => 'text/rtf',
 		'xml' => 'text/xml',
+		'ttl' => 'text/turtle',
 
 		'xhtml' => 'application/xhtml+xml',
 		'rss' => 'application/rss+xml',
@@ -198,5 +199,6 @@ abstract class MIME
 		'mp3' => 'MPEG 1 Layer III',
 		'vorbis' => 'Ogg Vorbis',
 		'theora' => 'Ogg Theora',
+		'turtle' => 'Turtle',
 	);
 }

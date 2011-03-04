@@ -139,7 +139,8 @@ abstract class Request
 		$this->typeMap['json'] = 'application/json';
 		$this->typeMap['yaml'] = 'application/x-yaml';
 		$this->typeMap['txt'] = 'text/plain';
-		$this->typeMap['text'] = 'text/plain';		
+		$this->typeMap['text'] = 'text/plain';
+		$this->typeMap['ttl'] = 'text/turtle';
 	}
 		
 	/**
