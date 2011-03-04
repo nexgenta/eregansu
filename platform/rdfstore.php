@@ -129,6 +129,7 @@ class RDFStoredObject extends RDFInstance
 							break;
 						case 'node':
 							$v[$pk] = RDFStoredObject::objectForData($s['value'], $model);
+							$v[$pk]->refcount++;
 							break;
 						default:
 							/* XXX this should go away */
