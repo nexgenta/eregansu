@@ -26,6 +26,53 @@ interface IRequestProcessor
 	public function process(Request $req);
 }
 
+abstract class Loader
+{
+	public static function load($route)
+	{
+		global $MODULE_ROOT;
+
+		if(!is_array($route))
+		{
+			return $false;
+		}
+		if(!empty($route['adjustBase']) || !empty($route['adjustModuleBase']))
+		{
+			if(isset($route['name']))
+			{
+				$MODULE_ROOT .= $route['name'] . '/';
+			}
+			else if(substr($route['key'], 0, 1) != '_')
+			{
+				$MODULE_ROOT .= $route['key'] . '/';
+			}
+		}
+		$f = null;
+		if(isset($route['file']))
+		{
+			$f = $route['file'];
+			if(isset($route['name']) && empty($route['adjustBase']) && empty($route['adjustModuleBase']))
+			{
+				$f = $route['name'] . '/' . $f;
+			}
+			if(substr($f, 0, 1) != '/')
+			{
+				if(!empty($route['fromRoot']))
+				{
+					$f = MODULES_ROOT . $f;
+				}
+				else
+				{
+					$f = $MODULE_ROOT . $f;
+				}
+			}
+			require_once($f);
+		}
+		return true;
+	}
+}
+
+
 class Routable implements IRequestProcessor
 {
 	protected $model;
@@ -273,42 +320,10 @@ class Router extends Routable
 	public function routeInstance(Request $req, $route)
 	{
 		global $MODULE_ROOT;
-		
-		if(!is_array($route))
+
+		if(!Loader::load($route))
 		{
 			return $this->error(Error::NOT_IMPLEMENTED, $req, null, 'The route data for this key is not an array');
-		}
-		if(!empty($route['adjustBase']) || !empty($route['adjustModuleBase']))
-		{
-			if(isset($route['name']))
-			{
-				$MODULE_ROOT .= $route['name'] . '/';
-			}
-			else if(substr($route['key'], 0, 1) != '_')
-			{
-				$MODULE_ROOT .= $route['key'] . '/';
-			}
-		}
-		$f = null;
-		if(isset($route['file']))
-		{
-			$f = $route['file'];
-			if(isset($route['name']) && empty($route['adjustBase']) && empty($route['adjustModuleBase']))
-			{
-				$f = $route['name'] . '/' . $f;
-			}
-			if(substr($f, 0, 1) != '/')
-			{
-				if(!empty($route['fromRoot']))
-				{
-					$f = MODULES_ROOT . $f;
-				}
-				else
-				{
-					$f = $MODULE_ROOT . $f;
-				}
-			}
-			require_once($f);
 		}
 		if(!isset($route['class']) || !class_exists($route['class']))
 		{
@@ -594,19 +609,23 @@ class Proxy extends Router
 	{
 		switch($type)
 		{
-			case 'text/xml':
-			case 'application/xml':
-				return $this->perform_GET_XML();
-			case 'application/json':
-				return $this->perform_GET_JSON();
-			case 'application/rdf+xml':
-				return $this->perform_GET_RDF();
-			case 'application/x-yaml':
-				return $this->perform_GET_YAML();
-			case 'application/atom+xml':
-				return $this->perform_GET_Atom();
-			case 'text/plain':
-				return $this->perform_GET_Text();
+		case 'text/xml':
+		case 'application/xml':
+			return $this->perform_GET_XML();
+		case 'application/json':
+			return $this->perform_GET_JSON();
+		case 'application/rdf+xml':
+			return $this->perform_GET_RDF();
+		case 'text/turtle':
+			return $this->perform_GET_Turtle();
+		case 'application/x-yaml':
+			return $this->perform_GET_YAML();
+		case 'application/atom+xml':
+			return $this->perform_GET_Atom();
+		case 'text/plain':
+			return $this->perform_GET_Text();		   
+		case 'text/html':
+			return $this->perform_GET_HTML();
 		}	
 	}
 	
@@ -618,6 +637,11 @@ class Proxy extends Router
 	protected function perform_GET_Text()
 	{
 		$this->request->header('Content-type', 'text/plain; charset=UTF-8');
+	}
+
+	protected function perform_GET_HTML()
+	{
+		$this->request->header('Content-type', 'text/html; charset=UTF-8');
 	}
 
 	protected function perform_GET_JSON()
@@ -635,6 +659,10 @@ class Proxy extends Router
 	}
 
 	protected function perform_GET_RDF()
+	{
+	}
+
+	protected function perform_GET_Turtle()
 	{
 	}
 	
