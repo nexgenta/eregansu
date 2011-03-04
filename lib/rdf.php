@@ -30,7 +30,7 @@ abstract class RDF extends XMLNS
 	const rdfg = 'http://www.w3.org/2004/03/trix/rdfg-1/';
 	const event = 'http://purl.org/NET/c4dm/event.owl#';
 	const frbr = 'http://purl.org/vocab/frbr/core#';
-	const dcmi = 'http://purl.org/dc/dcmitype/';
+	const dcmit = 'http://purl.org/dc/dcmitype/';
 	const geo = 'http://www.w3.org/2003/01/geo/wgs84_pos#';
 	const mo = 'http://purl.org/ontology/mo/';
 	const theatre = 'http://purl.org/theatre#';
@@ -315,6 +315,8 @@ abstract class RDF extends XMLNS
 			self::$namespaces[RDF::frbr] = 'frbr';
 			self::$namespaces[RDF::xhtml] = 'xhtml';
 			self::$namespaces[RDF::xhtml . '/vocab#'] = 'xhv';
+			self::$namespaces[RDF::dcmit] = 'dcmit';
+			self::$namespaces[RDF::xsd] = 'xsd';
 		}
 		if(strlen($uri))
 		{
@@ -462,7 +464,7 @@ class RDFDocument
 		}
 		if(($s = $this->subject($uri, null, false)))
 		{
-			$s->merge($subject);
+			$s->merge($subject, $this);
 			return $s;
 		}
 		if($subject instanceof RDFInstance)
@@ -478,15 +480,31 @@ class RDFDocument
 				{
 					$this->subjects[$uri] = $subject;
 				}
-				return $subject;
-			}
-			if($pos !== null)
-			{
-				array_splice($this->subjects, $pos, 0, array($subject));
 			}
 			else
 			{
-				$this->subjects[] = $subject;
+				if($pos !== null)
+				{
+					array_splice($this->subjects, $pos, 0, array($subject));
+				}
+				else
+				{
+					$this->subjects[] = $subject;
+				}
+			}
+			$valset = get_object_vars($subject);
+			foreach($valset as $values)
+			{
+				if(is_array($values))
+				{
+					foreach($values as $val)
+					{
+						if($val instanceof RDFInstance)
+						{
+							$this->merge($val);
+						}
+					}
+				}
 			}
 			return $subject;
 		}
@@ -1532,7 +1550,7 @@ class RDFInstance implements ArrayAccess
 	}
 
 	/* Merge the assertions in $source into this instance. */
-	public function merge(RDFInstance $source)
+	public function merge(RDFInstance $source, RDFDocument $doc = null)
 	{
 		$this->refcount += $source->refcount;
 		foreach($source as $prop => $values)
@@ -1541,6 +1559,10 @@ class RDFInstance implements ArrayAccess
 			foreach($values as $value)
 			{
 				$match = false;
+				if($value instanceof RDFInstance && $doc)
+				{
+					$doc->merge($value);
+				}
 				if(isset($this->{$prop}))
 				{
 					foreach($this->{$prop} as $val)
@@ -2033,7 +2055,13 @@ class RDFInstance implements ArrayAccess
 				}
 				else
 				{
-					$vl[] = '"<span class="literal" style="color: #00aa00;">' . _e($val) . '</span>"';
+					$dt = null;
+					if($val instanceof RDFComplexLiteral && isset($val->{RDF::rdf.'datatype'}[0]))
+					{
+						$uri = $val->{RDF::rdf.'datatype'}[0];
+						$dt = ' ^ <a class="uri datatype" style="color: #aa0000;" href="' . _e($uri) . '">' . _e($this->dumpuri($doc, $uri, 1)) . '</a>';
+					}
+					$vl[] = '"<span class="literal" style="color: #00aa00;">' . _e($val) . '</span>"' . $dt;
 				}
 			}
 			$result[] = implode(', ', $vl) . '</dd>';
