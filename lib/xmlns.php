@@ -22,7 +22,8 @@ abstract class XMLNS
 	const xhtml = 'http://www.w3.org/1999/xhtml';
 	const dc = 'http://purl.org/dc/elements/1.1/';
 	const dcterms = 'http://purl.org/dc/terms/';
-	
+	const xsd = 'http://www.w3.org/2001/XMLSchema#';
+
 	public static function fqname($namespace, $local = null)
 	{
 		if($local == null)
