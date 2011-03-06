@@ -199,7 +199,7 @@ ini_set('date.timezone', 'UTC');
 set_error_handler('exception_error_handler');
 if(!defined('PUBLIC_ROOT'))
 {
-	define('PUBLIC_ROOT', (isset($_SERVER['SCRIPT_FILENAME']) ? dirname(realpath($_SERVER['SCRIPT_FILENAME'])) : realpath(dirname(__FILE__ ) . '/../../')) . '/');
+	define('PUBLIC_ROOT', defined('INSTANCE_ROOT') ? INSTANCE_ROOT : ((isset($_SERVER['SCRIPT_FILENAME']) ? dirname(realpath($_SERVER['SCRIPT_FILENAME'])) : realpath(dirname(__FILE__ ) . '/../../')) . '/'));
 }
 if(!defined('INSTANCE_ROOT'))
 {
