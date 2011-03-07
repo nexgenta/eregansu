@@ -2041,18 +2041,18 @@ class RDFInstance implements ArrayAccess
 				}
 			}
 			if(!is_array($values) || !count($values)) continue;
-			$result[] = '<dd>→ <a class="prop" style="color: #0000aa;" href="' . _e($name). '">' . _e($this->dumpuri($doc, $name, 1)) . '</a> → ';
+			$result[] = '<dd about="' . _e($subj) . '">→ <a class="prop" style="color: #0000aa;" href="' . _e($name). '">' . _e($this->dumpuri($doc, $name, 1)) . '</a> → ';
 			$vl = array();
 			foreach($values as $val)
 			{
 				if($val instanceof RDFURI)
 				{
-					$vl[] = '<a class="uri" style="color: #aa0000;" href="' . _e($val) . '">' . _e($this->dumpuri($doc, $val, 2)) . '</a>';
+					$vl[] = '<a rel="'. _e($name) . '" class="uri" style="color: #aa0000;" href="' . _e($val) . '">' . _e($this->dumpuri($doc, $val, 2)) . '</a>';
 				}
 				else if($val instanceof RDFInstance)
 				{
 					$v = $val->subject();
-					$vl[] = '<a class="uri" style="color: #aa0000;" href="' . _e($v) . '">' . _e($this->dumpuri($doc, $v, 2)) . '</a>';
+					$vl[] = '<a rel="' . _e($name) . '" class="uri" style="color: #aa0000;" href="' . _e($v) . '">' . _e($this->dumpuri($doc, $v, 2)) . '</a>';
 				}
 				else
 				{
@@ -2062,7 +2062,7 @@ class RDFInstance implements ArrayAccess
 						$uri = $val->{RDF::rdf.'datatype'}[0];
 						$dt = ' ^ <a class="uri datatype" style="color: #aa0000;" href="' . _e($uri) . '">' . _e($this->dumpuri($doc, $uri, 1)) . '</a>';
 					}
-					$vl[] = '"<span class="literal" style="color: #00aa00;">' . _e($val) . '</span>"' . $dt;
+					$vl[] = '"<span property="' . _e($name) . '" class="literal" style="color: #00aa00;">' . _e($val) . '</span>"' . $dt;
 				}
 			}
 			$result[] = implode(', ', $vl) . '</dd>';
