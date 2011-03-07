@@ -770,13 +770,14 @@ class RDFDocument
 			}
 			$xml[] = $x . "\n";
 		}
+		$root = $this->namespacedName(RDF::rdf . 'RDF');
 		$nslist = array();
 		foreach($this->namespaces as $ns => $prefix)
 		{
 			$nslist[] = 'xmlns:' . $prefix . '="' . _e($ns) . '"';
 		}
-		array_unshift($xml, '<rdf:RDF ' . implode(' ', $nslist) . '>' . "\n");
-		$xml[] = '</rdf:RDF>';
+		array_unshift($xml, '<' . $root . ' ' . implode(' ', $nslist) . '>' . "\n");
+		$xml[] = '</' . $root . '>';
 		array_unshift($xml, '<?xml version="1.0" encoding="UTF-8"?>');					 
 		return implode("\n", $xml);
 	}
