@@ -611,6 +611,22 @@ class Installer
 			fwrite($f, ");\n");
 			fclose($f);
 		}
+		echo "*** Configuration complete ***\n\n";
+		echo "If you are using Apache, want to publish this application on the\n" .
+			"Web, and have not already done so, you will need to add\n" .
+			"configuration similar to the below to your server:\n\n";
+		echo "<VirtualHost *:80>\n" .
+			"ServerName " . $this->appname . "\n" .
+			"DocumentRoot " . PUBLIC_ROOT . "\n" .
+			"DirectoryIndex index.php\n" .
+			"</VirtualHost>\n\n" .
+			"<Directory " . PUBLIC_ROOT . ">\n" .
+			"Order allow,deny\n" .
+			"Allow from all\n" .
+			"Options +FollowSymLinks\n" .
+			"AllowOverride all\n" .
+			"</Directory>\n\n";
+		echo "You should adjust the values above to suit your configuration, however.\n\n";
 	}
 }
 
