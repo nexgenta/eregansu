@@ -138,6 +138,7 @@ abstract class MIME
 	protected static $map = array(
 		'htm' => 'text/html',
 		'html' => 'text/html',
+		'mp' => 'text/html', /* .mp => "mobile page", borrowed from BBC */	
 		'txt' => 'text/plain',
 		'text' => 'text/plain',
 		'rtf' => 'text/rtf',
