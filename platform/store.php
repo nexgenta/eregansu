@@ -461,6 +461,15 @@ class Store extends Model
 		}
 		$user_scheme = $user_uuid = null;
 		$uuid = strtolower($uuid);
+		if(isset($user))
+		{
+			if(!is_array($user) || !isset($user['scheme']) || !isset($user['uuid']) || !UUID::isUUID($user['uuid']))
+			{
+				return null;
+			}
+			$user_scheme = $user['scheme'];
+			$user_uuid = $user['uuid'];
+		}
 		if(isset($data['created']))
 		{
 			$created = $this->db->quote($data['created']);
