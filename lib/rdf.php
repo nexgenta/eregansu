@@ -770,14 +770,15 @@ class RDFDocument
 			}
 			$xml[] = $x . "\n";
 		}
+		$root = $this->namespacedName(RDF::rdf . 'RDF');
 		$nslist = array();
 		foreach($this->namespaces as $ns => $prefix)
 		{
 			$nslist[] = 'xmlns:' . $prefix . '="' . _e($ns) . '"';
 		}
-		array_unshift($xml, '<rdf:RDF ' . implode(' ', $nslist) . '>' . "\n");
-		$xml[] = '</rdf:RDF>';
-		array_unshift($xml, '<?xml version="1.0" encoding="UTF-8"?>');					 
+		array_unshift($xml, '<' . $root . ' ' . implode(' ', $nslist) . '>' . "\n");
+		$xml[] = '</' . $root . '>';
+		array_unshift($xml, '<?xml version="1.0" encoding="UTF-8"?' . '>');
 		return implode("\n", $xml);
 	}
 	
@@ -905,14 +906,28 @@ class RDFSet implements Countable
 		}
 	}
 
+	/* Remove objects matching the specified string from the set */
+	public function removeValueString($string)
+	{
+		foreach($this->values as $k => $v)
+		{
+			if(!strcmp($string, $v))
+			{
+				unset($this->values[$k]);
+				$this->values = array_values($this->values);
+				return;
+			}
+		}
+	}
+
 	/* Return all of the values as an array */
-	public function values($stringify = false)
+	public function values()
 	{
 		return $this->values;
 	}
 
 	/* Return an array containing one value per language */
-	public function valuePerLanguage()
+	public function valuePerLanguage($asSet = false)
 	{
 		$langs = array();
 		$list = array();
@@ -935,7 +950,17 @@ class RDFSet implements Countable
 		{
 			$list[] = $this->lang($l, false);
 		}
+		if($asSet)
+		{
+			return new RDFSet($list);
+		}
 		return $list;
+	}
+	
+	/* Return a slice of the set */
+	public function slice($start, $count)
+	{
+		return new RDFSet(array_slice($this->values, $start, $count));
 	}
 
 	/* Return all of the values as an array of strings */
@@ -1634,9 +1659,16 @@ class RDFInstance implements ArrayAccess
 			$k = $this->translateQName($k);
 			if(isset($this->{$k}))
 			{
-				foreach($this->{$k} as $value)
+				if(is_array($this->{$k}))
 				{
-					$values[] = $value;
+					foreach($this->{$k} as $value)
+					{
+						$values[] = $value;
+					}
+				}
+				else
+				{
+					$values[] = $this->{$k};
 				}
 			}
 		}
@@ -2040,18 +2072,18 @@ class RDFInstance implements ArrayAccess
 				}
 			}
 			if(!is_array($values) || !count($values)) continue;
-			$result[] = '<dd>→ <a class="prop" style="color: #0000aa;" href="' . _e($name). '">' . _e($this->dumpuri($doc, $name, 1)) . '</a> → ';
+			$result[] = '<dd about="' . _e($subj) . '">→ <a class="prop" style="color: #0000aa;" href="' . _e($name). '">' . _e($this->dumpuri($doc, $name, 1)) . '</a> → ';
 			$vl = array();
 			foreach($values as $val)
 			{
 				if($val instanceof RDFURI)
 				{
-					$vl[] = '<a class="uri" style="color: #aa0000;" href="' . _e($val) . '">' . _e($this->dumpuri($doc, $val, 2)) . '</a>';
+					$vl[] = '<a rel="'. _e($name) . '" class="uri" style="color: #aa0000;" href="' . _e($val) . '">' . _e($this->dumpuri($doc, $val, 2)) . '</a>';
 				}
 				else if($val instanceof RDFInstance)
 				{
 					$v = $val->subject();
-					$vl[] = '<a class="uri" style="color: #aa0000;" href="' . _e($v) . '">' . _e($this->dumpuri($doc, $v, 2)) . '</a>';
+					$vl[] = '<a rel="' . _e($name) . '" class="uri" style="color: #aa0000;" href="' . _e($v) . '">' . _e($this->dumpuri($doc, $v, 2)) . '</a>';
 				}
 				else
 				{
@@ -2061,7 +2093,7 @@ class RDFInstance implements ArrayAccess
 						$uri = $val->{RDF::rdf.'datatype'}[0];
 						$dt = ' ^ <a class="uri datatype" style="color: #aa0000;" href="' . _e($uri) . '">' . _e($this->dumpuri($doc, $uri, 1)) . '</a>';
 					}
-					$vl[] = '"<span class="literal" style="color: #00aa00;">' . _e($val) . '</span>"' . $dt;
+					$vl[] = '"<span property="' . _e($name) . '" class="literal" style="color: #00aa00;">' . _e($val) . '</span>"' . $dt;
 				}
 			}
 			$result[] = implode(', ', $vl) . '</dd>';
@@ -2129,7 +2161,6 @@ class RDFInstance implements ArrayAccess
 				$node = $node->nextSibling;
 				if(!is_object($node)) return;
 			}
-			echo "[Parsing node {$node->namespaceURI}{$node->localName} = {$node->nodeValue}]\n";
 			$parseType = null;
 			$type = null;
 			$nattr = 0;
@@ -2407,5 +2438,14 @@ class RDFDateTime extends RDFComplexLiteral
 	protected function setValue($value)
 	{
 		$this->value = strftime('%Y-%m-%dT%H:%M:%SZ', parse_datetime($value));
+	}
+}
+
+class RDFString extends RDFComplexLiteral
+{
+	public function __construct($value, $lang = null)
+	{
+		parent::__construct(null, $value);
+		$this->{RDF::xml . ' lang'}[] = $lang;
 	}
 }

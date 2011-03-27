@@ -69,7 +69,6 @@ abstract class Request
 	public $sessionInitialised; /**< A <a href="http://www.php.net/callback">callback</a> which if specified is invoked when the \P{$session} associated with the request is initialised. */
 	
 	protected $session;
-	protected $typeMap = array();
 	
 	/**
 	 * Return an instance of a Request class for a specified SAPI.
@@ -129,18 +128,6 @@ abstract class Request
 	 */	
 	protected function init()
 	{
-		$this->typeMap['htm'] = 'text/html';
-		$this->typeMap['html'] = 'text/html';
-		$this->typeMap['xml'] = 'text/xml';
-		$this->typeMap['xhtml'] = 'application/xhtml+xml';
-		$this->typeMap['rss'] = 'application/rss+xml';
-		$this->typeMap['rdf'] = 'application/rdf+xml';
-		$this->typeMap['atom'] = 'application/atom+xml';
-		$this->typeMap['json'] = 'application/json';
-		$this->typeMap['yaml'] = 'application/x-yaml';
-		$this->typeMap['txt'] = 'text/plain';
-		$this->typeMap['text'] = 'text/plain';
-		$this->typeMap['ttl'] = 'text/turtle';
 	}
 		
 	/**
@@ -180,8 +167,10 @@ abstract class Request
 			$x = explode('.', $p);
 			if(count($x) > 1)
 			{
+				require_once(dirname(__FILE__) . '/mime.php');
 				$ext = $x[count($x) - 1];
-				if(isset($this->typeMap[$ext]))
+				$t = MIME::typeForExt($ext);
+				if(strlen($t))
 				{
 					$this->params[$k] = $x[0];
 				}
@@ -196,28 +185,23 @@ abstract class Request
 			$x = explode('.', $p);
 			if(count($x) > 1)
 			{
-				$this->objects[$k] = $x[0];
+				require_once(dirname(__FILE__) . '/mime.php');
 				$ext = $x[count($x) - 1];
+				$t = MIME::typeForExt($ext);
+				if(strlen($t))
+				{					
+					$this->objects[$k] = $x[0];
+				}
+				else
+				{
+					$ext = null;
+				}
 			}
 		}
 		if($ext !== null)
 		{
 			$this->explicitSuffix = '.' . $ext;
-			if(isset($this->typeMap[$ext]))
-			{
-				if(is_array($this->typeMap[$ext]))
-				{
-					$this->types = $this->typeMap[$ext];
-				}
-				else
-				{
-					$this->types = array($this->typeMap[$ext]);
-				}
-			}
-			else
-			{
-				$this->types = array('application/x-unknown');
-			}
+			$this->types = array(MIME::typeForExt($ext));
 			return;
 		}
 		$accept = explode(',', $acceptHeader);
