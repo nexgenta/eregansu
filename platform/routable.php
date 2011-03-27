@@ -726,9 +726,22 @@ interface ICommandLine
 
 abstract class CommandLine extends Proxy implements ICommandLine
 {
+	const no_argument = 0;
+	const required_argument = 1;
+	const optional_argument = 2;
+
 	protected $supportedMethods = array('__CLI__');
 	protected $supportedTypes = array('text/plain');
 	protected $args;
+	protected $options = array();
+	protected $minArgs = 0;
+	protected $maxArgs = null;
+	
+	protected $optopt = -1;
+	protected $optarg = null;
+	protected $optind = 0;
+	protected $opterr = true;
+	protected $longopt = null;
 	
 	protected function getObject()
 	{
@@ -751,6 +764,206 @@ abstract class CommandLine extends Proxy implements ICommandLine
 	
 	protected function checkargs(&$args)
 	{
+		while(($c = $this->getopt($args)) != -1)
+		{
+			if($c == '?')
+			{
+				$this->usage();
+				return false;
+			}
+		}
+		if($this->minArgs !== null && count($args) < $this->minArgs)
+		{
+			$this->usage();
+			return false;
+		}
+		if($this->maxArgs !== null && count($args) > $this->maxArgs)
+		{
+			$this->usage();
+			return false;
+		}
 		return true;
+	}
+	
+	protected function usage()
+	{
+		if(isset($this->usage))
+		{
+			echo "Usage:\n\t" . $this->usage . "\n";
+		}
+		else
+		{
+			echo "Usage:\n\t" . str_replace('/', ' ', $this->request->pageUri) . (count($this->options) ? ' [OPTIONS]' : '') . ($this->minArgs ? ' ...' : '') . "\n";
+		}
+		$f = false;
+		foreach($this->options as $long => $opt)
+		{
+			if(isset($opt['description']) && (!is_numeric($long) || isset($opt['value'])))
+			{
+				if(is_numeric($long))
+				{
+					$s = '-' . $opt['value'];					
+				}
+				else
+				{
+					$s = '--' . $long . (isset($opt['value']) ? ', -' . $opt['value'] : '');
+				}
+				if(!$f)
+				{
+					echo "\nOPTIONS is one or more of:\n";
+					$f = true;
+				}
+				echo sprintf("\t%-25s  %s\n", $s, $opt['description']);
+			}
+		}
+		exit(1);
+	}
+	
+	protected function getopt(&$args)
+	{
+		$null = null;
+		$this->optopt = -1;
+		$this->optarg = null;
+		$this->longopt =& $null;
+		
+		while($this->optind < count($args))
+		{
+			$arg = $args[$this->optind];
+			if(!strcmp($arg, '--'))
+			{
+				return -1;
+			}
+			if(substr($arg, 0, 1) != '-')
+			{
+				$this->optind++;
+				continue;
+			}
+			if(!strcmp($arg, '-'))
+			{
+				$this->optind++;
+				continue;
+			}
+			if(substr($arg, 1, 1) == '-')
+			{
+				$arglen = 1;
+				$arg = substr($arg, 2);
+				$x = explode('=', $arg, 2);
+				$longopt = $x[0];
+				$optname = '--' . $longopt;
+				if(isset($x[1]))
+				{
+					$this->optarg = $x[1];
+				}
+				else
+				{
+					$this->optarg = null;
+				}
+				if(isset($this->options[$longopt]))
+				{
+					$this->longopt =& $this->options[$longopt];
+				}
+				else
+				{
+					if($this->opterr)
+					{
+						echo "unrecognized option: `--$longopt'\n";
+					}
+					return '?';
+				}
+			}
+			else
+			{
+				$ch = substr($arg, 1, 1);
+				$optname = '-' . $ch;
+				$arglen = 0;
+				foreach($this->options as $k => $opt)
+				{
+					if(isset($opt['value']) && !strcmp($opt['value'], $ch))
+					{
+						$this->longopt =& $this->options[$k];
+						break;
+					}
+				}
+				if($this->longopt === null)
+				{
+					if($this->opterr)
+					{
+						echo "unrecognized option `-$ch'\n";
+					}
+					return '?';
+				}
+				if(!empty($this->longopt['has_arg']))
+				{
+					if(strlen($arg) > 2)
+					{
+						$this->optarg = substr($arg, 2);
+						$arglen = 1;
+					}
+				}
+				if(!$arglen)
+				{
+					if(strlen($arg) > 2)
+					{
+						$args[$this->optind] = '-' . substr($arg, 2);
+					}
+					else
+					{
+						$arglen++;
+					}
+				}
+			}
+			if($this->optarg === null)
+			{
+				if(!empty($this->longopt['has_arg']))
+				{
+					if($c + 1 < count($args))
+					{
+						if(substr($args[$c + 1], 0, 1) != '-')
+						{
+							$this->optarg = $args[$c + 1];
+							$arglen++;
+						}
+					}					
+					if($this->optarg === null && $this->longopt['has_arg'] == self::required_argument)
+					{
+						if($this->opterr)
+						{
+							echo "option `$optname' requires an argument\n";
+						}
+						return '?';
+					}
+				}
+			}
+			else if(empty($this->longopt['has_arg']))
+			{
+				if($this->opterr)
+				{
+					echo "option `$optname' doesn't allow an argument\n";
+				}
+				return '?';
+			}			
+			if($this->optarg === null)
+			{
+				$this->longopt['flag'] = true;		
+			}
+			else
+			{
+				$this->longopt['flag'] = $this->optarg;
+			}
+			if(isset($this->longopt['value']))
+			{
+				$this->optopt = $this->longopt['value'];
+			}
+			else
+			{
+				$this->optopt = $optname;
+			}
+			if($arglen)
+			{
+				array_splice($args, $this->optind, $arglen);
+			}
+			return $this->optopt;
+		}
+		return -1;
 	}
 }
