@@ -1691,7 +1691,7 @@ class RDFInstance implements ArrayAccess
 
 	public function title($langs = null, $fallbackFirst = true)
 	{
-		return $this->lang(array(RDF::skos.'prefLabel', RDF::foaf.'name', RDF::rdfs.'label', RDF::dc.'title'), $langs, $fallbackFirst);
+		return $this->lang(array(RDF::skos.'prefLabel', RDF::foaf.'name', RDF::rdfs.'label', RDF::dcterms.'title', RDF::dc.'title'), $langs, $fallbackFirst);
 	}
 
 	public function description($langs = null, $fallbackFirst = true)
@@ -2136,7 +2136,11 @@ class RDFInstance implements ArrayAccess
 	/* Deserialise this instance from an RDF/XML DOMElement  */
 	public function fromDOM($root, $doc)
 	{
-		$this->{'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'}[] = new RDFURI(XMLNS::fqname($root));
+		$fqname = XMLNS::fqname($root);
+		if(strcmp($fqname, RDF::rdf.'Description'))
+		{
+			$this->{'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'}[] = new RDFURI($fqname);
+		}
 		foreach($root->attributes as $attr)
 		{
 			$v = strval($attr->value);
