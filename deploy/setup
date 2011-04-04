@@ -1,0 +1,51 @@
+#! /bin/sh
+
+if test x"$1" = x"" ; then
+   echo "Create a rotating deployment destination" >&2
+   echo "" >&2
+   echo "Usage: $0 PATH" >&2
+   exit 1
+fi
+
+if test -d "$1" ; then
+   echo "$0: $1: already exists" >&2
+   exit 1
+fi
+
+selfdir=`dirname "$0"`
+src=`cd "$selfdir" && pwd`
+base=`cd "$1" && pwd` || exit
+
+mkdir "$base" || exit
+mkdir "$base/repo.git" || exit
+
+cd "$base/repo.git" || exit
+git init --bare || exit
+git config core.worktree "$base/son"
+git config core.bare false
+git config eregansu.rotate true
+git config receive.denycurrentbranch ignore
+cp "$src/post-receive" hooks/post-recieve
+chmod +x hooks/post-receive
+cat > hooks/pre-deploy <<EOF
+#! /bin/sh
+
+## This hook is invoked automatically by the Eregansu deployment script
+## within the working tree of the freshly checked-out instance, immediately
+## after it's been checked out.
+
+exit 0
+
+EOF
+chmod +x hooks/pre-deploy
+cat > hooks/post-deploy <<EOF
+#! /bin/sh
+
+## This hook is invoked automatically by the Eregansu deployment script
+## within the working tree of the freshly checked-out instance, immediately
+## after it's been made "current".
+
+exit 0
+
+EOF
+chmod +x hooks/post-deploy
