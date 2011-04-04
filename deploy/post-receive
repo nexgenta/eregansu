@@ -59,6 +59,8 @@ fi
 deploy_to=`( cd $worktree/.. && pwd)`
 here=`pwd`
 rotate="`git config --bool --get eregansu.rotate`"
+appname="`git config --get eregansu.application`"
+instname="`git config --get eregansu.instance`"
 
 test x"$rotate" = x"" && rotate=false
 test x"$GIT_DIR" = x"" && GIT_DIR=`pwd`
@@ -66,40 +68,87 @@ test x"$GIT_DIR" = x"" && GIT_DIR=`pwd`
 export GIT_DIR
 
 if test x"$rotate" = x"true" ; then
-        echo "---> Performing pre-deployment checkout in $deploy_to" >&2
-        rm -rf "$worktree" || exit $?
-        mkdir "$worktree" || exit $?
-        git checkout -f || exit $?
+	echo "---> Performing pre-deployment checkout in $deploy_to" >&2
+	rm -rf "$worktree" || exit $?
+	mkdir "$worktree" || exit $?
+	git checkout -f || exit $?
+	echo "---> Updating submodules" >&2
+	git submodule init || exit $?
+	git submodule update || exit $?
 
 	echo "---> Setting up the new release" >&2
 	if test -x "$GIT_DIR/hooks/pre-deploy" ; then
 		( cd "$worktree" && "$GIT_DIR/hooks/pre-deploy" ) || exit $?
 	fi
+
+	if test -d "$worktree/eregansu" ; then
+		if test -x "$worktree/cli" ; then
+			true
+		else
+			( cd "$worktree" && rm -f cli && ln -s eregansu/cli cli ) || exit $?
+		fi
+	else
+		echo "$0: warning: $worktree/eregansu is not present" >&2
+	fi
+
+	if test -r "$worktree/config/appconfig.php" ; then
+		true
+	elif test x"$application" = x"" ; then
+		echo "$0: warning: configuration option eregansu.application is unset, cannot link $worktree/config/appconfig.php" >&2
+	elif test -r "$worktree/config/appconfig.$application.php" ; then
+		echo "  +> Symbolically linking config/appconfig.$application.php" >&2
+		rm -f "$worktree/config/appconfig.php" || exit $?
+		cd ( "$worktree/config" && ln -s "appconfig.$application.php" appconfig.php ) || exit $?
+	else
+		echo "$0: warning: $worktree/config/appconfig.$application.php does not exist; cannot create link to appconfig.php" >&2		
+	fi
+
+	if test -r "$worktree/config/config.php" ; then
+		true
+	elif test x"$instance" = x"" ; then
+		echo "$0: warning: configuration option eregansu.instance is unset, cannot link $worktree/config/instance.php" >&2
+	elif test -r "$worktree/config/config.$instance.php" ; then
+		echo "  +> Symbolically linking config/config.$instance.php" >&2
+		rm -f "$worktree/config/config.php" || exit $?
+		cd ( "$worktree/config" && ln -s "config.$instance.php" config.php ) || exit $?
+	else
+		echo "$0: warning: $worktree/config/config.$instance.php does not exist; cannot create link to config.php" >&2		
+	fi
+
+	if test -x "$worktree/cli" ; then
+		( cd "$worktree" && ./cli setup ) || exit $?
+	else
+		echo "$0: warning: $worktree/cli is not present; skipping module setup" >&2
+	fi
+
 	if test -d "$deploy_to/shared" ; then
 		cd "$deploy_to/shared"
 		for i in * ; do
-			if test -e "$i" ; then
+			if test x"$i" = x"public" ; then
+				true
+			elif test -e "$i" ; then				
 				echo "  +> Symlinking /$i" >&2
 				( cd "$worktree" && rm -f "$i" && ln -s ../shared/"$i" . ) || exit $?
 			fi
 		done
 	fi
-        echo "---> Rotating previous releases" >&2
-        rm -rf "$deploy_to/grandfather" || exit $?
-        if test -d "$deploy_to/father" ; then
-                mv "$deploy_to/grandfather" || exit $?
-        fi
-        echo "---> Deploying the new release to $deploy_to/current" >&2
-        if test -d "$deploy_to/current" ; then
-                mv "$deploy_to/current" "$deploy_to/father" || exit $?
-        fi
-        mv "$worktree" "$deploy_to/current" || exit $?
+	
+	echo "---> Rotating previous releases" >&2
+	rm -rf "$deploy_to/grandfather" || exit $?
+	if test -d "$deploy_to/father" ; then
+		mv "$deploy_to/father" "$deploy_to/grandfather" || exit $?
+	fi
+    echo "---> Deploying the new release to $deploy_to/current" >&2
+    if test -d "$deploy_to/current" ; then
+        mv "$deploy_to/current" "$deploy_to/father" || exit $?
+    fi
+    mv "$worktree" "$deploy_to/current" || exit $?
 	worktree="$deploy_to/current"
 else
-        test -d "$worktree" || mkdir "$worktree" || exit $?
-        git checkout -f || exit $?
-
-        echo "---> Setting up the new release" >&2
+    test -d "$worktree" || mkdir "$worktree" || exit $?
+    git checkout -f || exit $?
+	
+    echo "---> Setting up the new release" >&2
 	if test -x "$GIT_DIR/hooks/pre-deploy" ; then
 		( cd "$worktree" && "$GIT_DIR/hooks/pre-deploy" ) || exit $?
 	fi
