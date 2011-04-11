@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rdf:RDF xmlns:foaf="http://xmlns.com/foaf/0.1/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#" xmlns:dct="http://purl.org/dc/terms/" xmlns:skos="http://www.w3.org/2008/05/skos#" xmlns:owl="http://www.w3.org/2002/07/owl#">
+
+<foaf:Document rdf:about="http://example.com/sample.rdf">
+<rdf:type rdf:resource="http://purl.org/dc/dcmitype/Text" />
+<foaf:primaryTopic rdf:resource="http://example.com/sample#thing" />
+<rdfs:label xml:lang="en">Description of the sample thing</rdfs:label>
+<dct:format rdf:resource="http://purl.org/NET/mediatypes/application/rdf+xml" />
+<dct:created rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2011-03-21T23:50:56Z</dct:created>
+<dct:modified rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2011-03-22T17:09:48Z</dct:modified>
+</foaf:Document>
+
+<owl:Thing rdf:about="http://example.com/sample#foo">
+<rdfs:label xml:lang="en">Sample thing foo</rdfs:label>
+</owl:Thing>
+
+<owl:Thing rdf:about="http://example.com/sample#thing">
+<rdfs:label xml:lang="en">Sample thing</rdfs:label>
+</owl:Thing>
+
+</rdf:RDF>

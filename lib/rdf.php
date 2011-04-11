@@ -379,7 +379,7 @@ abstract class RDF extends XMLNS
  * An RDF document
  */
 
-class RDFDocument
+class RDFDocument implements ArrayAccess
 {
 	protected $subjects = array();
 	protected $keySubjects = array();
@@ -392,6 +392,48 @@ class RDFDocument
 	{
 		$this->fileURI = $fileURI;
 		$this->primaryTopic = $primaryTopic;
+	}
+
+	/* ArrayAccess::offsetGet() */
+	public function offsetGet($key)
+	{
+		if(!strcasecmp($key, 'primaryTopic'))
+		{
+			return $this->primaryTopic();
+		}
+		return $this->subject($key, null, false);
+	}
+
+	/* ArrayAccess::offsetSet() */
+	public function offsetSet($key, $what)
+	{
+		if($key !== null)
+		{
+			throw new Exception('Explicit keys cannot be specified in RDFDocument::offsetSet');
+		}
+		if(($what instanceof RDFInstance))
+		{				
+			$this->merge($what);
+			$this->promote($what);
+			return true;
+		}
+		throw new Exception('Only RDFInstance instances may be assigned via RDFDocument::offsetSet');
+	}
+
+	/* ArrayAccess::offsetExists() */
+	public function offsetExists($key)
+	{
+		if($this->offsetGet($key) !== null)
+		{
+			return true;
+		}
+		return false;
+	}
+
+	/* ArrayAccess::offsetUnset() */
+	public function offsetUnset($key)
+	{
+		throw new Exception('Subjects may not be unset via RDFDocument::offsetUnset');
 	}
 
 	/* Promote a subject to the root of the document; in RDF/XML this
