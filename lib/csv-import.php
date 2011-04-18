@@ -117,86 +117,88 @@ class CSVImport
 		$line = $this->prevLine;
 		$q = $this->prevQ;
 		$field = $this->prevField;
-		while(true)
+		while(!feof($this->file))
 		{
-			switch($this->mode)
+			while(!feof($this->file))
 			{
+				switch($this->mode)
+				{
 				case 'gzip':
 					$buf = gzgets($this->file);
 					break;
 				default:
 					$buf = fgets($this->file);
-			}
-			$buf = trim($buf);
-			if(!strlen($buf))
-			{
-				if(feof($this->file))
-				{
-					$this->prevLine = array();
-					$this->prevField = '';
-					$this->prevQ = false;
-					return $line;
 				}
-				break;
-			}
-			if(count($this->replacements))
-			{
-				$buf = str_replace(array_keys($this->replacements), array_values($this->replacements), $buf);
-			}
-			if($this->charset != 'UTF-8')
-			{
-				$buf = iconv($this->charset, 'UTF-8//IGNORE', $buf);
-			}
-			for($c = 0; $c < strlen($buf); $c++)
-			{
-				if($buf[$c] == '"' && $q)
+				$buf = trim($buf);
+				if(!strlen($buf))
 				{
-					/* "" within a quoted section indicates literal quotes */
-					if($c + 1 < strlen($buf) && $buf[$c + 1] == '"')
+					if(feof($this->file))
 					{
-						$field .= '"';
-						$c++;
+						$this->prevLine = array();
+						$this->prevField = '';
+						$this->prevQ = false;
+						return $line;
+					}
+					break;
+				}
+				if(count($this->replacements))
+				{
+					$buf = str_replace(array_keys($this->replacements), array_values($this->replacements), $buf);
+				}
+				if($this->charset != 'UTF-8')
+				{
+					$buf = iconv($this->charset, 'UTF-8//IGNORE', $buf);
+				}
+				for($c = 0; $c < strlen($buf); $c++)
+				{
+					if($buf[$c] == '"' && $q)
+					{
+						/* "" within a quoted section indicates literal quotes */
+						if($c + 1 < strlen($buf) && $buf[$c + 1] == '"')
+						{
+							$field .= '"';
+							$c++;
+							continue;
+						}
+						$q = false;
 						continue;
 					}
-					$q = false;
-					continue;
+					if($buf[$c] == '"')
+					{
+						$q = true;
+						continue;
+					}
+					if(!$q && $buf[$c] == ',')
+					{
+						$line[] = $field;
+						$field = '';
+						continue;
+					}
+					$field .= $buf[$c];
 				}
-				if($buf[$c] == '"')
+				if($q)
 				{
-					$q = true;
+					$field .= "\n";
 					continue;
 				}
-				if(!$q && $buf[$c] == ',')
-				{
-					$line[] = $field;
-					$field = '';
-					continue;
-				}
-				$field .= $buf[$c];
+				$line[] = $field;
+				break;
 			}
 			if($q)
 			{
-				$field .= "\n";
-				continue;
+				$this->prevLine = $line;
+				$this->prevField = $field . "\n";
+				$this->prevQ = $q;
+				return true;
 			}
-			$line[] = $field;
-			break;
+			$this->prevLine = array();
+			$this->prevField = '';
+			$this->prevQ = false;
+			if(count($line))
+			{
+				return $line;
+			}
 		}
-		if($q)
-		{
-			$this->prevLine = $line;
-			$this->prevField = $field . "\n";
-			$this->prevQ = $q;
-			return true;
-		}
-		$this->prevLine = array();
-		$this->prevField = '';
-		$this->prevQ = false;
-		if(!count($line))
-		{
-			return null;
-		}
-		return $line;
 	}
 	
 	public function row()
