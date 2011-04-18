@@ -413,8 +413,7 @@ class RDFDocument implements ArrayAccess
 		}
 		if(($what instanceof RDFInstance))
 		{				
-			$this->merge($what);
-			$this->promote($what);
+			$this->add($what);
 			return true;
 		}
 		throw new Exception('Only RDFInstance instances may be assigned via RDFDocument::offsetSet');
@@ -556,9 +555,9 @@ class RDFDocument implements ArrayAccess
 	/* Add an RDFInstance to a document at the top level. As merge(), but
 	 * always invokes promote() on the result.
 	 */
-	public function add(RDFInstance $subject)
+	public function add(RDFInstance $subject, $pos = null)
 	{
-		if(($inst = $this->merge($subject)))
+		if(($inst = $this->merge($subject, $pos)))
 		{
 			$this->promote($inst);
 		}
@@ -796,8 +795,12 @@ class RDFDocument implements ArrayAccess
 	}
 
 	/* Serialise a document as RDF/XML */
-	public function asXML()
+	public function asXML($leader = null)
 	{
+		if($leader === null)
+		{
+			$leader = '<?xml version="1.0" encoding="UTF-8" ?>';
+		}
 		$xml = array();
 		foreach($this->subjects as $g)
 		{
@@ -820,7 +823,10 @@ class RDFDocument implements ArrayAccess
 		}
 		array_unshift($xml, '<' . $root . ' ' . implode(' ', $nslist) . '>' . "\n");
 		$xml[] = '</' . $root . '>';
-		array_unshift($xml, '<?xml version="1.0" encoding="UTF-8"?' . '>');
+		if(strlen($leader))
+		{
+			array_unshift($xml, $leader);
+		}
 		return implode("\n", $xml);
 	}
 	
