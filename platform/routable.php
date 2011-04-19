@@ -51,7 +51,7 @@ abstract class Loader
 		if(isset($route['file']))
 		{
 			$f = $route['file'];
-			if(isset($route['name']) && empty($route['adjustBase']) && empty($route['adjustModuleBase']))
+			if(substr($f, 0, 1) != '/' && isset($route['name']) && empty($route['adjustBase']) && empty($route['adjustModuleBase']))
 			{
 				$f = $route['name'] . '/' . $f;
 			}
