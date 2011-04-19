@@ -45,48 +45,42 @@ class Page extends Proxy
 		return true;
 	}
 	
-	protected function perform_GET($type)
+	protected function perform_GET_HTML()
 	{
-		if($type == 'text/html')
+		$templateName = $this->templateName;
+		if(!strlen($templateName))
 		{
-			$templateName = $this->templateName;
-			if(!strlen($templateName))
+			if(isset($this->request->data['templateName']))
 			{
-				if(isset($this->request->data['templateName']))
-				{
-					$templateName = $this->request->data['templateName'];
-				}
-				else
-				{
-					$templateName = get_class($this) . '.phtml';
-				}
+				$templateName = $this->request->data['templateName'];
 			}
-//			header('Content-type: text/html');
-			$this->request->header('Content-type', $type);
-			$skin = $this->skin;
-			if($skin === null && isset($this->request->data['skin']))
+			else
 			{
-				$skin = $this->request->data['skin'];
+				$templateName = get_class($this) . '.phtml';
 			}
-			if($skin === null && $this->request->app && $this->request->app->skin !== null)
-			{
-				$skin = $this->request->app->skin;
-			}
-			$this->tpl = new Template($this->request, $templateName, $skin, $this->defaultSkin);
-			$this->vars = array_merge($this->request->data, $this->tpl->vars);
-			$this->vars['scripts'] =& $this->scripts;
-			$this->vars['links'] =& $this->links;
-			$this->tpl->setArrayRef($this->vars);
-			$this->assignTemplate();
-			$this->vars['page'] = $this;
-			$this->vars['objects'] = $this->objects;
-			$this->vars['object'] = $this->object;
-			$this->tpl->process();
-			$this->tpl->reset();
-			$this->tpl = null;
-			return;
 		}
-		return parent::perform_GET($type);
+		$this->request->header('Content-type', 'text/html; charset=UTF-8');
+		$skin = $this->skin;
+		if($skin === null && isset($this->request->data['skin']))
+		{
+			$skin = $this->request->data['skin'];
+		}
+		if($skin === null && $this->request->app && $this->request->app->skin !== null)
+		{
+			$skin = $this->request->app->skin;
+		}
+		$this->tpl = new Template($this->request, $templateName, $skin, $this->defaultSkin);
+		$this->vars = array_merge($this->request->data, $this->tpl->vars);
+		$this->vars['scripts'] =& $this->scripts;
+		$this->vars['links'] =& $this->links;
+		$this->tpl->setArrayRef($this->vars);
+		$this->assignTemplate();
+		$this->vars['page'] = $this;
+		$this->vars['objects'] = $this->objects;
+		$this->vars['object'] = $this->object;
+		$this->tpl->process();
+		$this->tpl->reset();
+		$this->tpl = null;
 	}
 	
 	protected function assignTemplate()
