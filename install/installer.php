@@ -28,7 +28,7 @@ class Installer
 	public $configuredModules = 0;
 	
 	public $installerName = 'Eregansu Install';
-	public $defaultAppName = 'default';
+	public $defaultAppName = null;
 	public $defaultInstanceName = null;
 	
 	public $relPlatformPath;
@@ -41,6 +41,29 @@ class Installer
 		{
 			$hostname = explode('.', php_uname('n'));		
 			$this->defaultInstanceName = $hostname[0];
+		}
+		if(!strlen($this->defaultAppName))
+		{
+			if(file_exists(CONFIG_ROOT . 'appconfig.php'))
+			{
+				if(($f = fopen(CONFIG_ROOT . 'appconfig.php', 'r')))
+				{
+					$str = fread($f, 4096);
+					fclose($f);
+					$matches = array();
+					if(preg_match('/^\s*define\(\s*(\'APP_NAME\'|"APP_NAME")\s*,\s*(\'([^\']+)\'|"([^"]+)")\s*\)\s*;\s*$/m', $str, $matches))
+					{
+						if(isset($matches[3]))
+						{
+							$this->defaultAppName = $matches[3];
+						}
+					}
+				}
+			}
+		}
+		if(!strlen($this->defaultAppName))
+		{
+			$this->defaultAppName = 'default';
 		}
 	}
 	
