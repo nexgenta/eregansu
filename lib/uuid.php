@@ -116,7 +116,7 @@ abstract class UUID
 
 	public static function isUUID($str)
 	{
-		if(preg_match('/[a-f0-9]{8}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{12}/i', $str))
+		if(preg_match('/^(urn:uuid:)?\{?[a-f0-9]{8}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{12}\}?$/i', $str))
 		{
 			return $str;
 		}
