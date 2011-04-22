@@ -198,6 +198,10 @@ if(function_exists('curl_init'))
 			}
 			$this->options['dnsUseGlobalCache'] = true;
 			$this->options['httpGET'] = true;
+			if(defined('CURL_ALWAYS_VERBOSE') && CURL_ALWAYS_VERBOSE)
+			{
+				$this->options['verbose'] = true;
+			}
 		}
 		
 		public function close()
