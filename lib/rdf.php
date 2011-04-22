@@ -605,6 +605,33 @@ class RDFDocument implements ArrayAccess
 	}
 
 	/* Return the RDFInstance which is either explicitly or implicitly the
+	 * resource topic of this document.
+	 */
+	public function resourceTopic()
+	{
+		$top = $file = null;
+		if(isset($this->fileURI))
+		{
+			$top = $file = $this->subject($this->fileURI, null, false);
+			if($file)
+			{
+				return $file;
+			}
+		}
+		foreach($this->subjects as $g)
+		{
+			if(isset($g->{RDF::rdf . 'type'}[0]) && !strcmp($g->{RDF::rdf . 'type'}[0], RDF::rdf . 'Description'))
+			{
+				return $g;
+			}
+		}
+		foreach($this->subjects as $g)
+		{
+			return $g;
+		}
+	}		
+	
+	/* Return the RDFInstance which is either explicitly or implicitly the
 	 * primary topic of this document.
 	 */
 	public function primaryTopic()
