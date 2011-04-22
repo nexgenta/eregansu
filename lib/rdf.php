@@ -285,7 +285,10 @@ abstract class RDF extends XMLNS
 		$accept[] = '*/*';
 		$curl->returnTransfer = true;
 		$curl->followLocation = true;
+		$curl->autoReferrer = true;
+		$curl->unrestrictedAuth = true;
 		$curl->headers = array('Accept: ' . implode(',', $accept));
+		$curl->httpAuth = Curl::AUTH_ANYSAFE;
 		$buf = $curl->exec();
 		$info = $curl->info;
 		$c = explode(';', $info['content_type']);
