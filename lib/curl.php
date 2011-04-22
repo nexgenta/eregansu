@@ -73,7 +73,11 @@ if(function_exists('curl_init'))
 		
 		const TIMECOND_IFMODSINCE = CURL_TIMECOND_IFMODSINCE;
 		const TIMECOND_IFUNMODSINCE = CURL_TIMECOND_IFUNMODSINCE;
-	
+		
+		/* Associative array of authentication details per URL base.
+		 * e.g., 'http://example.com/' => 'user:secret'
+		 */
+		public static $authData = array();
 		
 		protected static $boolProps = array(
 			'autoReferer' => CURLOPT_AUTOREFERER,
@@ -200,7 +204,7 @@ if(function_exists('curl_init'))
 			$this->options['httpGET'] = true;
 			if(defined('CURL_ALWAYS_VERBOSE') && CURL_ALWAYS_VERBOSE)
 			{
-				$this->options['verbose'] = true;
+				$this->__set('verbose', true);
 			}
 		}
 		
@@ -210,12 +214,36 @@ if(function_exists('curl_init'))
 			$this->handle = null;
 		}
 		
+		protected function authDataForURL($url)
+		{
+			$len = 0;
+			$string = null;
+			$slen = strlen($url);
+			foreach(self::$authData as $base => $authData)
+			{
+				$l = strlen($base);
+				if($l > $len && $l < $slen && !strncmp($base, $url, $l))
+				{
+					$len = $l;
+					$string = $authData;
+				}
+			}
+			return $string;
+		}
+					
 		public function exec()
 		{
 			if(!$this->handle)
 			{
 				trigger_error('Curl::exec() - cannot execute a request which has been closed', E_USER_ERROR);
 				return false;
+			}
+			if(!isset($this->options['authData']))
+			{
+				if(null !== ($auth = $this->authDataForURL($this->options['url'])))
+				{
+					$this->__set('authData', $auth);
+				}
 			}
 			return curl_exec($this->handle);
 		}
