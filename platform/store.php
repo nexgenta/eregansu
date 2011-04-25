@@ -445,7 +445,7 @@ class Store extends Model
 		return $data;
 	}
 		
-	public function setData($data, $user = null, $lazy = false)
+	public function setData($data, $user = null, $lazy = false, $owner = null)
 	{
 		if(is_object($data))
 		{
@@ -478,6 +478,10 @@ class Store extends Model
 		{
 			$created = $this->db->now();
 		}
+		if($owner !== null && isset($data['owner']) && !strcmp($data['owner'], $owner))
+		{
+			$owner = null;
+		}			   
 		unset($data['uuid']);
 		unset($data['created']);
 		unset($data['modified']);
@@ -493,6 +497,10 @@ class Store extends Model
 			if($entry)
 			{
 				$this->db->exec('UPDATE {' . $this->objects . '} SET "data" = ?, "dirty" = ?, "modified" = ' . $this->db->now () . ', "modifier_scheme" = ?, "modifier_uuid" = ? WHERE "uuid" = ?', $json, 'Y', $user_scheme, $user_uuid, $uuid);
+				if(isset($owner))
+				{
+					$this->db->exec('UPDATE {' . $this->objects . '} SET "owner" = ? WHERE "uuid" = ?', $owner, $uuid);
+				}
 			}
 			else
 			{
@@ -506,6 +514,7 @@ class Store extends Model
 					'modifier_scheme' => $user_scheme,
 					'modifier_uuid' => $user_uuid,
 					'dirty' => 'Y',
+					'owner' => $owner,
 				));
 			}
 		}
