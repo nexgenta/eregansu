@@ -505,7 +505,7 @@ class Proxy extends Router
 		$this->request = $req;
 		$this->proxyUri = $this->request->pageUri;
 		$method = $req->method;
-		if($req->method == 'POST' && isset($req->postData['__method']))
+		if($req->method == 'POST' && is_array($req->postData) && isset($req->postData['__method']))
 		{
 			$method = $req->postData['__method'];
 		}
@@ -687,16 +687,7 @@ class Proxy extends Router
 			case 'multipart/form-data':
 				return $this->putObject($this->request->postData);
 			case 'application/json':
-				if(($data = file_get_contents('php://input')))
-				{
-					$data = @json_decode($data, true);
-					if($data == null)
-					{
-						return $this->error(Error::BAD_REQUEST, null, null, 'Failed to unserialise the JSON blob');
-					}
-					return $this->putObject($data);
-				}
-				return $this->error(Error::BAD_REQUEST, null, null, 'An PUT was attempted but there was no request body');
+				return $this->putObject($this->request->postData);
 		}
 		return $this->error(Error::UNSUPPORTED_MEDIA_TYPE, null, null, $this->request->contentType . ' is not supported by ' . get_class($this) . '::perform_PUT()');
 	}

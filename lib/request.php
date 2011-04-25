@@ -67,7 +67,11 @@ abstract class Request
 	public $stderr;
 	public $explicitSuffix = null; /**< The suffix supplied in the URI, if any (e.g., '.html') */
 	public $sessionInitialised; /**< A <a href="http://www.php.net/callback">callback</a> which if specified is invoked when the \P{$session} associated with the request is initialised. */
-	
+	public $certificate;
+	public $certificateInfo;
+	public $publicKey;
+	public $publicKeyHash;
+
 	protected $session;
 	
 	/**
@@ -395,6 +399,116 @@ abstract class Request
 	{
 		exit(1);
 	}
+
+	/* @internal
+	 * Process a multipart/signed payload 
+	 */
+	protected function processMultipart($pkcsOptions = PKCS7_NOVERIFY)
+	{
+		$ct = explode(';', $this->contentType);
+		if(!strcmp($ct[0], 'multipart/signed'))
+		{
+			if($this->postData !== null && !is_array($this->postData))
+			{
+				$data = "MIME-Version: 1.0\n" .
+					"Content-type: " . $this->contentType . "\n" .
+					"\n" .
+					$this->postData;
+				/* Unfortunately, openssl_pkcs7_verify() only operates on disk files */
+				$outTmp = tempnam(sys_get_temp_dir(), 'eregansu-tmp-');
+				$clearTmp = tempnam(sys_get_temp_dir(), 'eregansu-tmp-');
+				$certTmp = tempnam(sys_get_temp_dir(), 'eregansu-tmp-');
+				file_put_contents($outTmp, $data);
+				/* We _must_ specify a set of 'extra' certificates if we want to retrieve the
+				 * cleartext version, even if we have no plans to. For this reason,
+				 * Eregansu bundles a copy of the stock certificate bundle,
+				 * ca-certificates.crt.
+				 */
+				$r = openssl_pkcs7_verify($outTmp, $pkcsOptions, $certTmp, array(), dirname(__FILE__) . '/../ca-certificates.crt', $clearTmp);
+				if($r === true)
+				{
+					$this->certificate = file_get_contents($certTmp);
+					$cert = openssl_x509_read($this->certificate);
+					$buf = file_get_contents($clearTmp);
+					$p1 = strpos($buf, "\r\n\r\n");
+					$p2 = strpos($buf, "\n\n");
+					if(($p1 !== false && $p2 === false) ||
+					   ($p1 !== false && $p2 !== false && $p1 < $p2))
+					{						
+						$data = explode("\r\n\r\n", $buf, 2);
+					}
+					else
+					{
+						$data = explode("\n\n", $buf, 2);
+					}
+					@$this->postData = $data[1];
+				}
+				else
+				{
+					$this->certificate = null;
+				}
+				unlink($outTmp);
+				unlink($clearTmp);
+				unlink($certTmp);
+				$this->certificateUpdated();
+				if($r !== true)
+				{
+					return false;
+				}
+				$headers = explode("\n", $data[0]);
+				$this->contentType = 'application/x-unknown';
+				foreach($headers as $h)
+				{
+					$h = explode(':', $h, 2);
+					if(count($h) == 2)
+					{
+						if(!strcasecmp(trim($h[0]), 'Content-type'))
+						{
+							$this->contentType = trim($h[1]);
+							break;
+						}
+					}
+				}
+				return true;
+			}			
+		}
+		return false;
+	}
+
+	protected function certificateUpdated()
+	{
+		if($this->certificate === null)
+		{
+			$this->certificateInfo = null;
+			$this->publicKey = null;
+			$this->publicKeyHash = null;
+			return;
+		}
+		$cert = openssl_x509_read($this->certificate);
+		$this->certificateInfo = openssl_x509_parse($cert);
+		$publicKey = openssl_pkey_get_public($cert);
+		$details = openssl_pkey_get_details($publicKey);
+		$this->publicKey = $details['key'];
+		$this->publicKeyHash = null;
+		$matches = array();
+		if(preg_match('!^-----BEGIN ([A-Z ]+)-----\s*?([A-Za-z0-9+=/\r\n]+)\s*?-----END \1-----\s*$!D', $this->publicKey, $matches))
+		{ 
+			$binary = base64_decode(str_replace(array("\r", "\n"), array('', ''), $matches[2]));
+			uses('asn1');
+			$decoded = ASN1::decodeBER($binary);
+			if(isset($decoded[0]['sequence']))
+			{
+				foreach($decoded[0]['sequence'] as $entry)
+				{
+					if($entry['type'] == 'BIT-STRING')
+					{
+						$this->publicKeyHash = openssl_digest(base64_decode($entry['value']), 'SHA1');
+						break;
+					}
+				}
+			}
+		}
+	}
 }
 
 /**
@@ -490,6 +604,31 @@ class HTTPRequest extends Request
 		if(isset($_SERVER['CONTENT_TYPE']))
 		{
 			$this->contentType = $_SERVER['CONTENT_TYPE'];
+		}
+		$this->processRequestPayload();
+	}
+
+	protected function processRequestPayload()
+	{
+		$ct = explode(';', $this->contentType);
+		if(!strcmp(trim($ct[0]), 'multipart/signed'))
+		{
+			$this->postData = file_get_contents('php://input');
+			if(!$this->processMultipart())
+			{
+				return $this->error(Error::BAD_REQUEST, null, null, 'Failed to process multipart/signed block');
+			}
+		}
+		else if(!strcmp(trim($ct[0]), 'application/json'))
+		{
+			if(($data = file_get_contents('php://input')))
+			{
+				$this->postData = @json_decode($data, true);
+				if($data == null)
+				{
+					return $this->error(Error::BAD_REQUEST, null, null, 'Failed to unserialise the JSON blob');
+				}
+			}
 		}
 	}
 	
