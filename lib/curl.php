@@ -222,7 +222,7 @@ if(function_exists('curl_init'))
 			foreach(self::$authData as $base => $authData)
 			{
 				$l = strlen($base);
-				if($l > $len && $l < $slen && !strncmp($base, $url, $l))
+				if($l > $len && $l <= $slen && !strncmp($base, $url, $l))
 				{
 					$len = $l;
 					$string = $authData;
