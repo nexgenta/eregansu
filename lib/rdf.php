@@ -1350,7 +1350,7 @@ class RDFTripleSet
 				}
 				else if($attr->localName == 'nodeID')
 				{
-					$v = new RDFURI('#' . $v, $this->fileURI);
+					$v = new RDFURI('_:' . $v, $this->fileURI);
 					$subject = strval($v);
 				}
 			}
