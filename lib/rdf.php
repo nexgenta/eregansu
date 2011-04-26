@@ -480,6 +480,10 @@ class RDFDocument implements ArrayAccess
 			{
 				return $g;
 			}
+			if(isset($g->{RDF::rdf . 'nodeID'}[0]) && !strcmp($g->{RDF::rdf . 'nodeID'}[0], $uri))
+			{
+				return $g;
+			}
 		}
 		if(!$create)
 		{
@@ -592,6 +596,12 @@ class RDFDocument implements ArrayAccess
 				return $graph;
 			}
 			if(isset($g->{RDF::rdf . 'ID'}[0]) && !strcmp($g->{RDF::rdf . 'ID'}[0], $uri))
+			{
+				$graph->refcount = $this->subjects[$k]->refcount;
+				$this->subjects[$k] = $graph;
+				return $graph;
+			}
+			if(isset($g->{RDF::rdf . 'nodeID'}[0]) && !strcmp($g->{RDF::rdf . 'nodeID'}[0], $uri))
 			{
 				$graph->refcount = $this->subjects[$k]->refcount;
 				$this->subjects[$k] = $graph;
@@ -1338,6 +1348,11 @@ class RDFTripleSet
 					$v = new RDFURI('#' . $v, $this->fileURI);
 					$subject = strval($v);
 				}
+				else if($attr->localName == 'nodeID')
+				{
+					$v = new RDFURI('#' . $v, $this->fileURI);
+					$subject = strval($v);
+				}
 			}
 			$set[] = new RDFTriple(null, $predicate, $v);
 		}
@@ -1443,11 +1458,18 @@ class RDFTripleSet
 						break;
 					}
 					if($attr->namespaceURI != 'http://www.w3.org/1999/02/22-rdf-syntax-ns#' ||
-					   $attr->localName != 'resource')
+					   ($attr->localName != 'resource' && $attr->localName != 'nodeID'))
 					{
 						break;
 					}
-					$uri = $attr->value;
+					if($attr->localName == 'resource')
+					{
+						$uri = $attr->value;
+					}
+					else
+					{
+						$uri = '_:' . $attr->value;
+					}
 				}
 				if($uri !== null)
 				{
@@ -1827,6 +1849,10 @@ class RDFInstance implements ArrayAccess
 		{
 			return $s;
 		}
+		if(null !== ($s = $this->first(RDF::rdf . 'nodeID')))
+		{
+			return $s;
+		}
 		return $this->localId;
 	}
 
@@ -1845,6 +1871,13 @@ class RDFInstance implements ArrayAccess
 		if(isset($this->{RDF::rdf . 'ID'}))
 		{
 			foreach($this->{RDF::rdf . 'ID'} as $u)
+			{
+				$subjects[] = $u;
+			}
+		}
+		if(isset($this->{RDF::rdf . 'nodeID'}))
+		{
+			foreach($this->{RDF::rdf . 'nodeID'} as $u)
 			{
 				$subjects[] = $u;
 			}
@@ -1916,7 +1949,7 @@ class RDFInstance implements ArrayAccess
 		{
 			if(strpos($name, ':') === false) continue;
 			if(!is_array($values)) continue;
-			if(!strcmp($name, RDF::rdf . 'about') || !strcmp($name, RDF::rdf . 'ID') || !strcmp($name, RDF::rdf . 'type'))
+			if(!strcmp($name, RDF::rdf . 'about') || !strcmp($name, RDF::rdf . 'ID') || !strcmp($name, RDF::rdf . 'type') || !strcmp($name, RDF::rdf . 'nodeID'))
 			{
 				continue;
 			}
@@ -2135,7 +2168,7 @@ class RDFInstance implements ArrayAccess
 		foreach($props as $name => $values)
 		{
 			if(strpos($name, ':') === false) continue;
-			if(!strcmp($name, RDF::rdf . 'about') || !strcmp($name, RDF::rdf . 'ID'))
+			if(!strcmp($name, RDF::rdf . 'about') || !strcmp($name, RDF::rdf . 'ID') || !strcmp($name, RDF::rdf . 'nodeID'))
 			{
 				if(!strcmp($values[0], $subj))
 				{
@@ -2231,6 +2264,10 @@ class RDFInstance implements ArrayAccess
 				else if($attr->localName == 'ID')
 				{
 					$v = new RDFURI('#' . $v, $doc->fileURI);
+				}
+				else if($attr->localName == 'nodeID')
+				{
+					$v = new RDFURI('_:' . $v, $doc->fileURI);
 				}
 			}
 			$this->{XMLNS::fqname($attr)}[] = $v;
@@ -2344,11 +2381,18 @@ class RDFInstance implements ArrayAccess
 						break;
 					}
 					if($attr->namespaceURI != 'http://www.w3.org/1999/02/22-rdf-syntax-ns#' ||
-					   $attr->localName != 'resource')
+					   ($attr->localName != 'resource' && $attr->localName != 'nodeID'))
 					{
 						break;
 					}
-					$uri = $attr->value;
+					if($attr->localName == 'resource')
+					{
+						$uri = $attr->value;
+					}
+					else
+					{
+						$uri = '_:' . $attr->value;
+					}
 				}
 				if($uri !== null)
 				{
