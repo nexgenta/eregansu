@@ -372,7 +372,7 @@ abstract class RDF extends XMLNS
 		if(isset(self::$ontologies[$ns]))
 		{
 			$className = self::$ontologies[$ns];
-			return $className::rdfInstance($ns, $lname);
+			return call_user_func(array($className, 'rdfInstance'), $ns, $lname);
 		}
 		return null;
 	}
