@@ -648,6 +648,15 @@ class Proxy extends Router
 	{
 		$this->request->header('Content-type', 'application/json');
 		$this->request->flush();
+		if(isset($this->request->query['jsonp']))
+		{
+			$p = true;
+			echo $this->request->query['jsonp'] . '(';
+		}
+		else
+		{
+			$p = false;
+		}
 		if(isset($this->object))
 		{
 			echo json_encode($this->object);
@@ -655,6 +664,10 @@ class Proxy extends Router
 		else if(isset($this->objects))
 		{
 			echo json_encode($this->objects);
+		}
+		if($p)
+		{
+			echo ')';
 		}
 	}
 
