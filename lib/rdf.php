@@ -1056,11 +1056,25 @@ class RDFDocument implements ArrayAccess, ISerialisable
 		}
 	}
 
+	public function __isset($name)
+	{
+		if($name == 'subjects' || $name == 'namespaces')
+		{
+			return true;
+		}
+		$obj = $this->subject($name, null, false);
+		return is_object($obj);
+	}
+	
 	public function __get($name)
 	{
 		if($name == 'subjects')
 		{
 			return $this->subjects;
+		}
+		if($name == 'namespaces')
+		{
+			return $this->namespaces;
 		}
 		return $this->subject($name, null, false);
 	}
@@ -2207,10 +2221,7 @@ class RDFInstance implements ArrayAccess
 				$x = explode(':', $kn, 2);
 				if(count($x) == 2 && !isset($array['@context'][$x[0]]))
 				{
-					if(!isset($doc->namespaces) || ($ns = array_search($x[0], $doc->namespaces)) === false)
-					{
-						$ns = array_search($x[0], RDF::$namespaces);
-					}
+					$ns = array_search($x[0], $doc->namespaces);
 					$array['@context'][$x[0]] = $ns;
 				}
 			}
