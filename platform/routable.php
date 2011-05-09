@@ -614,6 +614,8 @@ class Proxy extends Router
 			return $this->perform_GET_XML();
 		case 'application/json':
 			return $this->perform_GET_JSON();
+		case 'application/x-rdf+json':
+			return $this->perform_GET_RDFJSON();
 		case 'application/rdf+xml':
 			return $this->perform_GET_RDF();
 		case 'text/turtle':
@@ -627,25 +629,73 @@ class Proxy extends Router
 		case 'text/html':
 			return $this->perform_GET_HTML();
 		}	
+		if($this->object instanceof ISerialisable)
+		{
+			$this->object->serialise($type, false, $this->request);
+		}
 	}
 	
 	protected function perform_GET_XML()
 	{
-		$this->request->header('Content-type', 'text/xml; charset=UTF-8');
+		$type = 'text/xml';
+		if($this->object instanceof ISerialisable)
+		{
+			$this->object->serialise($type, false, $this->request);
+		}
 	}
 	
 	protected function perform_GET_Text()
 	{
-		$this->request->header('Content-type', 'text/plain; charset=UTF-8');
+		$type = 'text/plain';
+		if($this->object instanceof ISerialisable)
+		{
+			$this->object->serialise($type, false, $this->request);
+		}
 	}
 
 	protected function perform_GET_HTML()
 	{
-		$this->request->header('Content-type', 'text/html; charset=UTF-8');
+		$type = 'text/html';
+		if($this->object instanceof ISerialisable)
+		{
+			$this->object->serialise($type, false, $this->request);
+		}
 	}
 
 	protected function perform_GET_JSON()
 	{
+		$type = 'application/json';
+		$this->request->header('Content-type', $type);
+		$this->request->flush();
+		if(isset($this->request->query['jsonp']))
+		{
+			$p = true;
+			echo $this->request->query['jsonp'] . '(';
+		}
+		else
+		{
+			$p = false;
+		}
+		if(isset($this->object))
+		{
+			if(!($this->object instanceof ISerialisable) || $this->object->serialise($type) === false)
+			{					
+				echo json_encode($this->object);
+			}
+		}
+		else if(isset($this->objects))
+		{
+			echo json_encode($this->objects);
+		}
+		if($p)
+		{
+			echo ')';
+		}
+	}
+
+	protected function perform_GET_RDFJSON()
+	{
+		$type = 'application/x-rdf+json';
 		$this->request->header('Content-type', 'application/json');
 		$this->request->flush();
 		if(isset($this->request->query['jsonp']))
@@ -659,7 +709,10 @@ class Proxy extends Router
 		}
 		if(isset($this->object))
 		{
-			echo json_encode($this->object);
+			if(!($this->object instanceof ISerialisable) || $this->object->serialise($type) === false)
+			{					
+				echo json_encode($this->object);
+			}
 		}
 		else if(isset($this->objects))
 		{
@@ -673,18 +726,38 @@ class Proxy extends Router
 
 	protected function perform_GET_RDF()
 	{
+		$type = 'application/rdf+xml';
+		if($this->object instanceof ISerialisable)
+		{
+			$this->object->serialise($type, false, $this->request, true);
+		}
 	}
 
 	protected function perform_GET_Turtle()
 	{
+		$type = 'text/turtle';
+		if($this->object instanceof ISerialisable)
+		{
+			$this->object->serialise($type, false, $this->request, true);
+		}
 	}
 	
 	protected function perform_GET_YAML()
 	{
+		$type = 'application/x-yaml';
+		if($this->object instanceof ISerialisable)
+		{
+			$this->object->serialise($type, false, $this->request, true);
+		}
 	}
 	
 	protected function perform_GET_Atom()
 	{
+		$type = 'application/atom+xml';
+		if($this->object instanceof ISerialisable)
+		{
+			$this->object->serialise($type, false, $this->request, true);
+		}
 	}
 
 	protected function perform_POST($type)
