@@ -35,6 +35,7 @@ abstract class RDF extends XMLNS
 	const mo = 'http://purl.org/ontology/mo/';
 	const theatre = 'http://purl.org/theatre#';
 	const participation = 'http://purl.org/vocab/participation/schema#';
+	const xhv = 'http://www.w3.org/1999/xhtml/vocab#';
 
 	/* Registered ontology handlers */
 	public static $ontologies = array();
@@ -42,6 +43,15 @@ abstract class RDF extends XMLNS
 	public static $namespaces = array();
 	/* Preferred languages */
 	public static $langs = array('en');
+
+	/* When serialising to RDF-JSON, the list of predicates which should be serialised
+	 * 'bare' (i.e., not in CURIE form)
+	 */
+	public static $barePredicates;
+	/* When serialising to RDF-JSON, the list of predicates which should always be
+	 * serialised as URIs
+	 */
+	public static $uriPredicates; 
 
 	/* Create a new RDFDocument given an RDF/XML DOMElement */
 	public static function documentFromDOM($dom, $location = null)
@@ -317,7 +327,7 @@ abstract class RDF extends XMLNS
 			self::$namespaces[RDF::geo] = 'geo';
 			self::$namespaces[RDF::frbr] = 'frbr';
 			self::$namespaces[RDF::xhtml] = 'xhtml';
-			self::$namespaces[RDF::xhtml . '/vocab#'] = 'xhv';
+			self::$namespaces[RDF::xhv] = 'xhv';
 			self::$namespaces[RDF::dcmit] = 'dcmit';
 			self::$namespaces[RDF::xsd] = 'xsd';
 		}
@@ -376,18 +386,62 @@ abstract class RDF extends XMLNS
 		}
 		return null;
 	}
+
+	public static function barePredicates()
+	{
+		if(self::$barePredicates === null)
+		{
+			self::$barePredicates = array(
+				'label' => RDF::rdfs.'label',
+				'name' => RDF::foaf.'name',
+				'title' => RDF::dcterms.'title',
+				'description' => RDF::dcterms.'description',
+				'primaryTopic' => RDF::foaf.'primaryTopic',
+				'topic' => RDF::foaf.'topic',
+				'page' => RDF::foaf.'page',
+				'seeAlso' => RDF::rdfs.'seeAlso',
+				'prev' => RDF::xhv.'prev',
+				'next' => RDF::xhv.'next',
+				'up' => RDF::xhv.'up',
+				'alternate' => RDF::xhv.'alternate',
+				'depiction' => RDF::foaf.'depiction',
+				);
+		}
+		return self::$barePredicates;
+	}
+
+	public static function uriPredicates()
+	{
+		if(self::$uriPredicates === null)
+		{
+			self::$uriPredicates = array(
+				RDF::foaf.'primaryTopic',
+				RDF::foaf.'topic',
+				RDF::foaf.'page',
+				RDF::rdfs.'seeAlso',
+				RDF::xhv.'prev',
+				RDF::xhv.'next',
+				RDF::xhv.'up',
+				RDF::xhv.'alternate',
+				RDF::foaf.'depiction'
+				);
+		}
+		return self::$uriPredicates;
+	}
+
 }
 
 /**
  * An RDF document
  */
 
-class RDFDocument implements ArrayAccess
+class RDFDocument implements ArrayAccess, ISerialisable
 {
 	protected $subjects = array();
 	protected $keySubjects = array();
 	protected $namespaces = array();
 	protected $qnames = array();
+	public $xmlStylesheet = null;
 	public $fileURI;
 	public $primaryTopic;
 
@@ -395,6 +449,73 @@ class RDFDocument implements ArrayAccess
 	{
 		$this->fileURI = $fileURI;
 		$this->primaryTopic = $primaryTopic;
+	}
+
+	/* ISerialisable::serialise */
+	public function serialise(&$type, $returnBuffer = false, $request = null, $sendHeaders = null)
+	{
+		if(!isset($request) || $returnBuffer)
+		{
+			$sendHeaders = false;
+		}
+		else if($sendHeaders === null)
+		{
+			$sendHeaders = true;
+		}
+		if($returnBuffer)
+		{
+			ob_start();
+		}
+		if($type == 'text/turtle')
+		{
+			if($sendHeaders)
+			{
+				$request->header('Content-type', $type);
+			}			
+			$output = $this->asTurtle();
+			echo is_array($output) ? implode("\n", $output) : $output;
+		}
+		else if($type == 'application/rdf+xml')
+		{
+			if($sendHeaders)
+			{
+				$request->header('Content-type', $type);
+			}			
+			$output = $this->asXML();
+			echo is_array($output) ? implode("\n", $output) : $output;
+		}
+		else if($type == 'application/json')
+		{
+			if($sendHeaders)
+			{
+				$request->header('Content-type', $type);
+			}
+			$output = $this->asJSONLD();
+			echo is_array($output) ? implode("\n", $output) : $output;
+		}
+		else if($type == 'application/x-rdf+json')
+		{
+			$type = 'application/json';
+			if($sendHeaders)
+			{
+				$request->header('Content-type', $type);
+			}
+			$output = $this->asJSON();
+			echo is_array($output) ? implode("\n", $output) : $output;
+		}
+		else
+		{
+			if($returnBuffer)
+			{
+				ob_end_clean();
+			}
+			return false;
+		}
+		if($returnBuffer)
+		{
+			return ob_get_clean();
+		}
+		return true;
 	}
 
 	/* ArrayAccess::offsetGet() */
@@ -840,6 +961,15 @@ class RDFDocument implements ArrayAccess
 		if($leader === null)
 		{
 			$leader = '<?xml version="1.0" encoding="UTF-8" ?>';
+			if(isset($this->xmlStylesheet))
+			{				
+				$type = null;
+				if(isset($this->xmlStylesheet['type']))
+				{
+					$type = ' type="' . _e($this->xmlStylesheet['type']) . '"';
+				}
+				$leader .= "\n" . '<?xml-stylesheet href="' . _e($this->xmlStylesheet['href']) . '"' . $type . '?>';
+			}
 		}
 		$xml = array();
 		foreach($this->subjects as $g)
@@ -879,6 +1009,19 @@ class RDFDocument implements ArrayAccess
 			if(!$this->isKeySubject($subj)) continue;
 			$x = $subj->asArray();
 			$array[] = $x['value'];
+		}
+		return str_replace('\/', '/', json_encode($array));
+	}
+
+    /* Serialise a document as JSON-LD */
+	public function asJSONLD()
+	{
+		$array = array();
+		foreach($this->subjects as $subj)
+		{
+			if(!$this->isKeySubject($subj)) continue;
+			$x = $subj->asJSONLD($this);
+			$array[] = $x;
 		}
 		return str_replace('\/', '/', json_encode($array));
 	}
@@ -2028,6 +2171,101 @@ class RDFInstance implements ArrayAccess
 		return array('type' => 'node', 'value' => $array);
 	}
 
+	/* Transform this instance into a native array which can itself be
+	 * serialised as JSON to result in JSON-LD.
+	 */
+	public function asJSONLD($doc)
+	{
+		$array = array('@context' => array());
+		$isArray = array();
+		$props = get_object_vars($this);
+		$up = array();
+		$bareProps = RDF::barePredicates();
+		$uriProps = RDF::uriPredicates();
+		foreach($props as $name => $values)
+		{
+			if(strpos($name, ':') === false) continue;
+			if(!is_array($values)) continue;
+			if(!strcmp($name, RDF::rdf.'about'))
+			{
+				$name = $kn = '@';
+			}
+			else if(!strcmp($name, RDF::rdf.'type'))
+			{
+				$name = $kn = 'a';
+			}
+			else if(($kn = array_search($name, $bareProps)) !== false)
+			{
+				if(!isset($array['@context'][$kn]))
+				{
+					$array['@context'][$kn] = $name;
+				}
+			}
+			else
+			{
+				$kn = $doc->namespacedName($name, true);
+				$x = explode(':', $kn, 2);
+				if(count($x) == 2 && !isset($array['@context'][$x[0]]))
+				{
+					if(!isset($doc->namespaces) || ($ns = array_search($x[0], $doc->namespaces)) === false)
+					{
+						$ns = array_search($x[0], RDF::$namespaces);
+					}
+					$array['@context'][$x[0]] = $ns;
+				}
+			}
+			foreach($values as $v)
+			{				
+				if($v instanceof RDFURI)
+				{
+					$vn = $doc->namespacedName($v, false);
+					
+				}
+				if(is_object($v))
+				{
+					$value = $v->asJSONLD($doc);
+				}
+				else
+				{
+					$value = strval($v);
+				}
+				if(($kn == '@' || $kn == 'a' || in_array($name, $uriProps)) && is_array($value))
+				{
+					if($kn != '@' && $kn != 'a')
+					{
+						$up[$name] = $kn;
+					}
+					$value = $value['@uri'];
+				}
+				if(isset($array[$kn]))
+				{
+					if(empty($isArray[$kn]))
+					{
+						$array[$kn] = array($array[$kn]);
+						$isArray[$kn] = true;
+					}
+					$array[$kn][] = $value;
+				}
+				else
+				{
+					$array[$kn] = $value;
+				}
+			}
+		}
+		if(count($up))
+		{
+			$array['@context']['@coerce']['xsd:anyURI'] = array();
+			foreach($uriProps as $uri)
+			{
+				if(isset($up[$uri]))
+				{
+					$array['@context']['@coerce']['xsd:anyURI'][] = $up[$uri];
+				}
+			}
+		}
+		return $array;
+	}
+
 	/* Transform this instance as a string or array of strings which represent
 	 * the instance as RDF/XML.
 	 */
@@ -2503,6 +2741,20 @@ class RDFComplexLiteral
 		return $val;
 	}
 
+	public function asJSONLD()
+	{
+		$val = array('@literal' => $this->value);
+		if(isset($this->{RDF::rdf . 'type'}[0]))
+		{
+			$val['@datatype'] = $this->{RDF::rdf . 'type'}[0];
+		}
+		if(isset($this->{XMLNS::xml . ' lang'}[0]))
+		{
+			$val['@language'] = $this->{XMLNS::xml . ' lang'}[0];
+		}
+		return $val;
+	}		
+
 	public function fromDOM($node, $doc = null)
 	{
 		foreach($node->attributes as $attr)
@@ -2534,6 +2786,11 @@ class RDFURI extends URL
 	public function asArray()
 	{
 		return array('type' => 'uri', 'value' => $this->value);
+	}
+
+	public function asJSONLD()
+	{
+		return array('@uri' => $this->value);
 	}
 }
 
