@@ -181,6 +181,11 @@ function strict_error_handler($errno, $errstr, $errfile, $errline)
 	return false;
 }
 
+interface ISerialisable
+{
+	public function serialise(&$mimeType, $returnBuffer = false, $request = null, $sendHeaders = null /* true if (!$returnBuffer && $request) */);
+}   
+
 umask(007);
 error_reporting(E_ALL|E_STRICT|E_RECOVERABLE_ERROR);
 ini_set('display_errors', 'On');
