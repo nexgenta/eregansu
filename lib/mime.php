@@ -150,6 +150,7 @@ abstract class MIME
 		'rdf' => 'application/rdf+xml',
 		'atom' => 'application/atom+xml',
 		'json' => 'application/json',
+		'rdfjson' => 'application/x-rdf+json',
 		'yaml' => 'application/x-yaml',
 		'mp4' => 'application/mp4',
 
