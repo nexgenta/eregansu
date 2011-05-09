@@ -408,6 +408,14 @@ abstract class RDF extends XMLNS
 				'alternate' => RDF::xhv.'alternate',
 				'depiction' => RDF::foaf.'depiction',
 				'sameAs' => RDF::owl.'sameAs',
+				'publisher' => RDF::dcterms.'publisher',
+				'created' => RDF::dcterms.'created',
+				'modified' => RDF::dcterms.'modified',
+				'exactMatch' => RDF::skos.'exactMatch',
+				'closeMatch' => RDF::skos.'closeMatch',
+				'narrowMatch' => RDF::skos.'narrowMatch',
+				'broadMatch' => RDF::skos.'broadMatch',
+				'noMatch' => RDF::skos.'noMatch',
 				);
 		}
 		return self::$barePredicates;
@@ -429,7 +437,13 @@ abstract class RDF extends XMLNS
 				RDF::xhv.'last',
 				RDF::xhv.'alternate',
 				RDF::foaf.'depiction',
-				RDF::owl.'sameAs',				
+				RDF::owl.'sameAs',
+				RDF::dcterms.'publisher',
+				RDF::skos.'exactMatch',
+				RDF::skos.'closeMatch',
+				RDF::skos.'narrowMatch',
+				RDF::skos.'broadMatch',
+				RDF::skos.'noMatch',
 				);
 		}
 		return self::$uriPredicates;
@@ -2196,7 +2210,7 @@ class RDFInstance implements ArrayAccess
 	 */
 	public function asJSONLD($doc)
 	{
-		$array = array('@context' => array());
+		$array = array('@context' => array(), '@' => null, 'a' => null);
 		$isArray = array();
 		$props = get_object_vars($this);
 		$up = array();
@@ -2279,6 +2293,14 @@ class RDFInstance implements ArrayAccess
 					$array['@context']['@coerce']['xsd:anyURI'][] = $up[$uri];
 				}
 			}
+		}
+		if(!isset($array['@']))
+		{
+			unset($array['@']);
+		}
+		if(!isset($array['a']))
+		{
+			unset($array['a']);
 		}
 		return $array;
 	}
