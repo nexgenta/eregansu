@@ -2763,6 +2763,10 @@ class RDFComplexLiteral
 		{
 			$val['@language'] = $this->{XMLNS::xml . ' lang'}[0];
 		}
+		if(count($val) == 1)
+		{
+			return $val['@literal'];
+		}
 		return $val;
 	}		
 
