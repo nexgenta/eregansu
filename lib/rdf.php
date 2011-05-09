@@ -403,8 +403,11 @@ abstract class RDF extends XMLNS
 				'prev' => RDF::xhv.'prev',
 				'next' => RDF::xhv.'next',
 				'up' => RDF::xhv.'up',
+				'first' => RDF::xhv.'first',
+				'last' => RDF::xhv.'last',
 				'alternate' => RDF::xhv.'alternate',
 				'depiction' => RDF::foaf.'depiction',
+				'sameAs' => RDF::owl.'sameAs',
 				);
 		}
 		return self::$barePredicates;
@@ -422,8 +425,11 @@ abstract class RDF extends XMLNS
 				RDF::xhv.'prev',
 				RDF::xhv.'next',
 				RDF::xhv.'up',
+				RDF::xhv.'first',
+				RDF::xhv.'last',
 				RDF::xhv.'alternate',
-				RDF::foaf.'depiction'
+				RDF::foaf.'depiction',
+				RDF::owl.'sameAs',				
 				);
 		}
 		return self::$uriPredicates;
