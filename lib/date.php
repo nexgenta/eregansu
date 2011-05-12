@@ -37,6 +37,15 @@ function parse_datetime($s)
 		$tm -= ($hm[0] * 3600) + ($hm[1] * 60);
 		return $tm;
 	}
+	if(preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{4}$/', $s))
+	{
+		$dt = explode(' ', preg_replace('/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})([+-]\d{4})/', '\1 \2 \3', $s));
+		$tm = strtotime($dt[0] . ' ' . $dt[1]);
+		$hm = array(intval(substr($dt[2], 0, 3)), intval(substr($dt[2], 3)));
+		$hm[1] = ($hm[0] < 0 ? $hm[1] * -1 : $hm[1]);
+		$tm -= ($hm[0] * 3600) + ($hm[1] * 60);
+		return $tm;
+	}
 	else if(preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z?$/', $s))
 	{
 		$s = preg_replace('/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})Z?/', '\1 \2', $s);
