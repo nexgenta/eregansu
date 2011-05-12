@@ -403,8 +403,19 @@ abstract class RDF extends XMLNS
 				'prev' => RDF::xhv.'prev',
 				'next' => RDF::xhv.'next',
 				'up' => RDF::xhv.'up',
+				'first' => RDF::xhv.'first',
+				'last' => RDF::xhv.'last',
 				'alternate' => RDF::xhv.'alternate',
 				'depiction' => RDF::foaf.'depiction',
+				'sameAs' => RDF::owl.'sameAs',
+				'publisher' => RDF::dcterms.'publisher',
+				'created' => RDF::dcterms.'created',
+				'modified' => RDF::dcterms.'modified',
+				'exactMatch' => RDF::skos.'exactMatch',
+				'closeMatch' => RDF::skos.'closeMatch',
+				'narrowMatch' => RDF::skos.'narrowMatch',
+				'broadMatch' => RDF::skos.'broadMatch',
+				'noMatch' => RDF::skos.'noMatch',
 				);
 		}
 		return self::$barePredicates;
@@ -422,8 +433,17 @@ abstract class RDF extends XMLNS
 				RDF::xhv.'prev',
 				RDF::xhv.'next',
 				RDF::xhv.'up',
+				RDF::xhv.'first',
+				RDF::xhv.'last',
 				RDF::xhv.'alternate',
-				RDF::foaf.'depiction'
+				RDF::foaf.'depiction',
+				RDF::owl.'sameAs',
+				RDF::dcterms.'publisher',
+				RDF::skos.'exactMatch',
+				RDF::skos.'closeMatch',
+				RDF::skos.'narrowMatch',
+				RDF::skos.'broadMatch',
+				RDF::skos.'noMatch',
 				);
 		}
 		return self::$uriPredicates;
@@ -1056,11 +1076,25 @@ class RDFDocument implements ArrayAccess, ISerialisable
 		}
 	}
 
+	public function __isset($name)
+	{
+		if($name == 'subjects' || $name == 'namespaces')
+		{
+			return true;
+		}
+		$obj = $this->subject($name, null, false);
+		return is_object($obj);
+	}
+	
 	public function __get($name)
 	{
 		if($name == 'subjects')
 		{
 			return $this->subjects;
+		}
+		if($name == 'namespaces')
+		{
+			return $this->namespaces;
 		}
 		return $this->subject($name, null, false);
 	}
@@ -2176,7 +2210,7 @@ class RDFInstance implements ArrayAccess
 	 */
 	public function asJSONLD($doc)
 	{
-		$array = array('@context' => array());
+		$array = array('@context' => array(), '@' => null, 'a' => null);
 		$isArray = array();
 		$props = get_object_vars($this);
 		$up = array();
@@ -2207,10 +2241,7 @@ class RDFInstance implements ArrayAccess
 				$x = explode(':', $kn, 2);
 				if(count($x) == 2 && !isset($array['@context'][$x[0]]))
 				{
-					if(!isset($doc->namespaces) || ($ns = array_search($x[0], $doc->namespaces)) === false)
-					{
-						$ns = array_search($x[0], RDF::$namespaces);
-					}
+					$ns = array_search($x[0], $doc->namespaces);
 					$array['@context'][$x[0]] = $ns;
 				}
 			}
@@ -2262,6 +2293,14 @@ class RDFInstance implements ArrayAccess
 					$array['@context']['@coerce']['xsd:anyURI'][] = $up[$uri];
 				}
 			}
+		}
+		if(!isset($array['@']))
+		{
+			unset($array['@']);
+		}
+		if(!isset($array['a']))
+		{
+			unset($array['a']);
 		}
 		return $array;
 	}
@@ -2751,6 +2790,10 @@ class RDFComplexLiteral
 		if(isset($this->{XMLNS::xml . ' lang'}[0]))
 		{
 			$val['@language'] = $this->{XMLNS::xml . ' lang'}[0];
+		}
+		if(count($val) == 1)
+		{
+			return $val['@literal'];
 		}
 		return $val;
 	}		

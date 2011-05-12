@@ -619,6 +619,7 @@ class Store extends Model
 			if(substr($o, 0, 1) == '-')
 			{
 				$desc = false;
+				$o = substr($o, 1);
 			}
 			if(!$this->parseOrder($order, $o, $desc))
 			{
