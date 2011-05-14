@@ -42,7 +42,7 @@ class URL
 
 	public function __construct($url, $base = null)
 	{
-		if(!strncmp($url, '_:', 2))
+		if(is_string($url) && !strncmp($url, '_:', 2))
 		{
 			$url = array('scheme' => '_', 'path' => substr($url, 2), 'options' => array());
 		}
