@@ -48,6 +48,26 @@
  * Core Library may include lib/common.php as part of its initialisation.
  */
 
+/* In a future version, __EREGANSU__ will be defined to a release tag
+ * or commit hash, substituted by an installation script. The
+ * percent-percent-version-percent-percent comment is a placeholder
+ * to indicate which line should be replaced.
+ */
+define('__EREGANSU__', 'master'); /* %%version%% */
+
+/* The ISerialisable interface is implemented by classes which can serialise
+ * themselves.
+ */
+interface ISerialisable
+{
+	public function serialise(&$mimeType, $returnBuffer = false, $request = null, $sendHeaders = null /* true if (!$returnBuffer && $request) */);
+}
+
+if(defined('EREGANSU_MINIMAL_CORE'))
+{
+	return true;
+}
+
 /**
  * @brief Determine whether an object or array is traversable as an array
  *
@@ -180,11 +200,6 @@ function strict_error_handler($errno, $errstr, $errfile, $errline)
 	throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
 	return false;
 }
-
-interface ISerialisable
-{
-	public function serialise(&$mimeType, $returnBuffer = false, $request = null, $sendHeaders = null /* true if (!$returnBuffer && $request) */);
-}   
 
 umask(007);
 error_reporting(E_ALL|E_STRICT|E_RECOVERABLE_ERROR);

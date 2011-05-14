@@ -26,18 +26,12 @@
  * $app->process($request);
  *
  * ...but it is, of course, free to do whatever it wants.
+ *
  */
 
 /**
  * @framework Eregansu
  */
-
-/* In a future version, __EREGANSU__ will be defined to a release tag
- * or commit hash, substituted by an installation script. The
- * percent-percent-version-percent-percent comment is a placeholder
- * to indicate which line should be replaced.
- */
-define('__EREGANSU__', 'master'); /* %%version%% */
 
 if(defined('WP_CONTENT_URL') && defined('ABSPATH'))
 {
@@ -64,35 +58,38 @@ if(defined('WP_CONTENT_URL') && defined('ABSPATH'))
 /* Define our version of uses() before including the core library - this will
  * take precedence.
  */
- 
-function uses()
-{
-	static $_lib_modules = array('asn1', 'base32', 'cli', 'curl', 'date', 'db', 'dbschema', 'execute', 'form', 'ldap', 'mime', 'rdf', 'redland', 'request', 'session', 'url', 'uuid', 'xmlns', 'csv-import', 'xml', 'rdfxmlstream', 'searchengine');
-	
-	$_modules = func_get_args();
-	foreach($_modules as $_mod)
+if(!function_exists('uses'))
+{ 
+	function uses()
 	{
-		if(in_array($_mod, $_lib_modules))
+		static $_lib_modules = array('asn1', 'base32', 'cli', 'curl', 'date', 'db', 'dbschema', 'execute', 'form', 'ldap', 'mime', 'rdf', 'redland', 'request', 'session', 'url', 'uuid', 'xmlns', 'csv-import', 'xml', 'rdfxmlstream', 'searchengine');
+		
+		$_modules = func_get_args();
+		foreach($_modules as $_mod)
 		{
-			require_once(PLATFORM_LIB . $_mod . '.php');
-		}
-		else
-		{
-			require_once(PLATFORM_PATH . $_mod . '.php');
+			if(in_array($_mod, $_lib_modules))
+			{
+				require_once(PLATFORM_LIB . $_mod . '.php');
+			}
+			else
+			{
+				require_once(PLATFORM_PATH . $_mod . '.php');
+			}
 		}
 	}
-}
-
-if(defined('EREGANSU_MINIMAL_CORE'))
-{
-	return true;
 }
 
 /* Initialise the core library */
 require_once(dirname(__FILE__) . '/lib/common.php');
 
-if(!defined('EREGANSU_SKIP_CONFIG'))
+if(defined('EREGANSU_MINIMAL_CORE'))
 {
+	/* If requested to, we can stop here */
+	return true;
+}
+
+if(!defined('EREGANSU_SKIP_CONFIG'))
+{  
 	if(isset($argv[1]) && ($argv[1] == 'setup' || $argv[1] == 'install'))
 	{
 		if(php_sapi_name() == 'cli')
@@ -133,7 +130,7 @@ require_once(PLATFORM_PATH . 'error.php');
  * @brief Class containing callbacks registered by the platform itself
  */
  
-class PlatformEventSink
+abstract class PlatformEventSink
 {
 	public static function sessionInitialised($req, $session)
 	{
@@ -184,8 +181,6 @@ class PlatformEventSink
 		}
 	}
 }
-
-URL::register();
 
 /* Create an instance of the request class */
 $request = Request::requestForSAPI();
