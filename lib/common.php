@@ -276,16 +276,28 @@ $AUTOLOAD_SUBST['${module}'] =& $MODULE_ROOT;
  * the Eregansu Core Library.
  */
  
-$AUTOLOAD = array();
-$AUTOLOAD['base32'] = dirname(__FILE__) . '/base32.php';
-$AUTOLOAD['clirequest'] = dirname(__FILE__) . '/cli.php';
-$AUTOLOAD['dbcore'] = dirname(__FILE__) . '/db.php';
-$AUTOLOAD['dbschema'] = dirname(__FILE__) . '/dbschema.php';
-$AUTOLOAD['form'] = dirname(__FILE__) . '/form.php';
-$AUTOLOAD['mime'] = dirname(__FILE__) . '/mime.php';
-$AUTOLOAD['request'] = dirname(__FILE__) . '/request.php';
-$AUTOLOAD['session'] = dirname(__FILE__) . '/session.php';
-$AUTOLOAD['uuid'] = dirname(__FILE__) . '/uuid.php';
+$AUTOLOAD = array(
+	'asn1' => dirname(__FILE__) . '/asn1.php',
+	'base32' => dirname(__FILE__) . '/base32.php',
+	'clirequest' => dirname(__FILE__) . '/cli.php',
+	'csvimport' => dirname(__FILE__) . '/csv-import.php',
+	'curl' => dirname(__FILE__) . '/curl.php',
+	'curlcache' => dirname(__FILE__) . '/curl.php',  
+	'dbcore' => dirname(__FILE__) . '/model.php',
+	'dbschema' => dirname(__FILE__) . '/dbschema.php',
+	'form' => dirname(__FILE__) . '/form.php',
+	'mime' => dirname(__FILE__) . '/mime.php',	
+	'rdf' => dirname(__FILE__) . '/rdf.php',
+	'rdfxmlstreamparser' => dirname(__FILE__) . '/rdfxmlstream.php',
+	'request' => dirname(__FILE__) . '/request.php',
+	'httprequest' => dirname(__FILE__) . '/request.php',
+	'session' => dirname(__FILE__) . '/session.php',
+	'searchengine' => dirname(__FILE__) . '/searchengine.php',
+	'url' => dirname(__FILE__) . '/url.php',
+	'uuid' => dirname(__FILE__) . '/uuid.php',
+	'xmlparser' => dirname(__FILE__) . '/xml.php',
+	'xmlns' => dirname(__FILE__) . '/xmlns.php',
+	);
 
 if(function_exists('spl_autoload_register'))
 {
