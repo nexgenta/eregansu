@@ -17,7 +17,21 @@
 
 require_once(dirname(__FILE__) . '/url.php');
 
-abstract class SearchEngine
+interface ISearchEngine
+{
+	public function __construct($uri);
+	public function query($args);
+}
+
+interface ISearchIndexer
+{
+	public function __construct($uri);
+	public function begin();
+	public function indexDocument($identifier, $text, $attributes = null);
+	public function commit();
+}
+	
+abstract class SearchEngine implements ISearchEngine
 {
 	public $info;
 
@@ -33,6 +47,10 @@ abstract class SearchEngine
 		case 'https':
 			$class = 'GenericWebSearch';
 			break;
+		case 'xapian+file':
+			require_once(dirname(__FILE__) . '/xapiansearch.php');
+			$class = 'XapianSearch';
+			break;
 		default:
 			trigger_error('Unsupported search engine scheme "' . $uri->scheme . '"', E_USER_ERROR);
 			return null;
@@ -45,8 +63,36 @@ abstract class SearchEngine
 	{
 		$this->info = $uri;
 	}
+}
 
-	abstract public function query($args)
+abstract class SearchIndexer implements ISearchIndexer
+{
+	public $info;
+
+	public static function connect($uri)
+	{
+		if(!is_object($uri))
+		{
+			$uri = new URL($uri);
+		}
+		switch($uri->scheme)
+		{
+		case 'xapian+file':
+			require_once(dirname(__FILE__) . '/xapiansearch.php');
+			$class = 'XapianIndexer';
+			break;
+		default:
+			trigger_error('Unsupported search indexer scheme "' . $uri->scheme . '"', E_USER_ERROR);
+			return null;
+		}
+		$inst = new $class($uri);
+		return $inst;
+	}
+
+	public function __construct($uri)
+	{
+		$this->info = $uri;
+	}
 }
 
 class GenericWebSearch extends SearchEngine

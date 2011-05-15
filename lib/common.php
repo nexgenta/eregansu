@@ -308,6 +308,7 @@ $AUTOLOAD = array(
 	'httprequest' => dirname(__FILE__) . '/request.php',
 	'session' => dirname(__FILE__) . '/session.php',
 	'searchengine' => dirname(__FILE__) . '/searchengine.php',
+	'searchindexer' => dirname(__FILE__) . '/searchengine.php',
 	'url' => dirname(__FILE__) . '/url.php',
 	'uuid' => dirname(__FILE__) . '/uuid.php',
 	'xmlparser' => dirname(__FILE__) . '/xml.php',
