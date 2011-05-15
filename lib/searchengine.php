@@ -47,6 +47,10 @@ abstract class SearchEngine implements ISearchEngine
 		case 'https':
 			$class = 'GenericWebSearch';
 			break;
+		case 'dbplite':
+			require_once(dirname(__FILE__) . '/dbpedialite.php');
+			$class = 'DbpediaLiteSearch';
+			break;
 		case 'xapian+file':
 			require_once(dirname(__FILE__) . '/xapiansearch.php');
 			$class = 'XapianSearch';
@@ -97,8 +101,12 @@ abstract class SearchIndexer implements ISearchIndexer
 
 class GenericWebSearch extends SearchEngine
 {
-	protected $uri;
 	public $useCache = true;
+
+	protected $uri;
+	protected $userAgent;
+	protected $accept;
+	protected $acceptLanguages;
 
 	public function __construct($uri)
 	{
@@ -115,7 +123,7 @@ class GenericWebSearch extends SearchEngine
 		$this->uri = strval($uri);
 		$this->userAgent = 'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_7; en-us) AppleWebKit/533.20.25 (KHTML, like Gecko) Version/5.0.4 Safari/533.20.27 ' . get_class($this);
 		$this->accept = array('application/json', 'text/javascript');
-		$this->acceptLanguage = array();
+		$this->acceptLanguages = array();
 	}
 
 	public function query($args)
@@ -124,10 +132,10 @@ class GenericWebSearch extends SearchEngine
 		{
 			$args = $args['text'];
 		}
-		$uri = str_replace('%s', urlencode($args), $this->uri);
+		$uri = str_replace('%s', urlencode($args), $this->uri);		
 		$curl = $this->curl($uri);
 		$buf = $curl->exec();
-		return $this->processResult($buf, $curl);
+		return $this->interpretResult($buf, $curl);
 	}
 	
 	protected function interpretResult($buffer, $curl)
@@ -159,7 +167,7 @@ class GenericWebSearch extends SearchEngine
 	{
 		$a = array(
 			'User-Agent: ' . $this->userAgent,
-			'Accept: ' . implode(',', $this->acceptTypes),
+			'Accept: ' . implode(',', $this->accept),
 			);
 		if(count($this->acceptLanguages))
 		{
