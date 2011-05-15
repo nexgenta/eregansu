@@ -243,12 +243,21 @@ class StaticStorableSet extends StorableSet
 	protected $count;
 	protected $current;
 	protected $valid = true;
+	public $total;
 
 	public function __construct($model, $args)
 	{
 		parent::__construct($model, $args);
 		$this->list = $args['list'];
 		$this->rewind();
+		if(isset($args['total']))
+		{
+			$this->total = $args['total'];
+		}
+		else
+		{
+			$this->total = count($this->list);
+		}
 	}
 
 	public function count()
