@@ -70,6 +70,7 @@ class RDFStoredObject extends RDFInstance
 			self::$models[$className] = $model;
 		}
 		self::applyProperties($inst, $data, $model);
+		$inst->loaded();
 		return $inst;
 	}
 
@@ -145,5 +146,9 @@ class RDFStoredObject extends RDFInstance
 			}
 			$inst->{$k} = $v;
 		}
+	}
+	
+	protected function loaded($reloaded = false)
+	{
 	}
 }
