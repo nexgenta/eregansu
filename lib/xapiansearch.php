@@ -107,30 +107,37 @@ class XapianSearch extends SearchEngine
 				if(isset($this->prefixes[$key]))
 				{
 					$prefix = $this->prefixes[$key]['prefix'];
+					$q = '"';
 				}
 				else
 				{
 					$qp->add_boolean_prefix($key, 'X' . strtoupper($key) . ':');
 					$prefix = $key . ':';
+					$q = '"';
 				}
 			}
 			else
 			{
 				$prefix = '';
+				$q = '';
 			}
 			if(is_array($value))
 			{
 				foreach($value as $ivalue)
 				{
-					$query[] = $prefix . $ivalue;
+					$query[] = $prefix . $q . $ivalue . $q;
 				}
 			}
 			else
 			{
-				$query[] = $prefix . $value;
+				$query[] = $prefix . $q . $value . $q;
 			}
 		}
-		$xq = new XapianQuery($qp->parse_query(implode(' ', $query)));
+		$xq = new XapianQuery(
+			$qp->parse_query(
+				implode(' ', $query),
+				XapianQueryParser::FLAG_PHRASE|XapianQueryParser::FLAG_BOOLEAN|XapianQueryParser::FLAG_LOVEHATE|XapianQueryParser::FLAG_WILDCARD|XapianQueryParser::FLAG_PARTIAL)
+			);
 		$enquire = new XapianEnquire($this->db);
 		$enquire->set_query($xq);
 		$matches = $enquire->get_mset($offset, $limit);
