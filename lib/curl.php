@@ -410,6 +410,7 @@ if(function_exists('curl_init'))
 			{
 				$buf = file_get_contents($cacheFile);
 				$info = json_decode(file_get_contents($cacheFile . '.json'), true);
+				$info['cacheFile'] = $cacheFile;
 			}
 			else
 			{
