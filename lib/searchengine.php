@@ -116,7 +116,7 @@ class GenericWebSearch extends SearchEngine
 		{
 			$uri->query = 'q=%s';
 		}
-		else if(strpos('%s', $uri->query) === false)
+		else if(strpos($uri->query, '%s') === false)
 		{
 			$uri->query .= '&q=%s';
 		}
