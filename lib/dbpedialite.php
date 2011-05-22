@@ -15,6 +15,8 @@
  *  limitations under the License.
  */
 
+if(!defined('DBPEDIALITE_URI')) define('DBPEDIALITE_URI', 'http://dbpedialite.org/search.json?term=%s');
+
 class DbpediaLiteSearch extends GenericWebSearch
 {
 	public function __construct($uri)
@@ -25,9 +27,7 @@ class DbpediaLiteSearch extends GenericWebSearch
 		}			
 		if(!strlen($uri->host))
 		{
-			$uri->host = 'dbpedialite.org';
-			$uri->path = '/search.json';
-			$uri->query = 'term=%s';
+			$uri = new URL(DBPEDIALITE_URI);
 		}
 		parent::__construct($uri);
 	}
