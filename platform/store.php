@@ -403,7 +403,7 @@ class DBStorableSet extends StorableSet
 	
 	public function count()
 	{
-		return $this->total;
+		return $this->count;
 	}
 }
 
