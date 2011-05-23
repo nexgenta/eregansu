@@ -121,6 +121,45 @@ class Error implements IRequestProcessor
 	public $detail = null;
 	public $object = null;
 	
+	public static function backtrace($skip = 1)
+	{
+		$backtrace = debug_backtrace();
+		$list = array();
+		foreach($backtrace as $bt)
+		{
+			if(isset($bt['function']))
+			{
+				$func = $bt['function'];
+				if(isset($bt['class']))
+				{
+					$func = $bt['class'] . $bt['type'] . $func . '()';
+				}
+			}
+			else
+			{
+				$func = '(None)';
+			}
+			if(isset($bt['file']))
+			{
+				$location = $bt['file'] . ':' . $bt['line'];
+			}
+			if(isset($bt['object']))
+			{
+				$ctx = get_class($bt['object']);
+			}
+			else
+			{
+				$ctx = '';
+			}
+			$list[] = array($func, $ctx, $location);
+		}
+		if($skip)
+		{
+			return array_slice($list, $skip);
+		}
+		return $list;
+	}
+
 	public function __construct($aStatus = null)
 	{
 		if($aStatus && !is_object($aStatus))
