@@ -32,12 +32,15 @@ class XapianSearch extends SearchEngine
 	public $stemmer;
 	public $prefixes = array();
 
+	protected $path;
+
 	const BOOL = 0;
 	const PROBABILISTIC = 1;
 
 	public function __construct($uri)
 	{
 		parent::__construct($uri);
+		$this->path = $uri->path;
 		$this->db = new XapianDatabase($uri->path);
 		$this->stemmer = new XapianStem('english');
 	}
@@ -140,19 +143,31 @@ class XapianSearch extends SearchEngine
 			);
 		$enquire = new XapianEnquire($this->db);
 		$enquire->set_query($xq);
-		$matches = $enquire->get_mset($offset, $limit);
-		$i = $matches->begin();
-		$results = array(
-			'offset' => $offset,
-			'limit' => $limit,
-			'total' => $matches->get_matches_estimated(),
-			'list' => array(),
-			);
-		while (!$i->equals($matches->end()))
+		try
 		{
-			$data = json_decode($i->get_document()->get_data(), true);
-			$results['list'][] = $data;
-			$i->next();
+			$matches = $enquire->get_mset($offset, $limit);
+			$i = $matches->begin();
+			$results = array(
+				'offset' => $offset,
+				'limit' => $limit,
+				'total' => $matches->get_matches_estimated(),
+				'list' => array(),
+				);
+			while (!$i->equals($matches->end()))
+			{
+				$data = json_decode($i->get_document()->get_data(), true);
+				$results['list'][] = $data;
+				$i->next();
+			}
+		}
+		catch(Exception $e)
+		{
+			$match = 'DatabaseModifiedError:';
+			if(!strcmp($e->getMessage(), $match, strlen($match)))
+			{
+				return $this->query($args);
+			}
+			throw $e;
 		}
 		return $results;
 	}
@@ -164,6 +179,8 @@ class XapianIndexer extends SearchIndexer
 	public $indexer;
 	public $stemmer;
 	
+	protected $path;
+
 	public function __construct($uri)
 	{
 		parent::__construct($uri);
@@ -171,6 +188,7 @@ class XapianIndexer extends SearchIndexer
 		$this->indexer = new XapianTermGenerator();
 		$this->stemmer = new XapianStem('english');
 		$this->indexer->set_stemmer($this->stemmer);
+		$this->path = $uri->path;
 	}
 
 	public function begin()
@@ -180,7 +198,7 @@ class XapianIndexer extends SearchIndexer
 			trigger_error('Attempt to invoke XapianIndexer::begin() multiple times without intervening XapianIndexer::commit()', E_USER_NOTICE);
 			return;
 		}
-		$this->db = new XapianWritableDatabase($this->info->path, Xapian::DB_CREATE_OR_OPEN);
+		$this->db = new XapianWritableDatabase($this->path, Xapian::DB_CREATE_OR_OPEN);
 		$this->chmod();
 	}
 
