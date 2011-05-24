@@ -163,7 +163,7 @@ class XapianSearch extends SearchEngine
 		catch(Exception $e)
 		{
 			$match = 'DatabaseModifiedError:';
-			if(!strcmp($e->getMessage(), $match, strlen($match)))
+			if(!strncmp($e->getMessage(), $match, strlen($match)))
 			{
 				return $this->query($args);
 			}
