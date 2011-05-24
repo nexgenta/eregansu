@@ -870,7 +870,11 @@ class Store extends Model
 			}
 			foreach($data['tags'] as $tag)
 			{
-				$this->db->insert($this->objects_tags, array('uuid' => $uuid, 'tag' => $tag));
+				$tag = trim(strtolower($tag));
+				if(strlen($tag))
+				{
+					$this->db->insert($this->objects_tags, array('uuid' => $uuid, 'tag' => $tag));
+				}
 			}
 		}
 		if(isset($data['iri']))
