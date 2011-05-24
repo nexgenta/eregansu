@@ -206,7 +206,7 @@ class XapianIndexer extends SearchIndexer
 	{
 		if($this->db === null)
 		{
-			trigger_error('Attempt to invoke XapianIndexer::commit() without first calling XapianIndexer::begin()', E_USER_NOTICE);
+//			trigger_error('Attempt to invoke XapianIndexer::commit() without first calling XapianIndexer::begin()', E_USER_NOTICE);
 			return;
 		}
 		$this->db->flush();
