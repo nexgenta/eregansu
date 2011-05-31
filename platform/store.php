@@ -460,9 +460,17 @@ class Store extends Model
 		{
 			$data = get_object_vars($data);
 		}
-		if(isset($data['uuid']) && strlen($data['uuid']) == 36)
+		if(isset($data[0]))
 		{
-			$uuid = $data['uuid'];
+			$object =& $data[0];
+		}
+		else
+		{
+			$object =& $data;
+		}
+		if(isset($object['uuid']) && strlen($object['uuid']) == 36)
+		{
+			$uuid = $object['uuid'];
 		}
 		else
 		{
@@ -479,25 +487,25 @@ class Store extends Model
 			$user_scheme = $user['scheme'];
 			$user_uuid = $user['uuid'];
 		}
-		if(isset($data['created']))
+		if(isset($object['created']))
 		{
-			$created = $this->db->quote($data['created']);
+			$created = $this->db->quote($object['created']);
 		}
 		else
 		{
 			$created = $this->db->now();
 		}
-		if($owner !== null && isset($data['owner']) && !strcmp($data['owner'], $owner))
+		if($owner !== null && isset($object['owner']) && !strcmp($object['owner'], $owner))
 		{
 			$owner = null;
 		}			   
-		unset($data['uuid']);
-		unset($data['created']);
-		unset($data['modified']);
-		unset($data['creator']);
-		unset($data['modifier']);
-		unset($data['dirty']);
-		unset($data['owner']);
+		unset($object['uuid']);
+		unset($object['created']);
+		unset($object['modified']);
+		unset($object['creator']);
+		unset($object['modifier']);
+		unset($object['dirty']);
+		unset($object['owner']);
 		$json = json_encode($data);
 		do
 		{
@@ -758,27 +766,43 @@ class Store extends Model
 	
 	protected function retrievedMeta(&$data, $row)
 	{
-		$data['uuid'] = $row['uuid'];
-		$data['created'] = $row['created'];
+		if(isset($data[0]))
+		{
+			$object =& $data[0];
+		}
+		else
+		{
+			$object =& $data;
+		}
+		$object['uuid'] = $row['uuid'];
+		$object['created'] = $row['created'];
 		if(strlen($row['creator_uuid']))
 		{
-			$data['creator'] = array('scheme' => $row['creator_scheme'], 'uuid' => $row['creator_uuid']);
+			$object['creator'] = array('scheme' => $row['creator_scheme'], 'uuid' => $row['creator_uuid']);
 		}
-		$data['modified'] = $row['modified'];
+		$object['modified'] = $row['modified'];
 		if(strlen($row['modifier_uuid']))
 		{
-			$data['modifier'] = array('scheme' => $row['modifier_scheme'], 'uuid' => $row['modifier_uuid']);
+			$object['modifier'] = array('scheme' => $row['modifier_scheme'], 'uuid' => $row['modifier_uuid']);
 		}
-		$data['owner'] = $row['owner'];
+		$object['owner'] = $row['owner'];
 	}
 	
 	protected function stored($data, $json = null, $lazy = false)
 	{
-		if(!isset($data['kind']) || !strlen($data['kind']) || !isset($data['uuid']))
+		if(isset($data[0]))
+		{
+			$object = $data[0];
+		}
+		else
+		{
+			$object = $data;
+		}
+		if(!isset($object['kind']) || !strlen($object['kind']) || !isset($object['uuid']))
 		{
 			return false;
 		}
-		$uuid = strtolower(trim($data['uuid']));
+		$uuid = strtolower(trim($object['uuid']));
 		if(!strlen($uuid))
 		{
 			return false;
@@ -795,7 +819,7 @@ class Store extends Model
 				{
 					mkdir(OBJECT_CACHE_ROOT, 0777, true);
 				}
-				$dir = OBJECT_CACHE_ROOT . $data['kind'] . '/' . substr($uuid, 0, 2) . '/';
+				$dir = OBJECT_CACHE_ROOT . $object['kind'] . '/' . substr($uuid, 0, 2) . '/';
 				if(null == $json)
 				{
 					$json = json_encode($data);
@@ -841,34 +865,38 @@ class Store extends Model
 		$uuid = $args['uuid'];
 		$json = $args['json'];
 		$lazy = $args['lazy'];
-		$data = $args['data'];
-
+		$data = $object = $args['data'];
+		
+		if(isset($data[0]))
+		{
+			$object = $data[0];
+		}
 		$baseinfo = array();
 		
 		$this->db->query('DELETE FROM {' . $this->objects_base . '} WHERE "uuid" = ?', $uuid);
 		$this->db->query('DELETE FROM {' . $this->objects_tags . '} WHERE "uuid" = ?', $uuid);
 		$this->db->query('DELETE FROM {' . $this->objects_iri . '} WHERE "uuid" = ?', $uuid);
 		
-		if($data['kind'] == 'realm' && !isset($data['realm']))
+		if($object['kind'] == 'realm' && !isset($object['realm']))
 		{
-			$data['realm'] = $uuid;
+			$object['realm'] = $uuid;
 		}
-		if(isset($data['kind'])) $baseinfo['kind'] = $data['kind']; 
-		if(isset($data['realm'])) $baseinfo['realm'] = $data['realm'];
-		if(isset($data['tag'])) $baseinfo['tag'] = strtolower(trim($data['tag']));
+		if(isset($object['kind'])) $baseinfo['kind'] = $object['kind']; 
+		if(isset($object['realm'])) $baseinfo['realm'] = $object['realm'];
+		if(isset($object['tag'])) $baseinfo['tag'] = strtolower(trim($object['tag']));
 		if(count($baseinfo))
 		{
 			$baseinfo['uuid'] = $uuid;
 			$this->db->insert($this->objects_base, $baseinfo);
 		}
 
-		if(isset($data['tags']))
+		if(isset($object['tags']))
 		{
-			if(!is_array($data['tags']))
+			if(!is_array($object['tags']))
 			{
-				$data['tags'] = array($data['tags']);
+				$object['tags'] = array($object['tags']);
 			}
-			foreach($data['tags'] as $tag)
+			foreach($object['tags'] as $tag)
 			{
 				$tag = trim(strtolower($tag));
 				if(strlen($tag))
@@ -877,15 +905,19 @@ class Store extends Model
 				}
 			}
 		}
-		if(isset($data['iri']))
+		if(isset($object['iri']))
 		{
-			if(!is_array($data['iri']))
+			if(!is_array($object['iri']))
 			{
-				$data['iri'] = array($data['iri']);
+				$object['iri'] = array($object['iri']);
 			}
-			foreach($data['iri'] as $iri)
+			foreach($object['iri'] as $iri)
 			{
-				$this->db->insert($this->objects_iri, array('uuid' => $uuid, 'iri' => $iri));
+				$iri = trim($iri);
+				if(strlen($iri))
+				{
+					$this->db->insert($this->objects_iri, array('uuid' => $uuid, 'iri' => $iri));
+				}
 			}
 		}
 		$this->db->query('UPDATE {' . $this->objects . '} SET "dirty" = ? WHERE "uuid" = ?', 'N', $uuid);
