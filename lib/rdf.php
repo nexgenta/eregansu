@@ -1120,6 +1120,10 @@ class RDFSet implements Countable
 			}
 			foreach($list as $instance)
 			{
+				if(!is_object($instance))
+				{
+					throw new Exception('RDFSet::setFromInstances() invoked with a non-object instance');
+				}
 				$set->add($instance->all($keys));
 			}
 		}
