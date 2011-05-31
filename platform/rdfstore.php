@@ -35,6 +35,15 @@ class RDFStoredObject extends RDFInstance
 
 	public static function objectForData($data, $model = null, $className = null)
 	{
+		if(isset($data[0]))
+		{
+			$list = array();
+			foreach($data as $k => $v)
+			{
+				$list[$k] = self::objectForData($v, $model, $className);
+			}
+			return $list;
+		}
 		if(!strlen($className))
 		{
 			$className = 'RDFStoredObject';
@@ -139,7 +148,7 @@ class RDFStoredObject extends RDFInstance
 								$v[$pk] = $s['value'];
 							}
 //							echo '<pre>'; print_r($v); echo '</pre>';
-//							throw new Exception('unhandled RDF/JSON type ' . $s['type']);
+							//throw new Exception('unhandled RDF/JSON type ' . $s['type']);
 						}
 					}
 				}
