@@ -170,6 +170,8 @@ abstract class MIME
 		'm4p' => 'audio/mp4',
 		'm4b' => 'audio/mp4',
 		'm4a' => 'audio/mp4',
+
+		'pem' => 'application/x-pem-file',
 	);
 	/**
 	 * @internal
@@ -202,5 +204,6 @@ abstract class MIME
 		'vorbis' => 'Ogg Vorbis',
 		'theora' => 'Ogg Theora',
 		'turtle' => 'Turtle',
+		'x-pem-file' => 'PEM',
 	);
 }
