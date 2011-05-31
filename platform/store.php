@@ -213,10 +213,18 @@ abstract class StorableSet implements DataSet, Countable
 			{
 				return null;
 			}
-			$entry = $obj;
+			$entry =& $obj;
+		}
+		else
+		{
+			$obj =& $entry;
 		}
 		if(is_array($rowData))
 		{
+			if(isset($entry[0]))
+			{
+				$entry =& $obj[0];
+			}
 			$entry['uuid'] = $rowData['uuid'];
 			$entry['created'] = $rowData['created'];
 			if(strlen($rowData['creator_uuid']))
@@ -230,7 +238,7 @@ abstract class StorableSet implements DataSet, Countable
 			}
 			$entry['owner'] = $rowData['owner'];		
 		}
-		return call_user_func(array($this->storableClass, 'objectForData'), $entry, $this->model, $this->storableClass);	
+		return call_user_func(array($this->storableClass, 'objectForData'), $obj, $this->model, $this->storableClass);	
 	}
 	
 }
