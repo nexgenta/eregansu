@@ -2775,7 +2775,7 @@ class RDFComplexLiteral
 		$val = array('type' => 'literal', 'value' => $this->value);
 		if(isset($this->{RDF::rdf . 'type'}[0]))
 		{
-			$val['type'] = $this->{RDF::rdf . 'type'}[0];
+			$val['datatype'] = $this->{RDF::rdf . 'type'}[0];
 		}
 		if(isset($this->{XMLNS::xml . ' lang'}[0]))
 		{
