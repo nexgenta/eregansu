@@ -76,6 +76,16 @@ abstract class DBSchema
 		$this->db = $connection;
 	}
 	
+	/* Drop a table */
+	public function dropTable($name)
+	{
+		if(!($t = $this->tableWithOptions($name, DBTable::DROP)))
+		{
+			return false;
+		}
+		return $t->apply();
+	}
+
 	/* Return an existing table */
 	public function table($name)
 	{
@@ -111,7 +121,8 @@ abstract class DBTable
 	const CREATE_NEVER = 0;
 	const CREATE_IF_NEEDED = 1; /* Create it if it doesn't exist; no-op otherwise */
 	const CREATE_ALWAYS = 2; /* Always create, dropping if necessary */
-	
+	const DROP = 3; /* Drop the table */
+
 	public $schema;
 	public $name;
 	public $options;
@@ -136,6 +147,10 @@ abstract class DBTable
 	
 	public function apply()
 	{
+		if($this->options == self::DROP)
+		{
+			return $this->dropTable();
+		}
 		if($this->options == self::EXISTING)
 		{
 			if(count($this->changes))
@@ -349,6 +364,13 @@ abstract class DBTable
 	protected function addIndex($info)
 	{
 		return 'ALTER TABLE {' . $this->name . '} ADD ' . $info['spec'];
+	}
+	
+	/* Execute a DROP TABLE statement */
+	protected function dropTable()
+	{
+		$drop = 'DROP TABLE IF EXISTS {' . $this->name . '}';
+		return $this->schema->db->exec($drop);
 	}
 	
 	/* Execute a CREATE TABLE statement based on the content of
