@@ -855,7 +855,7 @@ class Store extends Model
 				}				
 			}
 		}
-		$this->db->perform(array($this, 'storedTransaction'), array('uuid' => strtolower(trim($data['uuid'])), 'data' => $data, 'json' => $json, 'lazy' => $lazy));
+		$this->db->perform(array($this, 'storedTransaction'), array('uuid' => $uuid, 'data' => $data, 'json' => $json, 'lazy' => $lazy));
 		return true;
 	}
 
