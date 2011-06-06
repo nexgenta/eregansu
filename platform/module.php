@@ -2,7 +2,7 @@
 
 /* Eregansu: Auto-configuring database schema modules
  *
- * Copyright 2010 Mo McRoberts.
+ * Copyright 2011 Mo McRoberts.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -49,6 +49,8 @@ abstract class Module extends Model
 	protected $cli;
 	/* Can we have our own database (true), or always piggyback? (false) */
 	public $standalone = true;
+	/* A reference to the database schema instance */
+	protected $schema = null;
 	
 	public static function getInstance($args = null)
 	{
@@ -79,23 +81,26 @@ abstract class Module extends Model
 			}
 			return true;
 		}
-		$currentVersion = $this->db->schema->moduleVersion($this->moduleId);
+		$this->schema = $this->db->schema;
+		$currentVersion = $this->moduleVersion();
 		while($currentVersion < $this->latestVersion)
 		{
 			echo " -> Updating " . $this->moduleId . " from " . $currentVersion . " to " . ($currentVersion + 1) . "\n";
 			do
 			{
 				$this->db->begin();
-				$currentVersion = $this->db->schema->moduleVersion($this->moduleId);
+				$currentVersion = $this->moduleVersion();
 				if($currentVersion >= $this->latestVersion)
 				{
 					$this->db->rollback();
+					$this->schema = null;
 					return true;
 				}
 				$result = $this->updateSchema($currentVersion + 1);
 				if($result == false)
 				{
 					echo "*** Update of " . $this->moduleId . " from " . $currentVersion . " to " . ($currentVersion + 1) . " failed\n";
+					$this->schema = null;
 					return false;
 				}
 				if(is_string($result))
@@ -106,14 +111,43 @@ abstract class Module extends Model
 				{
 					$comment = null;
 				}
-				$this->db->schema->setModuleVersion($this->moduleId, $currentVersion + 1, $comment);
+				$this->schema->setModuleVersion($this->moduleId, $currentVersion + 1, $comment);
 			}
 			while(!$this->db->commit());
 			$currentVersion++;
 		}
+		$this->schema = null;
 		return true;
 	}
+
+	/* Retrieve the version number of a specified module */
+	protected function moduleVersion($moduleId = null)
+	{
+		if(!strlen($moduleId))
+		{
+			$moduleId = $this->moduleId;
+		}
+		return $this->schema->moduleVersion($moduleId);
+	}
 	
+	/* Retrieve a database table instance */
+	protected function table($name)
+	{
+		return $this->schema->table($name);
+	}
+	
+	/* Create or retrieve a database table instance */
+	protected function tableWithOptions($name, $options)
+	{
+		return $this->schema->tableWithOptions($name, $options);
+	}
+	
+	/* Drop a database table */
+	protected function dropTable($name)
+	{
+		return $this->schema->dropTable($name);
+	}
+
 	/* Perform a single incremental schema update. Return true
 	 * if successful, or false if an unrecoverable error occurs
 	 * which should abort the update process.
