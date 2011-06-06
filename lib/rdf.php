@@ -36,6 +36,7 @@ abstract class RDF extends XMLNS
 	const theatre = 'http://purl.org/theatre#';
 	const participation = 'http://purl.org/vocab/participation/schema#';
 	const xhv = 'http://www.w3.org/1999/xhtml/vocab#';
+	const gn = 'http://www.geonames.org/ontology#';
 
 	/* Registered ontology handlers */
 	public static $ontologies = array();
@@ -244,6 +245,10 @@ abstract class RDF extends XMLNS
 			{
 				$href = substr($href, 0, $p);
 			}
+			if(substr($href, -1) == '/')
+			{
+				$href = substr($href, 0, -1);
+			}
 			$href .= '.rdf';
 		}
 		$doc = self::fetch($href, $ct, 'application/rdf+xml');
@@ -301,6 +306,11 @@ abstract class RDF extends XMLNS
 		$curl->httpAuth = Curl::AUTH_ANYSAFE;
 		$buf = $curl->exec();
 		$info = $curl->info;
+		if(intval($info['http_code']) > 399)
+		{
+			echo "RDF::fetch(): HTTP status " . $info['http_code'] . "\n";
+			return null;
+		}
 		$c = explode(';', $info['content_type']);
 		$contentType = $c[0];
 		if(php_sapi_name() == 'cli')
@@ -330,6 +340,7 @@ abstract class RDF extends XMLNS
 			self::$namespaces[RDF::xhv] = 'xhv';
 			self::$namespaces[RDF::dcmit] = 'dcmit';
 			self::$namespaces[RDF::xsd] = 'xsd';
+			self::$namespaces[RDF::gn] = 'gn';
 		}
 		if(strlen($uri))
 		{
@@ -1972,7 +1983,7 @@ class RDFInstance implements ArrayAccess
 
 	public function title($langs = null, $fallbackFirst = true)
 	{
-		return $this->lang(array(RDF::skos.'prefLabel', RDF::foaf.'name', RDF::rdfs.'label', RDF::dcterms.'title', RDF::dc.'title'), $langs, $fallbackFirst);
+		return $this->lang(array(RDF::skos.'prefLabel', RDF::gn.'name', RDF::foaf.'name', RDF::rdfs.'label', RDF::dcterms.'title', RDF::dc.'title'), $langs, $fallbackFirst);
 	}
 
 	public function description($langs = null, $fallbackFirst = true)
