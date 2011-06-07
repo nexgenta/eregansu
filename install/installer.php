@@ -82,6 +82,8 @@ class Installer
 		$this->checkEregansuLink();
 		$this->checkCLILink();
 		$this->checkHtAccess();
+		$this->checkApache2Config();
+		$this->checkLighttpdConfig();
 		$this->checkApp();
 		$this->checkTemplates();
 		$this->scanModules();
@@ -469,7 +471,12 @@ class Installer
 	{
 		if(file_exists(INSTANCE_ROOT . 'eregansu'))
 		{
-			echo "--> Re-creating eregansu script symbolic link\n";
+			if(!is_link(INSTANCE_ROOT . 'eregansu') && is_dir(INSTANCE_ROOT . 'eregansu'))
+			{
+				echo "--> " . INSTANCE_ROOT . "eregansu/ is a directory, leaving untouched\n";
+				return;
+			}
+			echo "--> Re-creating eregansu script symbolic link\n";			
 			unlink(INSTANCE_ROOT . 'eregansu');
 		}
 		else
@@ -492,6 +499,49 @@ class Installer
 			copy(PLATFORM_ROOT . 'htaccess.dist', PUBLIC_ROOT . '.htaccess');
 			chmod(PUBLIC_ROOT . '.htaccess', 0644);
 		}
+	}
+
+	protected function checkApache2Config()
+	{
+		if(file_exists(CONFIG_ROOT . 'apache2.conf'))
+		{
+			echo "--> " . CONFIG_ROOT . "apache2.conf already exists, leaving untouched\n";
+			return;
+		}
+		echo "--> Generating sample Apache 2.x virtual host configuration\n";
+		$f = fopen(CONFIG_ROOT . 'apache2.conf', 'w');
+		fwrite($f, "<VirtualHost *:80>\n" .
+			   "ServerName " . $this->appname . "\n" .
+			   "DocumentRoot " . PUBLIC_ROOT . "\n" .
+			   "DirectoryIndex index.php\n" .
+			   "</VirtualHost>\n\n" .
+
+			   "<Directory " . PUBLIC_ROOT . ">\n" .
+			   "Order allow,deny\n" .
+			   "Allow from all\n" .
+			   "Options +FollowSymLinks\n" .
+			   "AllowOverride all\n" .
+			   "</Directory>\n\n"
+			);
+		fclose($f);
+	}
+
+	protected function checkLighttpdConfig()
+	{
+		if(file_exists(CONFIG_ROOT . 'lighttpd.conf'))
+		{
+			echo "--> " . CONFIG_ROOT . "lighttpd.conf already exists, leaving untouched\n";
+			return;
+		}
+		echo "--> Generating sample Lighttpd virtual host configuration\n";
+		$f = fopen(CONFIG_ROOT . 'lighttpd.conf', 'w');
+		fwrite($f, "\$HTTP[\"host\"] =~ \"^" . str_replace('.', '\.', $this->appname) . "$\" {\n" .
+			   "\tserver.document-root = \"" . PUBLIC_ROOT . "\"\n" .
+			   "\turl.rewrite-once = (\n" .
+			   "\t\t\"^(?!/((templates|media|data|content)/.*|favicon.ico|slate.manifest))\" => \"/index.php\"\n" .
+			   "\t)\n" .
+			   "}\n");
+		fclose($f);
 	}
 	
 	protected function checkApp()
@@ -635,21 +685,7 @@ class Installer
 			fclose($f);
 		}
 		echo "*** Configuration complete ***\n\n";
-		echo "If you are using Apache, want to publish this application on the\n" .
-			"Web, and have not already done so, you will need to add\n" .
-			"configuration similar to the below to your server:\n\n";
-		echo "<VirtualHost *:80>\n" .
-			"ServerName " . $this->appname . "\n" .
-			"DocumentRoot " . PUBLIC_ROOT . "\n" .
-			"DirectoryIndex index.php\n" .
-			"</VirtualHost>\n\n" .
-			"<Directory " . PUBLIC_ROOT . ">\n" .
-			"Order allow,deny\n" .
-			"Allow from all\n" .
-			"Options +FollowSymLinks\n" .
-			"AllowOverride all\n" .
-			"</Directory>\n\n";
-		echo "You should adjust the values above to suit your configuration, however.\n\n";
+		echo "Apache 2.x users: See " . CONFIG_ROOT . "apache2.conf for a sample virtual host configuration.\n";
 	}
 }
 
