@@ -446,7 +446,7 @@ abstract class DBCore implements IDBCore
 			if(substr($k, 0, 1) == '@')
 			{
 				$values[] = $kv[$k];
-				$klist[] = substr($k, 1);
+				$klist[] = $this->quoteObject(substr($k, 1));
 			}
 			else
 			{
