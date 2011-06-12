@@ -1228,7 +1228,8 @@ class RDFSet implements Countable
 		}
 		foreach($langs as $l)
 		{
-			$list[] = $this->lang($l, false);
+			$s = $this->lang($l, false);
+			$list[$l] = ($asSet ? new RDFString($s, $l) : $s);
 		}
 		if($asSet)
 		{
