@@ -2888,6 +2888,9 @@ class RDFString extends RDFComplexLiteral
 	public function __construct($value, $lang = null)
 	{
 		parent::__construct(null, $value);
-		$this->{RDF::xml . ' lang'}[] = $lang;
+		if(strlen($lang))
+		{
+			$this->{RDF::xml . ' lang'}[] = $lang;
+		}
 	}
 }
