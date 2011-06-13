@@ -764,6 +764,7 @@ class Store extends Model
 	{
 		if(!($row = $this->db->row('SELECT * FROM {' . $this->objects . '} WHERE "uuid" = ?', $uuid)))
 		{
+			trigger_error('Failed to locate object with UUID ' . $uuid, E_USER_WARNING);
 			return false;
 		}
 		$data = json_decode($row['data'], true);
@@ -798,7 +799,7 @@ class Store extends Model
 	
 	protected function stored($data, $json = null, $lazy = false)
 	{
-		if(isset($data[0]))
+		if(is_array($data) && isset($data[0]))
 		{
 			$object = $data[0];
 		}
@@ -806,9 +807,14 @@ class Store extends Model
 		{
 			$object = $data;
 		}
-		if(!isset($object['kind']) || !strlen($object['kind']) || !isset($object['uuid']))
-		{
+		if(!isset($object['uuid']))
+		{			
 			return false;
+		}
+		if(!isset($object['kind']) || !strlen($object['kind']))
+		{
+			$object['kind'] = 'unknown';
+			$json = null;
 		}
 		$uuid = strtolower(trim($object['uuid']));
 		if(!strlen($uuid))
