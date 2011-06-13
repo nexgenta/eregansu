@@ -201,6 +201,14 @@ function strict_error_handler($errno, $errstr, $errfile, $errline)
 	return false;
 }
 
+function exception_handler($exception)
+{
+	if(php_sapi_name() != 'cli') echo '<pre>';
+	echo "Uncaught exception:\n\n";
+	echo $exception . "\n";
+	die(1);
+}
+
 umask(007);
 error_reporting(E_ALL|E_STRICT|E_RECOVERABLE_ERROR);
 ini_set('display_errors', 'On');
@@ -217,6 +225,7 @@ date_default_timezone_set('UTC');
 putenv('TZ=UTC');
 ini_set('date.timezone', 'UTC');
 set_error_handler('exception_error_handler');
+set_exception_handler('exception_handler');
 if(!defined('PUBLIC_ROOT'))
 {
 	define('PUBLIC_ROOT', defined('INSTANCE_ROOT') ? INSTANCE_ROOT : ((isset($_SERVER['SCRIPT_FILENAME']) ? dirname(realpath($_SERVER['SCRIPT_FILENAME'])) : realpath(dirname(__FILE__ ) . '/../../')) . '/'));
