@@ -28,6 +28,8 @@ else
 
 class XapianSearch extends SearchEngine
 {
+	public static $databases = array();
+
 	public $db;
 	public $stemmer;
 	public $prefixes = array();
@@ -41,15 +43,37 @@ class XapianSearch extends SearchEngine
 	{
 		parent::__construct($uri);
 		$this->path = $uri->path;
-		$this->db = new XapianDatabase($uri->path);
+		if(!isset(self::$databases[$uri->path]))
+		{
+			self::$databases[$uri->path] = array(null, false);
+		}
+		$this->db =& self::$databases[$uri->path];
 		$this->stemmer = new XapianStem('english');
+	}
+
+	protected function reopen()
+	{
+		if(empty($this->db[1]))
+		{
+//			echo "Opening " . $this->path . " for reading...\n";
+			$this->db[0] = new XapianDatabase($this->path);
+		}
+		else
+		{
+//			echo "Database " . $this->path . " was previously open for writing...\n";
+			$this->db[0] = new XapianWritableDatabase($this->path, Xapian::DB_CREATE_OR_OPEN);
+		}
 	}
 
 	public function query($args)
 	{
+		if($this->db[0] === null)
+		{
+			$this->reopen($this->db[1]);
+		}
 		$qp = new XapianQueryParser();
 		$qp->set_stemmer($this->stemmer);
-		$qp->set_database($this->db);
+		$qp->set_database($this->db[0]);
 		$qp->set_stemming_strategy(XapianQueryParser::STEM_SOME);
 		$text = null;
 		$query = array();
@@ -141,7 +165,7 @@ class XapianSearch extends SearchEngine
 				implode(' ', $query),
 				XapianQueryParser::FLAG_PHRASE|XapianQueryParser::FLAG_BOOLEAN|XapianQueryParser::FLAG_LOVEHATE|XapianQueryParser::FLAG_WILDCARD|XapianQueryParser::FLAG_PARTIAL)
 			);
-		$enquire = new XapianEnquire($this->db);
+		$enquire = new XapianEnquire($this->db[0]);
 		$enquire->set_query($xq);
 		try
 		{
@@ -165,6 +189,7 @@ class XapianSearch extends SearchEngine
 			$match = 'DatabaseModifiedError:';
 			if(!strncmp($e->getMessage(), $match, strlen($match)))
 			{
+				$this->reopen();
 				return $this->query($args);
 			}
 			throw $e;
@@ -184,33 +209,48 @@ class XapianIndexer extends SearchIndexer
 	public function __construct($uri)
 	{
 		parent::__construct($uri);
-		$this->db = null;
 		$this->indexer = new XapianTermGenerator();
 		$this->stemmer = new XapianStem('english');
 		$this->indexer->set_stemmer($this->stemmer);
 		$this->path = $uri->path;
+		if(!isset(XapianSearch::$databases[$this->path]))
+		{
+			XapianSearch::$databases[$this->path] = array(null);
+		}
+		$this->db =& XapianSearch::$databases[$this->path];
+		$this->db[1] = true;
 	}
 
 	public function begin()
 	{
-		if($this->db !== null)
+		if($this->db[0] !== null && !empty($this->db[1]))
 		{
-			trigger_error('Attempt to invoke XapianIndexer::begin() multiple times without intervening XapianIndexer::commit()', E_USER_NOTICE);
+//			echo "Database " . $this->path . " is already open for writing\n";
 			return;
 		}
-		$this->db = new XapianWritableDatabase($this->path, Xapian::DB_CREATE_OR_OPEN);
+		$this->reopen();
+	}
+
+	protected function reopen()
+	{		
+		if(isset($this->db[0]))
+		{
+//			echo "Database " . $this->path . " was previously open for reading, re-opening\n";
+		}
+		$this->db[1] = true;
+		$this->db[0] = new XapianWritableDatabase($this->path, Xapian::DB_CREATE_OR_OPEN);
 		$this->chmod();
 	}
 
 	public function commit()
 	{
-		if($this->db === null)
+		if($this->db[0] === null)
 		{
 //			trigger_error('Attempt to invoke XapianIndexer::commit() without first calling XapianIndexer::begin()', E_USER_NOTICE);
 			return;
 		}
-		$this->db->flush();
-		$this->db = null;
+		$this->db[0]->flush();
+		$this->db[0] = null;
 		$this->chmod();
 	}
 
@@ -233,10 +273,7 @@ class XapianIndexer extends SearchIndexer
 
 	public function indexDocument($identifier, $fullText, $attributes = null)
 	{
-		if($this->db === null)
-		{
-			$this->begin();
-		}
+		$this->begin();
 		$doc = new XapianDocument();
 		if(is_array($attributes))
 		{
@@ -271,7 +308,7 @@ class XapianIndexer extends SearchIndexer
 			$fullText = implode("\n", $fullText);
 		}
 		$this->indexer->index_text($fullText);
-		$this->db->delete_document('Q' . $identifier);		
-		$this->db->add_document($doc);
+		$this->db[0]->delete_document('Q' . $identifier);		
+		$this->db[0]->add_document($doc);
 	}
 }
