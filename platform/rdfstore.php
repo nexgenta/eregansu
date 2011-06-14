@@ -34,6 +34,7 @@ class RDFStore extends Store
 	public function ingestRDF($uri, $refresh = false, $realUri = null, $firstOnly = false)
 	{
 		$uuid = null;
+		$primary = null;
 		if(strlen($realUri))
 		{
 			$primary = $this->objectForIri($realUri, null, null, $firstOnly);
