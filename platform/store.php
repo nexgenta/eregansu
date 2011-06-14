@@ -419,11 +419,16 @@ class Store extends Model
 {
 	protected $storableClass = 'Storable';
 	
-	/* The name of the 'objects' table */
+	/* The names of the Store database tables */
 	protected $objects = 'object';
 	protected $objects_base = 'object_base';
 	protected $objects_iri = 'object_iri';
 	protected $objects_tags = 'object_tags';
+
+	/* Whether Store::query() should generate queries which attempt to
+	 * count the total number of rows.
+	 */
+	protected $queriesCalcRows = true;	
 	
 	public static function getInstance($args = null)
 	{
@@ -439,37 +444,274 @@ class Store extends Model
 		if(isset($args['objectsTagsTable'])) $this->objects_tags = $args['objectsTagsTable'];
 		parent::__construct($args);
 	}
-	
-	public function objectForUUID($uuid)
+
+	/* Given an object or array-of-objects in either instance or
+	 * associative array form, return its UUID.
+	 */
+	public function uuidOfObject($object)
 	{
-		if(!($data = $this->dataForUUID($uuid)))
+		if(is_array($object) && isset($object[0]) && !isset($object['uuid']))
+		{
+			$object = $object[0];
+		}
+		if(is_array($object) && isset($object['uuid']))
+		{
+			return $object['uuid'];
+		}
+		if(is_object($object) && isset($object->uuid))
+		{
+			return $object->uuid;
+		}
+		if(is_array($object) || is_object($object))
+		{
+			return null;
+		}
+		return $object;
+	}
+
+	/* Given an object or array-of-objects in either instance or
+	 * associative array form, return its kind.
+	 */
+	public function kindOfObject($object)
+	{
+		if(is_array($object) && isset($object[0]) && !isset($object['kind']))
+		{
+			$object = $object[0];
+		}
+		if(is_array($object) && isset($object['kind']))
+		{
+			return $object['kind'];
+		}
+		if(is_object($object) && isset($object->kind))
+		{
+			return $object->kind;
+		}
+		if(is_array($object) || is_object($object))
+		{
+			return null;
+		}
+		return $object;
+	}
+
+	/* Given an object or array of objects, return it in an associative
+	 * array form.
+	 */
+	public function objectAsArray($object)
+	{
+		if(is_object($object))
+		{
+			return get_object_vars($object);
+		}
+		if(is_array($object) && isset($object[0]))
+		{
+			$data = array();
+			foreach($object as $k => $obj)
+			{
+				if(is_object($obj))
+				{
+					$data[$k] = get_object_vars($obj);
+				}
+				else
+				{
+					$data[$k] = $obj;
+				}
+			}
+			return $data;
+		}
+		if(is_array($object))
+		{
+			return $object;
+		}
+		return null;
+	}
+
+	/* Return the first object from $objects, which may or may not be an
+	 * indexed array of objects.
+	 */
+	public function firstObject($objects)
+	{
+		if(is_array($objects) && isset($objects[0]))
+		{
+			return $objects[0];
+		}
+		return $objects;
+	}
+
+	/* Given a row from the table $this->objects, return an object's data.
+	 *
+	 * If $owner is specified, only an object owned by $owner will be
+	 * returned.	
+	 *
+	 * If $kind is specified, it's the kind, or list of kinds, of objects
+	 * which are allowable.
+	 *
+	 * If $firstOnly is specified and the specified object is an array,
+	 * return only the first object in that array.
+	 */
+	protected function dataFromRow($row, $kind, $firstOnly)
+	{
+		$data = json_decode($row['data'], true);
+		/* Ensure these are set from the outset */
+		$this->retrievedMeta($data, $row);
+		if(isset($data[0]))
+		{
+			$first = $data[0];
+		}
+		else
+		{
+			$first = $data;
+		}
+		if(!is_array($kind) && strlen($kind))
+		{
+			$kind = array($kind);
+		}	  
+		if(is_array($kind) && count($kind))
+		{
+			if(!isset($first['kind']))
+			{
+				return null;
+			}
+			$kindMatch = false;
+			foreach($kind as $k)
+			{
+				if(!strcmp($first['kind'], $k))
+				{
+					$kindMatch = true;
+					break;
+				}
+			}
+			if(!$kindMatch)
+			{
+				return null;
+			}
+		}
+		if($firstOnly)
+		{
+			return $first;
+		}
+		return $data;
+	}
+
+	/* Return the data for the object with the specified UUID, $uuid.
+	 *
+	 * If $owner is specified, only an object owned by $owner will be
+	 * returned.	
+	 *
+	 * If $kind is specified, it's the kind, or list of kinds, of objects
+	 * which are allowable.
+	 *
+	 * If $firstOnly is specified and the specified object is an array,
+	 * return only the first object in that array.
+	 */	
+	public function dataForUUID($uuid, $owner = null, $kind = null, $firstOnly = false)
+	{
+		if($owner === null)
+		{
+			if(!($row = $this->db->row('SELECT * FROM {' . $this->objects . '} WHERE "uuid" = ?', $uuid)))
+			{
+				return null;
+			}
+		}
+		else
+		{
+			if(!($row = $this->db->row('SELECT * FROM {' . $this->objects . '} WHERE "owner" = ? AND "uuid" = ?', $owner, $uuid)))
+			{
+				return null;
+			}
+		}
+		return $this->dataFromRow($row, $kind, $firstOnly);
+	}
+	
+	/* Return an instance of $this->storableClass for the object with the
+	 * specified UUID, $uuid.
+	 *
+	 * If $owner is specified, only an object owned by $owner will be
+	 * returned.
+	 *
+	 * If $kind is specified, it's the kind, or list of kinds, of objects
+	 * which are allowable.
+	 *
+	 * If $firstOnly is specified and the specified object is an array,
+	 * return only an instance for the first instance in that array.
+	 */
+	public function objectForUUID($uuid, $owner = null, $kind = null, $firstOnly = false)
+	{
+		if(!($data = $this->dataForUUID($uuid, $owner, $kind, false)))
 		{
 			return null;
 		}
 		$class = $this->storableClass;
 		return call_user_func(array($this->storableClass, 'objectForData'), $data, $this, $this->storableClass);
 	}
-	
-	public function dataForUUID($uuid)
+
+	/* Return the data for the object with the specified IRI, $iri.
+	 *
+	 * If $owner is specified, only an object owned by $owner will be
+	 * returned.	
+	 *
+	 * If $kind is specified, it's the kind, or list of kinds, of objects
+	 * which are allowable.
+	 *
+	 * If $firstOnly is specified and the specified object is an array,
+	 * return only the first object in the array.
+	 */
+	public function dataForIri($iri, $owner = null, $kind = null, $firstOnly = false)
 	{
-		if(!($row = $this->db->row('SELECT * FROM {' . $this->objects . '} WHERE "uuid" = ?', $uuid)))
+		if($owner === null)
+		{
+			if(!($row = $this->db->row('SELECT "o".* FROM {' . $this->objects . '} "o", {' . $this->objects_iri . '} "i" WHERE "i"."iri" = ? AND "o"."uuid" = "i"."uuid"', $iri)))
+			{
+				return null;
+			}
+		}
+		else
+		{
+			if(!($row = $this->db->row('SELECT "o".* FROM {' . $this->objects . '} "o", {' . $this->objects_iri . '} "i" WHERE "i"."iri" = ? AND "o"."owner" = ? AND "o"."uuid" = "i"."uuid"', $iri, $owner)))
+			{
+				return null;
+			}
+		}
+		return $this->dataFromRow($row, $kind, $firstOnly);
+	}
+
+	/* Return an instance of $this->storableClass for the object with the
+	 * specified IRI, $iri.
+	 *
+	 * If $owner is specified, only an object owned by $owner will be
+	 * returned.	
+	 *
+	 * If $firstOnly is specified and the specified object is an array,
+	 * return only an instance for the first instance in that array.
+	 */
+	public function objectForIri($iri, $owner = null, $kind = null, $firstOnly = false)
+	{
+		if(!($data = $this->dataForIri($iri, $owner, $kind, $firstOnly)))
 		{
 			return null;
 		}
-		$data = json_decode($row['data'], true);
-		/* Ensure these are set from the outset */
-		$this->retrievedMeta($data, $row);
-		return $data;
+		$class = $this->storableClass;
+		return call_user_func(array($this->storableClass, 'objectForData'), $data, $this, $this->storableClass);
 	}
-		
+
+	/* Store an object, which may be in associative array or instance form,
+	 * or may be an (indexed) array of the same. In the latter case, the
+	 * keys MUST begin at zero.
+	 */
 	public function setData($data, $user = null, $lazy = false, $owner = null)
 	{
 		if(is_object($data))
 		{
 			$data = get_object_vars($data);
 		}
-		if(isset($data[0]))
+		else if(isset($data[0]))
 		{
+			foreach($data as $k => $entry)
+			{
+				if(is_object($entry))
+				{
+					$data[$k] = get_object_vars($data);
+				}
+			}
 			$object =& $data[0];
 		}
 		else
@@ -716,7 +958,7 @@ class Store extends Model
 				$where[] = $tn . '."uuid" = "obj"."uuid"';
 			}
 		}
-		$qstr = 'SELECT /*!SQL_CALC_FOUND_ROWS*/ "obj".* FROM ( ' . implode(', ', $tlist) . ' )';
+		$qstr = 'SELECT ' . ($this->queriesCalcRows ? '/*!SQL_CALC_FOUND_ROWS*/ ' : '') . '"obj".* FROM ( ' . implode(', ', $tlist) . ' )';
 		if(count($where))
 		{
 			$qstr .= ' WHERE ' . implode(' AND ', $where);
@@ -746,6 +988,7 @@ class Store extends Model
 		return null;
 	}
 	
+	/* Retrieve the first object matching the supplied query */
 	public function object($query)
 	{
 		if(($rs = $this->query($query)))
@@ -754,12 +997,8 @@ class Store extends Model
 		}
 		return null;
 	}
-	
-	public function objectForIri($iri)
-	{
-		return $this->object(array('iri' => $iri));
-	}
-	
+		
+	/* Cause an object with the specified UUID to be reindexed */
 	public function updateObjectWithUUID($uuid)
 	{
 		if(!($row = $this->db->row('SELECT * FROM {' . $this->objects . '} WHERE "uuid" = ?', $uuid)))
@@ -934,10 +1173,13 @@ class Store extends Model
 				}
 			}
 		}
-		$this->db->query('UPDATE {' . $this->objects . '} SET "dirty" = ? WHERE "uuid" = ?', 'N', $uuid);
+		$this->dirty($uuid, false);
 		return true;
 	}
 
+	/* Return a set containing the UUIDs of all objects which are marked as
+	 * dirty.
+	 */
 	public function pendingObjectsSet($limit = null)
 	{
 		if(!($limit = intval($limit)))
@@ -947,8 +1189,15 @@ class Store extends Model
 		return $this->db->query('SELECT "uuid" FROM {' . $this->objects . '} WHERE "dirty" = ? LIMIT ' . $limit, 'Y');
 	}
 
-	public function markAllAsDirty()
+	/* Mark an object as dirty (or not dirty) */
+	public function dirty($uuid, $isDirty = true)
 	{
-		$this->db->query('UPDATE {' . $this->objects . '} SET "dirty" = ?', 'Y');
+		$this->db->exec('UPDATE {' . $this->objects . '} SET "dirty" = ? WHERE "uuid" = ?', ($isDirty ? 'Y' : 'N'), $uuid);
+	}
+
+	/* Mark all objects as dirty (or not dirty) */
+	public function markAllAsDirty($isDirty = true)
+	{
+		$this->db->query('UPDATE {' . $this->objects . '} SET "dirty" = ?', ($isDirty ? 'Y' : 'N'));
 	}
 }
