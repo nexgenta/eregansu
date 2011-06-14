@@ -27,6 +27,128 @@ require_once(dirname(__FILE__) . '/store.php');
 class RDFStore extends Store
 {
 	protected $storableClass = 'RDFStoredObject';
+
+	/* Ingest RDF from a URI; returns an instance relating to its primary
+	 * topic.
+	 */
+	public function ingestRDF($uri, $refresh = false, $realUri = null, $firstOnly = false)
+	{
+		$uuid = null;
+		if(strlen($realUri))
+		{
+			$primary = $this->objectForIri($realUri, null, null, $firstOnly);
+		}
+		if($primary == null)
+		{
+			$primary = $this->objectForIri($uri, null, null, $firstOnly);
+		}
+		/* A future revision of this code will allow $refresh to be an integer
+		 * (to indicate a maximum age) or a string (to indicate
+		 * If-modified-since).
+		 */
+		if($primary !== null && !$refresh)
+		{
+			return $primary;
+		}
+		if($primary === null)
+		{
+			$uuid = UUID::generate();
+		}
+		else
+		{
+			$uuid = $this->uuidOfObject($primary);
+		}
+		$doc = RDF::documentFromURL($uri);
+		/* At some point in the future this will be extended to handle
+		 * storing document-level information and inline signatures,
+		 * rather than solely the primary topic.
+		 */
+		$primary = $doc['primaryTopic'];
+		if(!is_object($primary))
+		{
+			trigger_error('Failed locate primary topic in ' . $uri, E_USER_NOTICE);
+			return null;
+		}
+		/* Build the list of all of the URIs this document might be known as */
+		$uris = array();
+		$furi = strval($doc->fileURI);
+		if(strlen($furi) && !in_array($furi, $uris))
+		{
+			$uris[] = strval($furi);
+		}
+		if(!in_array($uri, $uris))
+		{
+			$uris[] = $uri;
+		}
+		if(strlen($realUri) && !in_array($realUri, $uris))
+		{
+			$uris[] = $realUri;
+		}
+		$subj = $this->subjectOfObject($primary);
+		if(strlen($subj) && strncmp($subj, '#', 1) && strncmp($subj, '_:', 2) && !in_array($subj, $uris))
+		{
+			$uris[] = strval($subj);
+		}
+		$data = $this->objectAsArray($primary);
+		$data['kind'] = 'graph';
+		$data['iri'] = $uris;
+		$data['uuid'] = $uuid;
+		if(($data = $this->setData($data, null, false)))
+		{
+			return $this->objectForUuid($data['uuid'], null, null, $firstOnly);
+		}
+		return null;
+	}
+
+	/* Given an instance or array of instances (but NOT an object in
+	 * associative array form), return its subject URI.
+	 */
+	public function subjectOfObject($object)
+	{
+		if(is_object($object))
+		{
+			return $object->subject();
+		}
+		if(is_array($object) && isset($object[0]) && is_object($object[0]))
+		{
+			return $object[0]->subject();
+		}
+		return null;
+	}
+
+	/* Given an object or array of objects, return it in an associative
+	 * array form.
+	 */
+	public function objectAsArray($object)
+	{
+		if(is_object($object))
+		{
+			$array = $object->asArray();
+			return $array['value'];
+		}
+		if(is_array($object) && isset($object[0]))
+		{
+			$data = array();
+			foreach($object as $k => $obj)
+			{
+				if(is_object($obj))
+				{
+					$array = $obj->asArray();
+					$data[$k] = $array['value'];
+				}
+				else
+				{
+					$data[$k] = $obj;
+				}
+			}
+			return $data;
+		}
+		if(is_array($object))
+		{
+			return $object;
+		}
+		return null;
+	}
 }
 
 class RDFStoredObject extends RDFInstance
