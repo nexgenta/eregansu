@@ -364,6 +364,10 @@ class DBStorableSet extends StorableSet
 			{
 				$this->count++;
 				$this->key = $this->data['uuid'];
+				if(!isset($this->data['data']))
+				{
+					$this->data['data'] = $this->model->dataForEntry($this->data['uuid']);
+				}
 				$data = json_decode($this->data['data'], true);
 				$this->current = $this->storableForEntry($data, $this->data);
 			}
@@ -590,6 +594,22 @@ class Store extends Model
 			return $first;
 		}
 		return $data;
+	}
+
+	/* For a given UUID or table row, return the row's "data" field (i.e., the
+	 * JSON-encoded object structure).
+	 */
+	public /*internal*/ function dataForEntry($uuid)
+	{
+		if(is_array($uuid))
+		{
+			if(isset($uuid['data']))
+			{
+				return $uuid['data'];
+			}
+			$uuid = $uuid['uuid'];
+		}
+		return $this->db->value('SELECT "uuid" FROM {' . $this->objects . '} WHERE "uuid" = ?', $uuid);
 	}
 
 	/* Return the data for the object with the specified UUID, $uuid.
@@ -958,7 +978,18 @@ class Store extends Model
 				$where[] = $tn . '."uuid" = "obj"."uuid"';
 			}
 		}
-		$qstr = 'SELECT ' . ($this->queriesCalcRows ? '/*!SQL_CALC_FOUND_ROWS*/ ' : '') . '"obj".* FROM ( ' . implode(', ', $tlist) . ' )';
+		$what = array(
+			'"obj"."uuid"',
+			'"obj"."created"',
+			'"obj"."creator_scheme"',
+			'"obj"."creator_uuid"',
+			'"obj"."modified"',
+			'"obj"."modifier_scheme"',
+			'"obj"."modifier_uuid"',
+			'"obj"."owner"',
+			'"obj"."dirty"',
+			);
+		$qstr = 'SELECT ' . ($this->queriesCalcRows ? '/*!SQL_CALC_FOUND_ROWS*/ ' : '') . implode(', ', $what) . ' FROM ( ' . implode(', ', $tlist) . ' )';
 		if(count($where))
 		{
 			$qstr .= ' WHERE ' . implode(' AND ', $where);
