@@ -801,7 +801,7 @@ class Store extends Model
 			$entry = $this->db->row('SELECT "uuid" FROM {' . $this->objects . '} WHERE "uuid" = ?', $uuid);
 			if($entry)
 			{
-				$this->db->exec('UPDATE {' . $this->objects . '} SET "data" = ?, "dirty" = ?, "modified" = ' . $this->db->now () . ', "modifier_scheme" = ?, "modifier_uuid" = ? WHERE "uuid" = ?', $json, 'Y', $user_scheme, $user_uuid, $uuid);
+				$this->db->exec('UPDATE {' . $this->objects . '} SET "dirty" = ?, "modified" = ' . $this->db->now () . ', "modifier_scheme" = ?, "modifier_uuid" = ? WHERE "uuid" = ?', $json, 'Y', $user_scheme, $user_uuid, $uuid);
 				if(isset($owner))
 				{
 					$this->db->exec('UPDATE {' . $this->objects . '} SET "owner" = ? WHERE "uuid" = ?', $owner, $uuid);
