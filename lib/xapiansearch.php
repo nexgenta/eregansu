@@ -218,7 +218,12 @@ class XapianIndexer extends SearchIndexer
 			XapianSearch::$databases[$this->path] = array(null);
 		}
 		$this->db =& XapianSearch::$databases[$this->path];
-		$this->db[1] = true;
+		if(empty($this->db[1]))
+		{
+			/* Force the existing database to be re-opened writeable */
+			$this->db[0] = null;
+			$this->db[1] = true;
+		}
 	}
 
 	public function begin()
@@ -235,7 +240,7 @@ class XapianIndexer extends SearchIndexer
 	{		
 		if(isset($this->db[0]))
 		{
-//			echo "Database " . $this->path . " was previously open for reading, re-opening\n";
+			echo "Database " . $this->path . " was previously open for reading, re-opening\n";
 		}
 		$this->db[1] = true;
 		$this->db[0] = new XapianWritableDatabase($this->path, Xapian::DB_CREATE_OR_OPEN);
