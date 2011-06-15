@@ -433,6 +433,11 @@ class Store extends Model
 	 * count the total number of rows.
 	 */
 	protected $queriesCalcRows = true;	
+	/* Whether Store::query() needs to GROUP BY "obj"."uuid";
+	 * safer left 'true', but if the data is structured such that it's not
+	 * important, performance will improve without it.
+	 */
+	protected $queriesGroupByUuid = true;
 	
 	public static function getInstance($args = null)
 	{
@@ -609,7 +614,7 @@ class Store extends Model
 			}
 			$uuid = $uuid['uuid'];
 		}
-		return $this->db->value('SELECT "uuid" FROM {' . $this->objects . '} WHERE "uuid" = ?', $uuid);
+		$data = $this->db->value('SELECT "data" FROM {' . $this->objects . '} WHERE "uuid" = ?', $uuid);
 	}
 
 	/* Return the data for the object with the specified UUID, $uuid.
@@ -994,7 +999,10 @@ class Store extends Model
 		{
 			$qstr .= ' WHERE ' . implode(' AND ', $where);
 		}
-		$qstr .= ' GROUP BY "obj"."uuid"';
+		if($this->queriesGroupByUuid)
+		{
+			$qstr .= ' GROUP BY "obj"."uuid"';
+		}
 		if(count($olist))
 		{
 			$qstr .= ' ORDER BY ' . implode(', ', $olist);
