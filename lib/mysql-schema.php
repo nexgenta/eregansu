@@ -100,7 +100,6 @@ class MySQLSchema extends DBSchema
 	{
 		return $this->db->column('SHOW FULL TABLES FROM "' . $dbName . '" WHERE "Table_type" = ?', 'VIEW');
 	}
-	
 }
 
 class MySQLTable extends DBTable

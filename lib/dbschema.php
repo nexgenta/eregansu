@@ -86,6 +86,12 @@ abstract class DBSchema
 		return $t->apply();
 	}
 
+	/* Rename a table */
+	public function renameTable($oldName, $newName)
+	{
+		return $this->db->exec('ALTER TABLE {' . $oldName . '} RENAME TO {' . $newName . '}');
+	}
+
 	/* Return an existing table */
 	public function table($name)
 	{
@@ -316,6 +322,19 @@ abstract class DBTable
 				{
 					$this->changes[] = 'ALTER TABLE {' . $this->name . '} DROP INDEX "' . $name . '"';
 				}
+			}
+		}
+	}
+	
+	/* Drop a column from a table */
+	public function dropColumn($name)
+	{
+		if(isset($this->columns[$name]))
+		{
+			unset($this->indices[$name]);			
+			if($this->options == self::EXISTING)
+			{		
+				$this->changes[] = 'ALTER TABLE {' . $this->name . '} DROP COLUMN "' . $name . '"';
 			}
 		}
 	}

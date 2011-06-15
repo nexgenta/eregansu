@@ -425,6 +425,7 @@ class Store extends Model
 	
 	/* The names of the Store database tables */
 	protected $objects = 'object';
+	protected $objects_data = 'object_data';
 	protected $objects_base = 'object_base';
 	protected $objects_iri = 'object_iri';
 	protected $objects_tags = 'object_tags';
@@ -559,7 +560,18 @@ class Store extends Model
 	 */
 	protected function dataFromRow($row, $kind, $firstOnly)
 	{
-		$data = json_decode($row['data'], true);
+		if(isset($row['data']))
+		{
+			$data = $row['data'];
+		}
+		else
+		{
+			if(($data = $this->db->value('SELECT "data" FROM {' . $this->objects_data . '} WHERE "uuid" = ?', $row['uuid'])) === null)
+			{
+				return null;
+			}
+		}
+		$data = json_decode($data, true);
 		/* Ensure these are set from the outset */
 		$this->retrievedMeta($data, $row);
 		if(isset($data[0]))
@@ -614,7 +626,8 @@ class Store extends Model
 			}
 			$uuid = $uuid['uuid'];
 		}
-		$data = $this->db->value('SELECT "data" FROM {' . $this->objects . '} WHERE "uuid" = ?', $uuid);
+		$data = $this->db->value('SELECT "data" FROM {' . $this->objects_data . '} WHERE "uuid" = ?', $uuid);
+		return $data;
 	}
 
 	/* Return the data for the object with the specified UUID, $uuid.
@@ -798,7 +811,6 @@ class Store extends Model
 			{
 				$this->db->insert($this->objects, array(
 					'uuid' => $uuid,
-					'data' => $json,
 					'@created' => $created,
 					'creator_scheme' => $user_scheme,
 					'creator_uuid' => $user_uuid,
@@ -809,6 +821,11 @@ class Store extends Model
 					'owner' => $owner,
 				));
 			}
+			$this->db->exec('DELETE FROM {' . $this->objects_data . '} WHERE "uuid" = ?', $uuid);
+			$this->db->insert($this->objects_data, array(
+								  'uuid' => $uuid,
+								  'data' => $json,
+								  ));
 		}
 		while(!$this->db->commit());
 		$row = $this->db->row('SELECT "uuid", "created", "creator_scheme", "creator_uuid", "modified", "modifier_scheme", "modifier_uuid", "owner" FROM {' . $this->objects . '} WHERE "uuid" = ?', $uuid);
