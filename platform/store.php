@@ -1062,6 +1062,13 @@ class Store extends Model
 			trigger_error('Failed to locate object with UUID ' . $uuid, E_USER_WARNING);
 			return false;
 		}
+		if(!isset($row['data']))
+		{
+			if(($row['data'] = $this->db->value('SELECT "data" FROM {' . $this->objects_data . '} WHERE "uuid" = ?', $row['uuid'])) === null)
+			{
+				return false;
+			}
+		}
 		$data = json_decode($row['data'], true);
 		$this->retrievedMeta($data, $row);
 		$this->stored($data, $row['data'], false);
