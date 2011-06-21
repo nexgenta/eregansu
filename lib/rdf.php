@@ -2331,18 +2331,29 @@ class RDFInstance implements ArrayAccess
 	public function asXML($doc)
 	{
 		if(isset($this->{RDF::rdf . 'type'}))
-		{			
-			$types = $this->{RDF::rdf . 'type'};
+		{
+			$types = $this->{RDF::rdf.'type'};
 		}
 		else
 		{
 			$types = array();
 		}
-		if(!count($types))
+		$primaryType = null;
+		foreach($types as $k => $t)
 		{
-			$types[] = RDF::rdf . 'Description';
+			$nsn = $doc->namespacedName($t);
+			$x = explode(':', $nsn);
+			if(ctype_alpha(substr($x[1], 0, 1)))
+			{
+				$primaryType = $nsn;
+				unset($types[$k]);
+				break;
+			}
 		}
-		$primaryType = $doc->namespacedName(array_shift($types));
+		if($primaryType === null)
+		{
+			$primaryType = 'rdf:Description';
+		}
 		if(isset($this->{RDF::rdf . 'about'}))
 		{
 			$about = $this->{RDF::rdf . 'about'};
@@ -2372,7 +2383,7 @@ class RDFInstance implements ArrayAccess
 			}
 			else if($name == RDF::rdf . 'type')
 			{
-				$values = $types;
+				$values = array_values($types);
 			}
 			if(!is_array($values) || !count($values))
 			{
