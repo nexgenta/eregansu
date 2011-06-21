@@ -2343,7 +2343,7 @@ class RDFInstance implements ArrayAccess
 		{
 			$nsn = $doc->namespacedName($t);
 			$x = explode(':', $nsn);
-			if(ctype_alpha(substr($x[1], 0, 1)))
+			if(preg_match('!^[a-z_]([a-z0-9_.-])*$!i', $x[1]))
 			{
 				$primaryType = $nsn;
 				unset($types[$k]);
