@@ -110,6 +110,29 @@ if(!defined('EREGANSU_SKIP_CONFIG'))
 	require_once(CONFIG_ROOT . 'appconfig.php');
 }
 
+/* Load any plugins which have been named in $PLUGINS */
+
+if(!defined('PLUGINS_ROOT')) define('PLUGINS_ROOT', INSTANCE_ROOT . 'plugins/');
+if(!isset($PLUGINS) || !is_array($PLUGINS)) $PLUGINS = array();
+
+foreach($PLUGINS as $pluginName)
+{
+	$pluginBase = basename($pluginName);
+	$pluginPath = $pluginName[0] == '/' ? $pluginName : PLUGINS_ROOT . $pluginName;
+	if(file_exists($pluginPath . '/' . $pluginBase . '.php'))
+	{
+		require_once($pluginPath . '/' . $pluginBase . '.php');
+	}
+	else if(file_exists($pluginpath . '.php'))
+	{
+		require_once($pluginPath . '.php');
+	}
+	else
+	{
+		trigger_error('Cannot locate plugin "' . $pluginName . '"', E_USER_NOTICE);
+	}
+}
+
 /* Load the initial set of modules */
 require_once(PLATFORM_LIB . 'request.php');
 require_once(PLATFORM_LIB . 'session.php');
