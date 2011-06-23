@@ -350,6 +350,10 @@ if(function_exists('curl_init'))
 					$store = false;
 				}
 			}
+			if(substr($dir, -1) != '/')
+			{
+				$dir .= '/';
+			}
 			if($time === null)
 			{
 				if(defined('CACHE_TIME'))
@@ -373,7 +377,7 @@ if(function_exists('curl_init'))
 			if($fetch || $store)
 			{
 				$hash = md5(json_encode($this->options));
-				$cacheFile = CACHE_DIR . $hash;
+				$cacheFile = $dir . $hash;
 			}
 			if(strlen($cacheFile) && file_exists($cacheFile) && file_exists($cacheFile . '.json'))
 			{
