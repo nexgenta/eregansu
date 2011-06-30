@@ -672,6 +672,10 @@ class HTTPRequest extends Request
 			$this->contentType = $_SERVER['CONTENT_TYPE'];
 		}
 		$this->processRequestPayload();
+		if($this->method == 'POST' && is_array($this->postData) && isset($this->postData['__method']))
+		{
+			$this->method = $this->postData['__method'];
+		}
 	}
 
 	protected function processRequestPayload()
