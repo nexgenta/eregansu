@@ -400,6 +400,72 @@ abstract class Request
 		exit(1);
 	}
 
+	/**
+	 * Attempt to perform content negotiation.
+	 *
+	 * Returns an associative array containing a set of HTTP-style headers,
+	 * or an HTTP status code (method not allowed, not acceptable, etc.) upon
+	 * failure.
+	 */
+	public function negotiate($methods = null, $contentTypes = null)
+	{
+		$headers = array();
+
+		if($methods !== null)
+		{
+			if(!in_array($this->method, $methods))
+			{
+				return 405; /* Method Not Allowed */
+			}
+		}
+		/* XXX:
+		 *
+		 * 1. $contentTypes should be sorted according to the q-values of both
+		 *    it and $this->types
+		 *
+		 * 2. To do this, it should be possible for $contentTypes to be an
+		 *    array-of-arrays (e.g., array('type' => 'text/html', 'q' => 0.5))
+		 *
+		 * 3. If $contentTypes has come from Proxy::$supportedTypes, we really
+		 *    need to support it being an array anyway, as there are additional
+		 *    attributes (e.g., "hide") which would be useful to expose.
+		 */
+		if($contentTypes !== null)
+		{
+			/* Negotiate the content-type */
+			$type = null;
+			foreach($this->types as $atype)
+			{
+				if(in_array($atype, $contentTypes))
+				{
+					$type = $atype;
+					break;
+				}
+			}
+			if($type == null)
+			{
+				/* If the client ultimately accepts anything, send back the first
+				 * type.
+				 */
+				if(in_array('*/*', $req->types))
+				{
+					foreach($contentTypes as $atype)
+					{
+						$type = $atype;
+						break;
+					}
+				}
+			}
+			if($type === null)
+			{
+				return 406;
+			}
+			$headers['Content-type'] = $type;
+			$headers['Vary'] = 'Accept';
+		}
+		return $headers;
+	}
+	
 	/* @internal
 	 * Process a multipart/signed payload 
 	 */
