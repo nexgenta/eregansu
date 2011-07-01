@@ -38,7 +38,7 @@ class XapianSearch extends SearchEngine
 
 	const BOOL = 0;
 	const PROBABILISTIC = 1;
-
+  
 	public function __construct($uri)
 	{
 		parent::__construct($uri);
@@ -62,6 +62,7 @@ class XapianSearch extends SearchEngine
 		{
 //			echo "Database " . $this->path . " was previously open for writing...\n";
 			$this->db[0] = new XapianWritableDatabase($this->path, Xapian::DB_CREATE_OR_OPEN);
+			self::chmod($this->path);
 		}
 	}
 
@@ -69,7 +70,7 @@ class XapianSearch extends SearchEngine
 	{
 		if($this->db[0] === null)
 		{
-			$this->reopen($this->db[1]);
+			$this->reopen();
 		}
 		$qp = new XapianQueryParser();
 		$qp->set_stemmer($this->stemmer);
@@ -196,6 +197,26 @@ class XapianSearch extends SearchEngine
 		}
 		return $results;
 	}
+	
+	/**
+	 * @internal
+	 */
+	public static function chmod($path)
+	{
+		$files = array('flintlock', 'iamchert', 'position', 'postlist', 'record', 'termlist');
+		$suf = array('', '.DB', '.baseA', '.baseB');
+		chmod($path, 0755);
+		foreach($files as $f)
+		{
+			foreach($suf as $s)
+			{
+				if(file_exists($path . '/' . $f . $s))
+				{
+					chmod($path . '/' . $f . $s, 0644);
+				}
+			}
+		}
+	}
 }
 
 class XapianIndexer extends SearchIndexer
@@ -244,7 +265,7 @@ class XapianIndexer extends SearchIndexer
 		}
 		$this->db[1] = true;
 		$this->db[0] = new XapianWritableDatabase($this->path, Xapian::DB_CREATE_OR_OPEN);
-		$this->chmod();
+		XapianSearch::chmod($this->path);
 	}
 
 	public function commit()
@@ -256,25 +277,8 @@ class XapianIndexer extends SearchIndexer
 		}
 		$this->db[0]->flush();
 		$this->db[0] = null;
-		$this->chmod();
+		XapianSearch::chmod($this->path);
 	}
-
-	protected function chmod()
-	{
-		$files = array('flintlock', 'iamchert', 'position', 'postlist', 'record', 'termlist');
-		$suf = array('', '.DB', '.baseA', '.baseB');
-		chmod($this->info->path, 0755);
-		foreach($files as $f)
-		{
-			foreach($suf as $s)
-			{
-				if(file_exists($this->info->path . '/' . $f . $s))
-				{
-					chmod($this->info->path . '/' . $f . $s, 0644);
-				}
-			}
-		}
-	}		
 
 	public function indexDocument($identifier, $fullText, $attributes = null)
 	{
