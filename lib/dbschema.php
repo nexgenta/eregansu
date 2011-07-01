@@ -217,6 +217,7 @@ abstract class DBTable
 				break;
 			case DBType::DATE:
 			case DBType::DATETIME:
+		    case DBType::TIME:
 			case DBType::UUID:
 			case DBType::BOOL:
 			case DBType::SERIAL:

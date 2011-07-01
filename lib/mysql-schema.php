@@ -177,6 +177,9 @@ class MySQLTable extends DBTable
 			case DBType::DATETIME:
 				$spec .= 'DATETIME';
 				break;
+  		    case DBType::TIME:
+				$spec .= 'TIME';
+				break;
 			case DBType::ENUM:
 				$list = array();
 				foreach($info['sizeValues'] as $v)
