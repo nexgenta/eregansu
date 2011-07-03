@@ -108,13 +108,13 @@ abstract class DBCore implements IDBCore
 		switch($iri['scheme'])
 		{
 			case 'mysql':
-				require_once(dirname(__FILE__) . '/mysql.php');
+				require_once(dirname(__FILE__) . '/db/mysql.php');
 				return new MySQL($iri);
 			case 'ldap':
-				require_once(dirname(__FILE__) . '/ldap.php');
+				require_once(dirname(__FILE__) . '/db/ldap.php');
 				return new LDAP($iri);
 			case 'sqlite3':
-				require_once(dirname(__FILE__) . '/sqlite3.php');
+				require_once(dirname(__FILE__) . '/db/sqlite3.php');
 				return new SQLite3DB($iri);
 			default:
 				throw new DBException(0, 'Unsupported database connection scheme "' . $iri['scheme'] . '"', null);

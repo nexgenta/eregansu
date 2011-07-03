@@ -62,10 +62,10 @@ abstract class DBSchema
 		switch($connection->dbms)
 		{
 			case 'mysql':
-				require_once(dirname(__FILE__) . '/mysql-schema.php');
+				require_once(dirname(__FILE__) . '/db/mysql-schema.php');
 				return new MySQLSchema($connection);
 			case 'sqlite3':
-				require_once(dirname(__FILE__) . '/sqlite3-schema.php');
+				require_once(dirname(__FILE__) . '/db/sqlite3-schema.php');
 				return new SQLite3Schema($connection);
 		}
 		return null;
