@@ -505,10 +505,6 @@ class Proxy extends Router
 		$this->request = $req;
 		$this->proxyUri = $this->request->pageUri;
 		$method = $req->method;
-		if($req->method == 'POST' && is_array($req->postData) && isset($req->postData['__method']))
-		{
-			$method = $req->postData['__method'];
-		}
 		if(!$this->getObject())
 		{
 			$this->request = null;
