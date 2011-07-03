@@ -12,12 +12,12 @@
 		to keep both the code and the templates maintainable.
 	</p>
 	<p>
-		The built-in <code>Page</code> class (defined in <code>platform/platform/page.php</code>)
+		The built-in <code>Page</code> class (defined in <code>eregansu/platform/page.php</code>)
 		contains the logic required to process to requests for HTML resources
 		and generate template-driven responses. You can subclass <code>Page</code>
 		and override its <code>assignTemplate</code> method to control the variables
 		which get substituted here. <code>Page</code> (and the <code>Template</code> instance
-		it creates—the latter defined in <code>platform/platform/template.php</code>)
+		it creates—the latter defined in <code>eregansu/platform/template.php</code>)
 		substitute some variables automatically. For example, <code>$skin_iri</code>,
 		which is the URL, relative to the server root, of the directory containing
 		these templates. In this case, it is <code><?php e($skin_iri); ?></code>.
