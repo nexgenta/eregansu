@@ -15,27 +15,33 @@
  *  limitations under the License.
  */
 
-require_once(dirname(__FILE__) . '/../lib/common.php');
-
 uses('rdf');
 
-$doc = RDF::documentFromFile('data/rdfdoc-arrayaccess.xml', 'http://example.com/sample');
-if(!is_object($doc))
+class TestRDFDocArrayAccessPriTopic extends TestHarness
 {
-	exit(1);
+	public function main()
+	{
+		$doc = RDF::documentFromFile('data/rdfdoc-arrayaccess.xml', 'http://example.com/sample');
+		if(!is_object($doc))
+		{
+			echo "Failed to parse document\n";
+			return false;
+		}
+		$primary = $doc['primaryTopic'];
+		if(!is_object($primary))
+		{
+			echo "Failed to locate primary topic\n";
+			return false;
+		}
+		$subj = strval($primary->subject());
+		if(strcmp($subj, 'http://example.com/sample#thing'))
+		{
+			echo "Subject expected to be <http://example.com/sample#thing> is <$subj>\n";
+			return false;
+		}		
+		return true;
+	}
 }
 
-$primary = $doc['primaryTopic'];
-if(!is_object($primary))
-{
-	echo "Failed to locate primary topic\n";
-	exit(1);
-}
-$subj = strval($primary->subject());
-if(strcmp($subj, 'http://example.com/sample#thing'))
-{
-	echo "Subject expected to be <http://example.com/sample#thing> is <$subj>\n";
-	exit(1);
-}
+return 'TestRDFDocArrayAccessPriTopic';
 
-exit(0);

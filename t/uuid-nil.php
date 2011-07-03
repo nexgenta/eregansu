@@ -15,15 +15,22 @@
  *  limitations under the License.
  */
 
-require_once(dirname(__FILE__) . '/../lib/common.php');
-
 uses('uuid');
 
-$nil = UUID::nil();
-
-if(strcasecmp($nil, '00000000-0000-0000-0000-000000000000'))
+class TestUuidNil extends TestHarness
 {
-	echo "Expected: nil UUID, generated $nil\n";
-	exit(1);
+	public function main()
+	{
+		$nil = UUID::nil();
+		
+		if(strcasecmp($nil, '00000000-0000-0000-0000-000000000000'))
+		{
+			echo "Expected: nil UUID, generated $nil\n";
+			return;
+		}
+		return true;
+	}
 }
-exit(0);
+
+return 'TestUuidNil';
+

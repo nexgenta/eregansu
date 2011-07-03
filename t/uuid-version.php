@@ -15,27 +15,32 @@
  *  limitations under the License.
  */
 
-require_once(dirname(__FILE__) . '/../lib/common.php');
-
 uses('uuid');
 
-$tests = array(
-	'00000000-0000-0000-0000-000000000000' => array('version' => UUID::NONE, 'variant' => UUID::UNKNOWN),
-	'00000000-0000-0000-c000-000000000046' => array('version' => UUID::NONE, 'variant' => UUID::MICROSOFT),
-	'cfbff0d1-9375-5685-968c-48ce8b15ae17' => array('version' => UUID::HASH_SHA1, 'variant' => UUID::DCE),
-	'9073926b-929f-31c2-abc9-fad77ae3e8eb' => array('version' => UUID::HASH_MD5, 'variant' => UUID::DCE),
-	'034bd466-17ce-4dc1-9332-a0ea76457c51' => array('version' => UUID::RANDOM, 'variant' => UUID::DCE),
-	'a4a9de9a-63c5-11e0-957b-001aa08ec528' => array('version' => UUID::DCE_TIME, 'variant' => UUID::DCE),
-	);
+class TestUuidVersion extends TestHarness
+{   
+	public static $tests = array(
+		'00000000-0000-0000-0000-000000000000' => array('version' => UUID::NONE, 'variant' => UUID::UNKNOWN),
+		'00000000-0000-0000-c000-000000000046' => array('version' => UUID::NONE, 'variant' => UUID::MICROSOFT),
+		'cfbff0d1-9375-5685-968c-48ce8b15ae17' => array('version' => UUID::HASH_SHA1, 'variant' => UUID::DCE),
+		'9073926b-929f-31c2-abc9-fad77ae3e8eb' => array('version' => UUID::HASH_MD5, 'variant' => UUID::DCE),
+		'034bd466-17ce-4dc1-9332-a0ea76457c51' => array('version' => UUID::RANDOM, 'variant' => UUID::DCE),
+		'a4a9de9a-63c5-11e0-957b-001aa08ec528' => array('version' => UUID::DCE_TIME, 'variant' => UUID::DCE),
+		);
 
-foreach($tests as $uuid => $info)
-{
-	$result = UUID::parse($uuid);
-	if($info['version'] != $result['version'] || $info['variant'] != $result['variant'])
+	public function main()
 	{
-		echo "$uuid: expected ver=" . $info['version'] . ", var=" . $info['variant'] . " actual ver=" . $result['version'] . ", var=" . $info['variant'] . "\n";
-		exit(1);
+		foreach(self::$tests as $uuid => $info)
+		{
+			$result = UUID::parse($uuid);
+			if($info['version'] != $result['version'] || $info['variant'] != $result['variant'])
+			{
+				echo "$uuid: expected ver=" . $info['version'] . ", var=" . $info['variant'] . " actual ver=" . $result['version'] . ", var=" . $info['variant'] . "\n";
+				return false;
+			}
+		}
+		return true;
 	}
 }
 
-exit(0);
+return 'TestUuidVersion';

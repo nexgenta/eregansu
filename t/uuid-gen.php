@@ -15,14 +15,21 @@
  *  limitations under the License.
  */
 
-require_once(dirname(__FILE__) . '/../lib/common.php');
-
 uses('uuid');
 
-$uu = UUID::generate();
-
-if(preg_match('/[a-f0-9]{8}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{12}/i', $uu))
+class TestUuidGen extends TestHarness
 {
-	exit(0);
+	public function main()
+	{
+		$uu = UUID::generate();
+		
+		if(preg_match('/^[a-f0-9]{8}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{12}$/i', $uu))
+		{
+			return true;
+		}
+	}
 }
-exit(1);
+
+return 'TestUuidGen';
+
+

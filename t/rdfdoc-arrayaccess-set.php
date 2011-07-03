@@ -15,31 +15,36 @@
  *  limitations under the License.
  */
 
-require_once(dirname(__FILE__) . '/../lib/common.php');
-
 uses('rdf');
 
-$doc = RDF::documentFromFile('data/rdfdoc-arrayaccess.xml', 'http://example.com/sample');
-if(!is_object($doc))
+class TestRDFDocArrayAccessSet extends TestHarness
 {
-	exit(1);
+	public function main()
+	{
+		$doc = RDF::documentFromFile('data/rdfdoc-arrayaccess.xml', 'http://example.com/sample');
+		if(!is_object($doc))
+		{
+			echo "Failed to parse document\n";
+			return false;
+		}		
+		$subj = new RDFInstance('http://example.com/sample#bar');
+		$subj['rdfs:label'] = 'Sample thing bar';
+		$doc[] = $subj;		
+		$subj = $doc['http://example.com/sample#bar'];
+		if(!is_object($subj))
+		{
+			echo "Failed to locate topic after adding to document\n";
+			return false;
+		}
+		$subj = strval($subj->subject());
+		if(strcmp($subj, 'http://example.com/sample#bar'))
+		{
+			echo "Subject expected to be <http://example.com/sample#bar> is <$subj>\n";
+			return false;
+		}
+		return true;
+	}
 }
 
-$subj = new RDFInstance('http://example.com/sample#bar');
-$subj['rdfs:label'] = 'Sample thing bar';
-$doc[] = $subj;
+return 'TestRDFDocArrayAccessSet';
 
-$subj = $doc['http://example.com/sample#bar'];
-if(!is_object($subj))
-{
-	echo "Failed to locate topic\n";
-	exit(1);
-}
-$subj = strval($subj->subject());
-if(strcmp($subj, 'http://example.com/sample#bar'))
-{
-	echo "Subject expected to be <http://example.com/sample#bar> is <$subj>\n";
-	exit(1);
-}
-
-exit(0);

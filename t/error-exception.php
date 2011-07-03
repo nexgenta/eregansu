@@ -15,14 +15,21 @@
  *  limitations under the License.
  */
 
-require_once(dirname(__FILE__) . '/../lib/common.php');
+class TestErrorException extends TestHarness
+{
+	public function main()
+	{
+		try
+		{
+			trigger_error('Test error', E_USER_ERROR);
+			return false;
+		}
+		catch(ErrorException $e)
+		{
+		}
+		return true;
+	}
+}
 
-try
-{
-	trigger_error('Test error', E_USER_ERROR);
-	exit(1);
-}
-catch(ErrorException $e)
-{
-	exit(0);
-}
+return 'TestErrorException';
+

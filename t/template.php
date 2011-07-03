@@ -15,6 +15,12 @@
  *  limitations under the License.
  */
 
-require_once(dirname(__FILE__) . '/../lib/common.php');
+class TestTemplate extends TestHarness
+{
+	public function main()
+	{
+		/* Return true to indicate a pass */
+	}
+}
 
-exit(0);
+return 'TestTemplate';

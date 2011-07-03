@@ -15,42 +15,49 @@
  *  limitations under the License.
  */
 
-require_once(dirname(__FILE__) . '/../lib/common.php');
-
 uses('uuid');
 
-$tests = array(
-	array('kind' => 'dns', 'name' => 'example.com', 'expect' => 'cfbff0d1-9375-5685-968c-48ce8b15ae17'),
-	array('kind' => 'dns', 'name' => 'nexgenta.com', 'expect' => '3a5fb16b-2186-5e0f-a8a6-9e7c5467143e'),
-	array('kind' => 'url', 'name' => 'http://github.com/nexgenta/eregansu', 'expect' => 'f2edc71e-06a9-5ce6-bfcf-4e0622eca470'),
-	array('kind' => 'oid', 'name' => '1.3.6.1.1.1.2.0', 'expect' => 'a89fa81a-c451-57e2-92ae-e1baf89482d7'),
-	array('kind' => 'dn', 'name' => '/C=GB/L=Glasgow/O=Example/', 'expect' => 'bf85d135-22d7-539f-a599-793bc7eb2529'),
-	);
-
-foreach($tests as $t)
+class TestUuidGenSHA1 extends TestHarness
 {
-	$ns = null;
-	switch($t['kind'])
+	public static $tests = array(
+		array('kind' => 'dns', 'name' => 'example.com', 'expect' => 'cfbff0d1-9375-5685-968c-48ce8b15ae17'),
+		array('kind' => 'dns', 'name' => 'nexgenta.com', 'expect' => '3a5fb16b-2186-5e0f-a8a6-9e7c5467143e'),
+		array('kind' => 'url', 'name' => 'http://github.com/nexgenta/eregansu', 'expect' => 'f2edc71e-06a9-5ce6-bfcf-4e0622eca470'),
+		array('kind' => 'oid', 'name' => '1.3.6.1.1.1.2.0', 'expect' => 'a89fa81a-c451-57e2-92ae-e1baf89482d7'),
+		array('kind' => 'dn', 'name' => '/C=GB/L=Glasgow/O=Example/', 'expect' => 'bf85d135-22d7-539f-a599-793bc7eb2529'),
+		);
+
+	public function main()
 	{
-	case 'dns':
-		$ns = UUID::DNS;
-		break;
-	case 'url':
-		$ns = UUID::URL;
-		break;
-	case 'oid':
-		$ns = UUID::OID;
-		break;
-	case 'dn':
-		$ns = UUID::DN;
-		break;
-	}
-	$uu = UUID::generate(UUID::HASH_SHA1, $ns, $t['name']);
-	if(strcasecmp($uu, $t['expect']))
-	{
-		echo $t['kind'] . '(' . $t['name'] . '): expected ' . $t['expect'] . ', generated ' . $uu . "\n";
-		exit(1);
+		foreach(self::$tests as $t)
+		{
+			$ns = null;
+			switch($t['kind'])
+			{
+			case 'dns':
+				$ns = UUID::DNS;
+				break;
+			case 'url':
+				$ns = UUID::URL;
+				break;
+			case 'oid':
+				$ns = UUID::OID;
+				break;
+			case 'dn':
+				$ns = UUID::DN;
+				break;
+			}
+			$uu = UUID::generate(UUID::HASH_SHA1, $ns, $t['name']);
+			if(strcasecmp($uu, $t['expect']))
+			{
+				echo $t['kind'] . '(' . $t['name'] . '): expected ' . $t['expect'] . ', generated ' . $uu . "\n";
+				return false;
+			}
+		}
+		return true;
 	}
 }
-exit(0);
+
+return 'TestUuidGenSHA1';
+
 

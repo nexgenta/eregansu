@@ -15,27 +15,32 @@
  *  limitations under the License.
  */
 
-require_once(dirname(__FILE__) . '/../lib/common.php');
-
 uses('rdf');
 
-$doc = RDF::documentFromFile('data/rdfdoc-arrayaccess.xml', 'http://example.com/sample');
-if(!is_object($doc))
+class TestRDFDocArrayAccessGet extends TestHarness
 {
-	exit(1);
+	public function main()
+	{
+		$doc = RDF::documentFromFile('data/rdfdoc-arrayaccess.xml', 'http://example.com/sample');
+		if(!is_object($doc))
+		{
+			echo "Failed to parse document\n";
+			return false;
+		}
+		$subj = $doc['http://example.com/sample#foo'];
+		if(!is_object($subj))
+		{
+			echo "Failed to locate topic\n";
+			return false;
+		}
+		$subj = strval($subj->subject());
+		if(strcmp($subj, 'http://example.com/sample#foo'))
+		{
+			echo "Subject expected to be <http://example.com/sample#foo> is <$subj>\n";
+			return false;
+		}
+		return true;
+	}
 }
 
-$subj = $doc['http://example.com/sample#foo'];
-if(!is_object($subj))
-{
-	echo "Failed to locate topic\n";
-	exit(1);
-}
-$subj = strval($subj->subject());
-if(strcmp($subj, 'http://example.com/sample#foo'))
-{
-	echo "Subject expected to be <http://example.com/sample#foo> is <$subj>\n";
-	exit(1);
-}
-
-exit(0);
+return 'TestRDFDocArrayAccessGet';
