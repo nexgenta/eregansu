@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tests>
+  <test>uuid-gen.php</test>
+  <test expect="fail" issue="15">uuid-gen-md5.php</test>
+  <test expect="fail" issue="15">uuid-gen-sha1.php</test>
+  <test>uuid-nil.php</test>
+  <test>uuid-version.php</test>
+  <test>error-exception.php</test>
+  <test>rdfdoc-arrayaccess-get.php</test>
+  <test>rdfdoc-arrayaccess-pritopic.php</test>
+  <test>rdfdoc-arrayaccess-set.php</test>
+</tests>

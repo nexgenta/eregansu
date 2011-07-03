@@ -67,7 +67,11 @@ if(!function_exists('uses'))
 		$_modules = func_get_args();
 		foreach($_modules as $_mod)
 		{
-			if(in_array($_mod, $_lib_modules))
+			if(!strcmp($_mod, 'testsuite') || !strcmp($_mod, 'harness'))
+			{
+				require_once(PLATFORM_ROOT . 'testsuite/' . $_mod . '.php');
+			}
+			else if(in_array($_mod, $_lib_modules))
 			{
 				require_once(PLATFORM_LIB . $_mod . '.php');
 			}
