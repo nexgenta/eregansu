@@ -682,6 +682,7 @@ class Proxy extends Router
 		{
 			$p = false;
 			$prefix = null;
+			$suffix = null;
 			$type = 'application/json';
 		}
 		$this->request->header('Content-type', $type);
