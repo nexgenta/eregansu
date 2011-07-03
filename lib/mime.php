@@ -205,5 +205,6 @@ abstract class MIME
 		'theora' => 'Ogg Theora',
 		'turtle' => 'Turtle',
 		'x-pem-file' => 'PEM',
+		'xml' => 'XML',
 	);
 }
