@@ -425,9 +425,13 @@ class App extends Router
 	{
 		$this->parent = $req->app;
 		$req->app = $this;
-		parent::process($req);
+		$r = parent::process($req);
+		while(is_object($r) && $r instanceof IRequestProcessor)
+		{
+			$r = $r->process($req);
+		}
 		$req->app = $this->parent;
-		$this->parent = null;	
+		$this->parent = null;
 	}
 }
 
