@@ -52,7 +52,7 @@ abstract class SearchEngine implements ISearchEngine
 			$class = 'DbpediaLiteSearch';
 			break;
 		case 'xapian+file':
-			require_once(dirname(__FILE__) . '/search/xapian.php');
+			require_once(dirname(__FILE__) . '/search/xapiansearch.php');
 			$class = 'XapianSearch';
 			break;
 		default:
@@ -82,7 +82,7 @@ abstract class SearchIndexer implements ISearchIndexer
 		switch($uri->scheme)
 		{
 		case 'xapian+file':
-			require_once(dirname(__FILE__) . '/search/xapian.php');
+			require_once(dirname(__FILE__) . '/search/xapiansearch.php');
 			$class = 'XapianIndexer';
 			break;
 		default:

@@ -15,7 +15,7 @@
  *  limitations under the License.
  */
 
-require_once(dirname(__FILE__) . '/searchengine.php');
+require_once(dirname(__FILE__) . '/../searchengine.php');
 
 if(defined('XAPIAN_PHP_PATH'))
 {
