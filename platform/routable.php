@@ -2,7 +2,7 @@
 
 /* Eregansu: Classes which can process requests
  *
- * Copyright 2009 Mo McRoberts.
+ * Copyright 2009-2011 Mo McRoberts.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -660,21 +660,35 @@ class Proxy extends Router
 
 	protected function perform_GET_JSON()
 	{
-		$type = 'application/json';
-		$this->request->header('Content-type', $type);
-		$this->request->flush();
 		if(isset($this->request->query['jsonp']))
 		{
 			$p = true;
-			echo $this->request->query['jsonp'] . '(';
+			$prefix = $this->request->query['jsonp'] . '(';
+			$suffix = ')';
+			$type = 'text/javascript';
+		}
+		else if(isset($this->request->query['callback']))
+		{
+			$p = true;
+			$prefix = $this->request->query['callback'] . '(';
+			$suffix = ')';
+			$type = 'text/javascript';
 		}
 		else
 		{
 			$p = false;
+			$prefix = null;
+			$type = 'application/json';
+		}
+		$this->request->header('Content-type', $type);
+		$this->request->flush();
+		if(strlen($prefix))
+		{
+			echo $prefix;
 		}
 		if(isset($this->object))
 		{
-			if(!($this->object instanceof ISerialisable) || $this->object->serialise($type) === false)
+			if(!($this->object instanceof ISerialisable) || $this->object->serialise('application/json') === false)
 			{					
 				echo json_encode($this->object);
 			}
@@ -683,9 +697,9 @@ class Proxy extends Router
 		{
 			echo json_encode($this->objects);
 		}
-		if($p)
+		if(strlen($suffix))
 		{
-			echo ')';
+			echo $suffix;
 		}
 	}
 
