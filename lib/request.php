@@ -619,6 +619,13 @@ class HTTPRequest extends Request
 			$qs = str_replace(';', '&', $qs);
 			parse_str($qs, $this->query);
 		}
+		if(get_magic_quotes_gpc())
+		{
+			foreach($this->query as $k => $v)
+			{
+				$this->query[$k] = stripslashes($v);
+			}
+		}
 		$this->uriArray = $this->arrayFromURI($this->uri);
 		$this->self = $_SERVER['PHP_SELF'];
 		$this->selfArray = $this->arrayFromURI($this->self);
