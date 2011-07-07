@@ -38,7 +38,7 @@ class EregansuDateTime extends DateTime
 	public static function parse($s, $tz = null)
 	{
 		static $utc = null;
-
+		
 		$s = trim(strtolower($s));
 		if(!strlen($s))
 		{
@@ -47,6 +47,10 @@ class EregansuDateTime extends DateTime
 		if($utc === null)
 		{
 			$utc = new DateTimeZone('UTC');
+		}
+		if($tz === null)
+		{
+			$tz = $utc;
 		}
 		/* Day, 99 Mon 9999 00:00[:00] (GMT|UTC|(+|-)00[:]00) */
 		if(preg_match('!^[a-z]+,?\s+(\d{1,2})\s+([a-z]+)\s+(\d{4})\s+(\d{2}:\d{2}(:\d{2})?)(\s.*)?$!i', $s, $matches) && isset($matches[6]) && isset(self::$months[$matches[2]]))
