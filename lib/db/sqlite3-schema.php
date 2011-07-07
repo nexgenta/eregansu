@@ -15,7 +15,7 @@
  *  limitations under the License.
  */
 
-require_once(dirname(__FILE__) . '/dbschema.php');
+require_once(dirname(__FILE__) . '/../dbschema.php');
 
 class SQLite3Schema extends DBSchema
 {
@@ -140,6 +140,9 @@ class SQLite3Table extends DBTable
 				break;
 			case DBType::DATE:
 				$spec .= 'DATE';
+				break;
+			case DBType::TIME:
+				$spec .= 'TIME';
 				break;
 			case DBType::DATETIME:
 				$spec .= 'DATETIME';
@@ -272,6 +275,9 @@ class SQLite3Table extends DBTable
 				break;
 			case 'date':
 				$info['type'] = DBType::DATE;
+				break;
+			case 'time':
+				$info['type'] = DBType::TIME;
 				break;
 			case 'datetime':
 			case 'timestamp':
