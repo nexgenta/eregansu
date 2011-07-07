@@ -317,7 +317,7 @@ if(function_exists('curl_init'))
 				curl_setopt($this->handle, self::$arrayProps[$name], $value);
 				return;
 			}
-			trigger_error('Warning: attempt to set undefined Curl option ' . $name, E_USER_WARNING);
+			trigger_error('attempt to set undefined Curl option ' . $name, E_USER_WARNING);
 		}		
 	}
 
@@ -345,8 +345,11 @@ if(function_exists('curl_init'))
 				}
 				else
 				{
-					trigger_error('Warning: $this->cacheDir is not set and CACHE_DIR is not defined', E_USER_WARNING);
-					$fetch = false;
+					if(defined('CURL_WARN_MISSING_CACHE'))
+					{
+						trigger_error('$this->cacheDir is not set and CACHE_DIR is not defined', E_USER_WARNING);
+					}
+					$fetch = true;
 					$store = false;
 				}
 			}
@@ -371,7 +374,7 @@ if(function_exists('curl_init'))
 			}
 			if(empty($this->options['httpGET']))
 			{
-				$fetch = false;
+				$fetch = true;
 				$store = false;
 			}
 			if($fetch || $store)
