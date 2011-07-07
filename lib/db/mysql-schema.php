@@ -15,7 +15,7 @@
  *  limitations under the License.
  */
 
-require_once(dirname(__FILE__) . '/dbschema.php');
+require_once(dirname(__FILE__) . '/../dbschema.php');
 
 class MySQLSchema extends DBSchema
 {
