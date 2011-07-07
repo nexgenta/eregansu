@@ -560,7 +560,7 @@ class Proxy extends Router
 		$methodName = 'perform_' . preg_replace('/[^A-Za-z0-9_]+/', '_', $method);
 		if(!method_exists($this, $methodName))
 		{
-			return $this->error(Error::METHOD_NOT_IMPLEMENTED, $req, null, 'Method ' . $methodName . ' is not implemented by ' . get_class($this));
+			return $this->error(Error::METHOD_NOT_IMPLEMENTED, $this->request, null, 'Method ' . $methodName . ' is not implemented by ' . get_class($this));
 		}
 		$r = $this->$methodName($type);
 		if($r && !in_array($method, $this->noFallThroughMethods))
@@ -598,6 +598,14 @@ class Proxy extends Router
 	protected function putObject($data)
 	{
 		return true;
+	}
+
+	protected function perform_OPTIONS($type)
+	{
+		$this->request->header('Allow', implode(' ', $this->supportedMethods));
+		$this->request->header('Content-length', 0);
+		$this->request->header('Content-type');
+		return false;
 	}
 	
 	protected function perform_HEAD($type)
