@@ -43,7 +43,7 @@ class EregansuDateTime extends DateTime
 			return;
 		}
 		/* Day, 99 Mon 9999 00:00[:00] (GMT|UTC|(+|-)00[:]00) */
-		if(preg_match('!^[a-z]+,?\s+(\d{1,2})\s+([a-z]+)\s+(\d{4})\s+(\d{2}:\d{2}(:\d{2})?)(\s.*)?$!i', $s, $matches) && isset($matches[6]) && isset($months[strtolower($matches[2])]))
+		if(preg_match('!^[a-z]+,?\s+(\d{1,2})\s+([a-z]+)\s+(\d{4})\s+(\d{2}:\d{2}(:\d{2})?)(\s.*)?$!i', $s, $matches) && isset($matches[6]) && isset(self::$months[strtolower($matches[2])]))
 		{
 			$time = explode(':', $matches[4]);
 			$s = sprintf('%04d-%02d-%02d %02d:%02d:%02d',
@@ -66,7 +66,7 @@ class EregansuDateTime extends DateTime
 			$dt->applyTimezoneString($date[2]);
 			return $dt;
 		}
-		if(preg_match('/^\d{4}-\d{2}-\d{2}t\d{2}:\d{2}(:\d{2})?Z?$/', $s))
+		if(preg_match('/^\d{4}-\d{2}-\d{2}t\d{2}:\d{2}(:\d{2})?z?$/', $s))
 		{
 			$s = preg_replace('/^(\d{4}-\d{2}-\d{2})t(\d{2}:\d{2}(:\d{2})?)z?/', '\1 \2', $s);
 			$dt = new EregansuDateTime($s);
