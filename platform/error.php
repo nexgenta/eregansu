@@ -111,7 +111,7 @@ class Error implements IRequestProcessor
 		self::FORBIDDEN => 'Access to the object %1$swas denied.',
 		self::OBJECT_NOT_FOUND => 'The requested object %1$scould not be found.',
 		self::NO_OBJECT => 'Your request could not be processed because an object is required, but none was specified.',
-		self::METHOD_NOT_ALLOWED => 'Your request could not be processed because the method %3$s is not supported by this object.',
+		self::METHOD_NOT_ALLOWED => 'Your request could not be processed because the method %2$s is not supported by this object.',
 		self::TYPE_NOT_SUPPORTED => 'Your request could not be processed because the requested type is not supported by the object %1$s',
 		
 		self::UNSUPPORTED_MEDIA_TYPE => 'Your request could not be processed because the submitted type %3$s is not supported by this object',
@@ -172,6 +172,7 @@ class Error implements IRequestProcessor
 	{	
 		$title = $this->statusTitle($this->status);
 		$desc = $this->statusDescription($this->status, $req);
+		error_log($this->status . ' [' . $title . '] ' . $req->method . ' ' . $req->uri . ' ' . $this->detail);
 		@header('HTTP/1.0 ' . floor($this->status) . ' ' . $title);
 		if(!isset($req->types) || !in_array('text/html', $req->types) && !in_array('*/*', $req->types))
 		{
@@ -211,7 +212,7 @@ class Error implements IRequestProcessor
 		echo '<!DOCTYPE html>' . "\n";
 		echo '<html>' . "\n";
 		echo "\t" . '<head>' . "\n";
-		echo "\t\t" . '<meta http-equiv="Content-type" value="text/html;charset=UTF-8" />' . "\n";
+		echo "\t\t" . '<meta charset="UTF-8">' . "\n";
 		echo "\t\t" . '<title>' . _e($title) . '</title>' . "\n";
 		echo "\t" . '</head>' . "\n";
 		echo "\t" . '<body>' . "\n";
