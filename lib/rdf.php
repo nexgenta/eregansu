@@ -2252,8 +2252,7 @@ class RDFInstance implements ArrayAccess
 			{				
 				if($v instanceof RDFURI)
 				{
-					$vn = $doc->namespacedName($v, false);
-					
+					$vn = $doc->namespacedName($v, false);				
 				}
 				if(is_object($v))
 				{
@@ -2269,7 +2268,10 @@ class RDFInstance implements ArrayAccess
 					{
 						$up[$name] = $kn;
 					}
-					$value = $value['@uri'];
+					if(isset($value['@uri']))
+					{
+						$value = $value['@uri'];
+					}
 				}
 				if(isset($array[$kn]))
 				{
