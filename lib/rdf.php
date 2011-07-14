@@ -324,6 +324,7 @@ abstract class RDF extends XMLNS
 			self::$namespaces[RDF::dcmit] = 'dcmit';
 			self::$namespaces[RDF::xsd] = 'xsd';
 			self::$namespaces[RDF::gn] = 'gn';
+			self::$namespaces[RDF::exif] = 'exif';
 		}
 		if(strlen($uri))
 		{

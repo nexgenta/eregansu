@@ -1,6 +1,6 @@
 <?php
 
-/* Copyright 2010 Mo McRoberts.
+/* Copyright 2010-2011 Mo McRoberts.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -39,6 +39,7 @@ abstract class XMLNS
 	const participation = 'http://purl.org/vocab/participation/schema#';
 	const xhv = 'http://www.w3.org/1999/xhtml/vocab#';
 	const gn = 'http://www.geonames.org/ontology#';
+	const exif = 'http://www.kanzaki.com/ns/exif#';
 
 	public static function fqname($namespace, $local = null)
 	{
