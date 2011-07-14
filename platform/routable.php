@@ -674,31 +674,24 @@ class Proxy extends Router
 	{
 		if(isset($this->request->query['jsonp']))
 		{
-			$p = true;
 			$prefix = $this->request->query['jsonp'] . '(';
 			$suffix = ')';
 			$type = 'text/javascript';
 		}
 		else if(isset($this->request->query['callback']))
 		{
-			$p = true;
 			$prefix = $this->request->query['callback'] . '(';
 			$suffix = ')';
 			$type = 'text/javascript';
 		}
 		else
 		{
-			$p = false;
 			$prefix = null;
 			$suffix = null;
 			$type = 'application/json';
 		}
 		$this->request->header('Content-type', $type);
-		$this->request->flush();
-		if(strlen($prefix))
-		{
-			echo $prefix;
-		}
+		echo $prefix;
 		if(isset($this->object))
 		{
 			if(!($this->object instanceof ISerialisable) || $this->object->serialise($type) === false)
@@ -710,26 +703,31 @@ class Proxy extends Router
 		{
 			echo json_encode($this->objects);
 		}
-		if(strlen($suffix))
-		{
-			echo $suffix;
-		}
+		echo $suffix;
 	}
 
 	protected function perform_GET_RDFJSON()
 	{
-		$type = 'application/x-rdf+json';
-		$this->request->header('Content-type', 'application/json');
-		$this->request->flush();
 		if(isset($this->request->query['jsonp']))
 		{
-			$p = true;
-			echo $this->request->query['jsonp'] . '(';
+			$type = 'text/javascript';
+			$prefix = $this->request->query['jsonp'] . '(';
+			$suffix = ')';
+		}
+		else if(isset($this->request->query['callback']))
+		{
+			$type = 'text/javascript';
+			$prefix = $this->request->query['callback'] . '(';
+			$suffix = ')';
 		}
 		else
 		{
-			$p = false;
+			$type = 'application/x-rdf+json';
+			$prefix = null;
+			$suffix = null;
 		}
+		$this->request->header('Content-type', $type);
+		echo $prefix;
 		if(isset($this->object))
 		{
 			if(!($this->object instanceof ISerialisable) || $this->object->serialise($type) === false)
@@ -741,10 +739,7 @@ class Proxy extends Router
 		{
 			echo json_encode($this->objects);
 		}
-		if($p)
-		{
-			echo ')';
-		}
+		echo $suffix;
 	}
 
 	protected function perform_GET_RDF()
