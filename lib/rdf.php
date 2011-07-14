@@ -1209,15 +1209,12 @@ class RDFSet implements Countable
 			{
 				$l = $val->{RDF::xml . ' lang'}[0];
 			}
+			$val = strval($val);
 			if(!in_array($l, $langs))
 			{
 				$langs[] = $l;
+				$list[$l] = ($asSet ? new RDFString($val, $l) : $val);
 			}
-		}
-		foreach($langs as $l)
-		{
-			$s = $this->lang($l, false);
-			$list[$l] = ($asSet ? new RDFString($s, $l) : $s);
 		}
 		if($asSet)
 		{
