@@ -679,7 +679,12 @@ class Store extends Model
 			return null;
 		}
 		$class = $this->storableClass;
-		return call_user_func(array($this->storableClass, 'objectForData'), $data, $this, $this->storableClass);
+		$inst = call_user_func(array($this->storableClass, 'objectForData'), $data, $this, $this->storableClass);
+		if($firstOnly && is_array($inst))
+		{
+			return $inst[0];
+		}
+		return $inst;
 	}
 
 	/* Return the data for the object with the specified IRI, $iri.
