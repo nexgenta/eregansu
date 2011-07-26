@@ -68,7 +68,7 @@ class EregansuDateTime extends DateTime
 				$time[2] = '00';
 			}
 			$s = sprintf('%04d-%02d-%02d %02d:%02d:%02d',
-						 $matches[3], self::$months[$matches[2]], $matches[1], $time[0], $time[2], @$time[2]);
+						 $matches[3], self::$months[$matches[2]], $matches[1], $time[0], $time[1], @$time[2]);
 			$dt = new EregansuDateTime($s, $tz);
 			$dt->applyTimezoneString($matches[6]);
 			$dt->setTimezone($utc);
