@@ -1,6 +1,8 @@
-docs:
-	php -f ../app/NGDocKit/docgen . xml/
+all: tests
+
+tests:
+	cd t && $(MAKE)
 
 clean:
-	rm -rf xml
-	
+
+.PHONY: all tests clean
