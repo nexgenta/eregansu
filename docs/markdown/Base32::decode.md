@@ -2,6 +2,8 @@ Decode a base-32 string and return the value as an integer
 
 ## Synopsis
 
+<code>uses('base32');</code>
+
 <code>public static function <i>int</i> <b>[[Base32]]::decode</b>(<i>string</i> <i>[in]</i> <b>$input</b>)</code>
 
 ## Description

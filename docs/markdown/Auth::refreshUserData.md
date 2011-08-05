@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('auth');</code>
+
 <code>public function <b>[[Auth]]::refreshUserData</b>(<b>$data</b>)</code>
 
 ## Parameters

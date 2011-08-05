@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('db');</code>
+
 <code>public function <b>[[DBCore]]::alias</b>(<b>$name</b>, <b>$table</b> = null)</code>
 
 ## Parameters

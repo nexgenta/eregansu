@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('form');</code>
+
 <code>public function <b>[[Form]]::submit</b>(<b>$label</b>)</code>
 
 ## Parameters

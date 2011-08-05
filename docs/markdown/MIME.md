@@ -12,6 +12,10 @@ uses('mime');
 
 <note>Instances of the `MIME` class are never created; all methods are static.</note>
 
+## Example
+
+* [[mimetest.php|http://github.com/nexgenta/eregansu/blob/master/mimetest.php]]
+
 ## Public Static Methods
 
 * `[[MIME::extForType]]()`: Return the preferred file extension for a specified MIME type

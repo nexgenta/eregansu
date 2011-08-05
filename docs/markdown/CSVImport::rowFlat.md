@@ -2,6 +2,8 @@ Read a row from the CSV file without mapping columns to fields.
 
 ## Synopsis
 
+<code>uses('csv-import');</code>
+
 <code>public function <i>array</i> <b>[[CSVImport]]::rowFlat</b>()</code>
 
 ## Return Value

@@ -2,6 +2,8 @@ Consume the first request parameter as the name of a page.
 
 ## Synopsis
 
+<code>uses('request');</code>
+
 <code>public function <b>[[Request]]::consume</b>()</code>
 
 ## Description

@@ -2,6 +2,8 @@ Create an instance of an authentication system given an IRI.
 
 ## Synopsis
 
+<code>uses('auth');</code>
+
 <code>public static function <b>[[Auth]]::authEngineForIRI</b>(<i>string</i> <i>[in,out]</i> <b>$iri</b>, <i>string</i> <i>[out]</i> <b>$scheme</b>, <i>string</i> <i>[in]</i> <b>$defaultScheme</b> = null)</code>
 
 ## Description

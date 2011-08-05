@@ -161,6 +161,11 @@ class GenMarkdown extends GenFormatter
 			fwrite($f, "## Note\n\n");
 			fwrite($f, $this->format($info['doc']['note']) . "\n\n");
 		}
+		if(strlen(@$info['doc']['exampleurl']))
+		{
+			fwrite($f, "## Example\n\n");
+			fwrite($f, "* " . $this->link($info['doc']['exampleurl'], @$info['doc']['example']) . "\n\n");
+		}
 		$pubmethods = array();
 		$pubsmethods = array();
 		foreach($info['methods'] as $k => $method)
@@ -231,26 +236,13 @@ class GenMarkdown extends GenFormatter
 			fwrite($f, $this->format($methodInfo['doc']['brief']) . "\n\n");
 		}
 		fwrite($f, "## Synopsis\n\n");
-		$line = array();
-		if(is_array($methodInfo['modifiers']))
+		if(strlen(@$methodInfo['doc']['include']))
 		{
-			$line[] = implode(' ', $methodInfo['modifiers']) . ' ';
+			fwrite($f, "<code>" . $methodInfo['doc']['include'] . "</code>\n\n");
 		}
-		$line[] = 'function ';
-		if(strlen(@$methodInfo['doc']['type']))
-		{
-			$line[] = '<i>' . $methodInfo['doc']['type'] . '</i> ';
-		}
-		if(strlen($className))
-		{
-			$line[] = '<b>[[' . $className . ']]::';
-		}
-		$line[] = $methodName . '</b>';
-		$line[] = '(';
 		if(isset($methodInfo['params']))
 		{
 			$plist = array_values($methodInfo['params']);
-			$max = count($plist) - 1;
 			foreach($plist as $i => $param)
 			{
 				if(isset($methodInfo['doc']['params'][$param['ident']]))
@@ -258,39 +250,73 @@ class GenMarkdown extends GenFormatter
 					$param = array_merge($param, $methodInfo['doc']['params'][$param['ident']]);
 				}
 				$plist[$i] = $param;
-				if(isset($param['type']))
-				{
-					$line[] = '<i>' . $param['type'] . '</i> ';
-				}
-				if(isset($param['direction']))
-				{
-					$line[] = '<i>[' . $param['direction'] . ']</i> ';
-				}
-				$line[] = '<b>' . $param['ident'] . '</b>';
-				if(isset($param['value']))
-				{
-					$line[] = ' = ' . $param['value'][1];
-				}
-				if($i < $max)
-				{
-					$line[] = ', ';
-				}
-			}
-			if(isset($methodInfo['doc']['varargs']))
-			{
-				if(count($plist))
-				{
-					$line[] = ', ';
-				}
-				$line[] = '...';
 			}
 		}
 		else
 		{
 			$plist = array();
 		}
-		$line[] = ')';
-		fwrite($f, "<code>" . implode('', $line) . "</code>\n\n");
+		if(strlen(@$methodInfo['doc']['synopsis']))
+		{
+			fwrite($f, "<code>" . $this->format($methodInfo['doc']['synopsis']) . "</code>\n\n");
+		}
+		else
+		{
+			$line = array();
+			if(is_array($methodInfo['modifiers']))
+			{
+				$line[] = implode(' ', $methodInfo['modifiers']) . ' ';
+			}
+			$line[] = 'function ';
+			if(strlen(@$methodInfo['doc']['type']))
+			{
+				$line[] = '<i>' . $methodInfo['doc']['type'] . '</i> ';
+			}
+			if(strlen($className))
+			{
+				$line[] = '<b>[[' . $className . ']]::';
+			}
+			$line[] = $methodName . '</b>';
+			$line[] = '(';
+			if(isset($methodInfo['params']))
+			{
+				$max = count($plist) - 1;
+				foreach($plist as $i => $param)
+				{
+					if(isset($param['type']))
+					{
+						$line[] = '<i>' . $param['type'] . '</i> ';
+					}
+					if(isset($param['direction']))
+					{
+						$line[] = '<i>[' . $param['direction'] . ']</i> ';
+					}
+					$line[] = '<b>' . $param['ident'] . '</b>';
+					if(isset($param['value']))
+					{
+						$line[] = ' = ' . $param['value'][1];
+					}
+					if($i < $max)
+					{
+						$line[] = ', ';
+					}
+				}
+				if(isset($methodInfo['doc']['varargs']))
+				{
+					if(count($plist))
+					{
+						$line[] = ', ';
+					}
+					$line[] = '...';
+				}
+			}
+			else
+			{
+				$plist = array();
+			}
+			$line[] = ')';
+			fwrite($f, "<code>" . implode('', $line) . "</code>\n\n");
+		}
 		if(strlen(@$methodInfo['doc']['desc']))
 		{
 			fwrite($f, "## Description\n\n");
@@ -300,6 +326,11 @@ class GenMarkdown extends GenFormatter
 		{
 			fwrite($f, "## Note\n\n");
 			fwrite($f, $this->format($methodInfo['doc']['note']) . "\n\n");
+		}
+		if(strlen(@$methodInfo['doc']['exampleurl']))
+		{
+			fwrite($f, "## Example\n\n");
+			fwrite($f, "* " . $this->link($methodInfo['doc']['exampleurl'], @$methodInfo['doc']['example']) . "\n\n");
 		}
 		if(count($plist))
 		{

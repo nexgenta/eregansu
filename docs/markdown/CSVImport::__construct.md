@@ -2,6 +2,8 @@ Initialise a `[[CSVImport]]` instance.
 
 ## Synopsis
 
+<code>uses('csv-import');</code>
+
 <code>public function <b>[[CSVImport]]::__construct</b>(<i>string</i> <i>[in]</i> <b>$filename</b>)</code>
 
 ## Parameters

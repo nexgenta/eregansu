@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('request');</code>
+
 <code>public function <b>[[Request]]::header</b>(<b>$name</b>, <b>$value</b> = null, <b>$replace</b> = true)</code>
 
 ## Parameters

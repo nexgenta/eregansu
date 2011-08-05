@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('form');</code>
+
 <code>public function <b>[[Form]]::field</b>(<b>$info</b>)</code>
 
 ## Parameters

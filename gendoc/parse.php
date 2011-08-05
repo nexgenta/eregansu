@@ -71,7 +71,20 @@ class Parser extends Tokenizer
 		$this->parse();
 	}	
 
-	public function cascadeAttributes($global = null)
+	protected function applyBase($base, $path)
+	{
+		if(!strlen($base) || !strlen($path))
+		{
+			return null;
+		}
+		if(substr($base, -1) != '/')
+		{
+			$base .= '/';
+		}
+		return $base . $path;
+	}
+
+	public function cascadeAttributes($global = null, $relPath = null)
 	{
 		if(!is_array($this->module))
 		{
@@ -83,6 +96,10 @@ class Parser extends Tokenizer
 		}
 		unset($global['ignore']);
 		$this->module = array_merge($global, $this->module);
+		if(!isset($module->module['source']))
+		{
+			$module->module['source'] = $this->applyBase(@$module->module['sourcebase'], $relPath);
+		}
 		$mcleaned = $this->clean($this->module);
 		$lists = array('methods', 'properties', 'constants');
 		foreach($this->classes as $k => $info)
@@ -92,20 +109,28 @@ class Parser extends Tokenizer
 				$info['doc'] = array();
 			}
 			$info['doc'] = array_merge($mcleaned, $info['doc']);
+			$ccleaned = $this->clean($info['doc']);
+			if(!isset($info['doc']['exampleurl']))
+			{
+				$info['doc']['exampleurl'] = $this->applyBase(@$info['doc']['sourcebase'], @$info['doc']['example']);
+			}
 			foreach($lists as $l)
 			{
 				if(!isset($info[$l]) || !is_array($info[$l]))
 				{
 					continue;
-				}
+				}				
 				foreach($info[$l] as $mk => $method)
 				{
-					$ccleaned = $this->clean($info['doc']);
 					if(!isset($method['doc']))
 					{
 						$method['doc'] = array();
 					}
 					$method['doc'] = array_merge($ccleaned, $method['doc']);
+					if(!isset($method['doc']['exampleurl']))
+					{
+						$method['doc']['exampleurl'] = $this->applyBase(@$method['doc']['sourcebase'], @$method['doc']['example']);
+					}
 					$info[$l][$mk] = $method;
 				}
 			}
@@ -124,6 +149,7 @@ class Parser extends Tokenizer
 		unset($doc['note']);
 		unset($doc['todo']);
 		unset($doc['see']);
+		unset($doc['synopsis']);
 		return $doc;
 	}
 

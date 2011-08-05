@@ -2,6 +2,8 @@ Read a row from the CSV file.
 
 ## Synopsis
 
+<code>uses('csv-import');</code>
+
 <code>public function <i>array</i> <b>[[CSVImport]]::row</b>()</code>
 
 ## Description

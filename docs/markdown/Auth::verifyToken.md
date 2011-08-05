@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('auth');</code>
+
 <code>public function <b>[[Auth]]::verifyToken</b>(<b>$request</b>, <b>$scheme</b>, <b>$tokenName</b>, <b>$token</b>)</code>
 
 ## Parameters

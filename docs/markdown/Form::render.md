@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('form');</code>
+
 <code>public function <b>[[Form]]::render</b>(<b>$req</b>, <b>$multiple</b> = false, <b>$prefix</b> = null)</code>
 
 ## Parameters

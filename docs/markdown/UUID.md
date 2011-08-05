@@ -16,6 +16,10 @@ The `UUID` class contains facilities for generating and manipulating Universally
 
 Instances of the UUID class are never created; all methods are static.
 
+## Example
+
+* [[examples/uuids.php|http://github.com/nexgenta/eregansu/blob/master/examples/uuids.php]]
+
 ## Public Static Methods
 
 * `[[UUID::generate]]()`: Generate a new UUID

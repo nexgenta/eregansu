@@ -2,11 +2,17 @@ Return a human-readable description of a MIME type
 
 ## Synopsis
 
+<code>uses('mime');</code>
+
 <code>public static function <b>[[MIME]]::description</b>(<i>string</i> <i>[in]</i> <b>$type</b>)</code>
 
 ## Description
 
 `MIME::description()` returns a human-readable description of a specified MIME type. For example, the description for video/mp4 might be MPEG 4 video.
+
+## Example
+
+* [[mimetest.php|http://github.com/nexgenta/eregansu/blob/master/mimetest.php]]
 
 ## Parameters
 

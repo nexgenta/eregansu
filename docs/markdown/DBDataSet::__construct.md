@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('db');</code>
+
 <code>public function <b>[[DBDataSet]]::__construct</b>(<b>$db</b>, <b>$resource</b>, <b>$query</b> = null, <b>$params</b> = null)</code>
 
 ## Parameters

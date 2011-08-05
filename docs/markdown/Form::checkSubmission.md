@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('form');</code>
+
 <code>public function <b>[[Form]]::checkSubmission</b>(<b>$req</b>)</code>
 
 ## Parameters

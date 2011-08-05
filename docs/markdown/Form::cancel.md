@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('form');</code>
+
 <code>public function <b>[[Form]]::cancel</b>(<b>$url</b>)</code>
 
 ## Parameters

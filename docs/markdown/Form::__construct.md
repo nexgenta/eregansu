@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('form');</code>
+
 <code>public function <b>[[Form]]::__construct</b>(<b>$name</b>)</code>
 
 ## Parameters

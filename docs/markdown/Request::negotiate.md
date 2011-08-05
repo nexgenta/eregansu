@@ -2,6 +2,8 @@ Attempt to perform content negotiation.
 
 ## Synopsis
 
+<code>uses('request');</code>
+
 <code>public function <b>[[Request]]::negotiate</b>(<b>$methods</b> = null, <b>$contentTypes</b> = null)</code>
 
 ## Description

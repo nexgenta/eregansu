@@ -2,6 +2,8 @@ Specify an explicit column-to-field mapping.
 
 ## Synopsis
 
+<code>uses('csv-import');</code>
+
 <code>public function <i>void</i> <b>[[CSVImport]]::setFields</b>(<i>array</i> <i>[in]</i> <b>$list</b>)</code>
 
 ## Parameters

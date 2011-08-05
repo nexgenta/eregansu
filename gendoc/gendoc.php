@@ -208,16 +208,7 @@ class GenDoc extends CommandLine
 	protected function processFile($filename, $relPath = null, $global = null)
 	{
 		$module = Parser::tokenizeFile($filename);
-		$module->cascadeAttributes($global);
-		if(!isset($module->module['source']) && $relPath !== null && isset($module->module['sourcebase']))
-		{
-			$base = $module->module['sourcebase'];
-			if(substr($base, -1) != '/')
-			{
-				$base .= '/';
-			}
-			$module->module['source'] = $base . $relPath;
-		}
+		$module->cascadeAttributes($global, $relPath);
 		$md = new GenMarkdown();
 		$md->generateFrom($module, $this->options['output']['flag'] . '/markdown');
 		return $module;

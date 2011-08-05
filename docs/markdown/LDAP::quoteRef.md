@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('db');</code>
+
 <code>public function <b>[[LDAP]]::quoteRef</b>(<b>$string</b>)</code>
 
 ## Parameters

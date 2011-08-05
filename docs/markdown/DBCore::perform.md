@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('db');</code>
+
 <code>public function <b>[[DBCore]]::perform</b>(<b>$function</b>, <b>$data</b> = null)</code>
 
 ## Parameters

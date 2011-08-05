@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('db');</code>
+
 <code>public function <b>[[IDBCore]]::rows</b>(<b>$query</b>)</code>
 
 ## Parameters

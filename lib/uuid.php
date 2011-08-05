@@ -4,7 +4,7 @@
  * @year 2010
  * @include uses('uuid');
  * @since Available in Eregansu 1.0 and later. 
- * @example examples/uuidtest.php
+ * @example examples/uuids.php
  * @package EregansuLib Eregansu Core Library
  */
 

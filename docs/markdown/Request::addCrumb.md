@@ -2,6 +2,8 @@ Add an element to the breadcrumb array.
 
 ## Synopsis
 
+<code>uses('request');</code>
+
 <code>public function <b>[[Request]]::addCrumb</b>(<i>mixed</i> <i>[in]</i> <b>$info</b>, <i>string</i> <i>[in,optional]</i> <b>$key</b> = null)</code>
 
 ## Description

@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('db');</code>
+
 <code>public function <b>[[IDBCore]]::insert</b>(<b>$table</b>, <b>$kv</b>)</code>
 
 ## Parameters

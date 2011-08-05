@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('auth');</code>
+
 <code>public function <b>[[BuiltinAuth]]::verifyAuth</b>(<b>$request</b>, <b>$scheme</b>, <b>$iri</b>, <b>$authData</b>, <b>$callbackIRI</b>)</code>
 
 ## Parameters

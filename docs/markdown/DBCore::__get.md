@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('db');</code>
+
 <code>public function <b>[[DBCore]]::__get</b>(<b>$name</b>)</code>
 
 ## Parameters

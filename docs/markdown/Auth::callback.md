@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('auth');</code>
+
 <code>public function <b>[[Auth]]::callback</b>(<b>$request</b>, <b>$scheme</b>, <b>$remainder</b>)</code>
 
 ## Parameters

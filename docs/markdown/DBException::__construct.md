@@ -2,6 +2,8 @@ The `[[DBException]]` constructor is responsible for initialising a new database
 
 ## Synopsis
 
+<code>uses('db');</code>
+
 <code>public function <b>[[DBException]]::__construct</b>(<b>$errCode</b>, <b>$errMsg</b>, <b>$query</b>)</code>
 
 ## Description

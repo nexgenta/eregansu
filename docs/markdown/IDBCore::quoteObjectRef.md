@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('db');</code>
+
 <code>public function <b>[[IDBCore]]::quoteObjectRef</b>(<b>$name</b>)</code>
 
 ## Parameters

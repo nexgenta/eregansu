@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('db');</code>
+
 <code>public function <b>[[DBCore]]::update</b>(<b>$table</b>, <b>$kv</b>, <b>$clause</b>)</code>
 
 ## Parameters

@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('auth');</code>
+
 <code>public static function <b>[[Auth]]::authEngineForToken</b>(<b>$tokenName</b>, <b>$scheme</b>)</code>
 
 ## Parameters

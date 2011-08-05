@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('request');</code>
+
 <code>public function <b>[[HTTPRequest]]::pageMatch</b>(<b>$page</b>)</code>
 
 ## Parameters

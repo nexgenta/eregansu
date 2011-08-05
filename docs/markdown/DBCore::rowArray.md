@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('db');</code>
+
 <code>public function <b>[[DBCore]]::rowArray</b>(<b>$query</b>, <b>$params</b>)</code>
 
 ## Parameters

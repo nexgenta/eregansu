@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('request');</code>
+
 <code>public function <b>[[Request]]::write</b>(<b>$str</b>)</code>
 
 ## Parameters

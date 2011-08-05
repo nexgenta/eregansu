@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('db');</code>
+
 <code>public function <b>[[LDAP]]::insert</b>(<b>$dn</b>, <b>$object</b>)</code>
 
 ## Parameters

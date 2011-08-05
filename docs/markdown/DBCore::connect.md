@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('db');</code>
+
 <code>public static function <b>[[DBCore]]::connect</b>(<b>$iristr</b>)</code>
 
 ## Parameters

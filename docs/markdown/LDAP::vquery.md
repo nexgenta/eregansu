@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('db');</code>
+
 <code>public function <b>[[LDAP]]::vquery</b>(<b>$base</b>, <b>$params</b>)</code>
 
 ## Parameters

@@ -2,6 +2,8 @@ Encode an integer as base-32
 
 ## Synopsis
 
+<code>uses('base32');</code>
+
 <code>public static function <i>string</i> <b>[[Base32]]::encode</b>(<i>int</i> <i>[in]</i> <b>$input</b>)</code>
 
 ## Description
