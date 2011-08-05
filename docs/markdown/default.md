@@ -58,8 +58,6 @@
 * `[[RedlandSerializer]]`
 * `[[RedlandJSONSerializer]]`
 * `[[RedlandJSONTriplesSerializer]]`
-* `[[Request]]`
-* `[[HTTPRequest]]`
 * `[[DbpediaLiteSearch]]`
 * `[[XapianSearch]]`
 * `[[XapianIndexer]]`
@@ -94,7 +92,6 @@
 * `[[DBStorableSet]]`
 * `[[Store]]`
 * `[[Template]]`
-* `[[PlatformEventSink]]`
 * `[[SilkCompleteException]]`
 * `[[Silk]]`
 * `[[SilkRequest]]`

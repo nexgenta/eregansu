@@ -4,7 +4,7 @@ Return an instance of a Request class for a specified SAPI.
 
 <code>uses('request');</code>
 
-<code>public static function <b>[[Request]]::requestForSAPI</b>(<i>string</i> <i>[in,optional]</i> <b>$sapi</b> = null)</code>
+<code>public static function <i>Request</i> <b>[[Request]]::requestForSAPI</b>(<i>string</i> <i>[in,optional]</i> <b>$sapi</b> = null)</code>
 
 ## Description
 
@@ -35,5 +35,5 @@ The name of the SAPI to return an instance for
 
 ## Return Value
 
-Request An instance of a request class
+An instance of a request class matching the specified or default SAPI.
 

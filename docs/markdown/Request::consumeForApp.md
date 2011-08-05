@@ -1,12 +1,12 @@
-Move the first parameter from the request to the base array.
+Move the first parameter from the request to the base array and return it.
 
 ## Synopsis
 
 <code>uses('request');</code>
 
-<code>public function <b>[[Request]]::consumeForApp</b>()</code>
+<code>public function <i>string</i> <b>[[Request]]::consumeForApp</b>()</code>
 
 ## Return Value
 
-string The first request parameter
+The first request parameter
 

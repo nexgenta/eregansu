@@ -18,10 +18,11 @@
  */
  
 /**
- * @framework EregansuLib Eregansu Core Library
+ * @package EregansuLib Eregansu Core Library
  * @year 2009-2011
  * @include uses('request');
- * @since Available in Eregansu 1.0 and later. 
+ * @since Available in Eregansu 1.0 and later.
+ * @task Processing requests
  */
 
 /** 
@@ -85,8 +86,9 @@ abstract class Request
 	 * of the class named by \c{REQUEST_CLASS} will be created instead of the default for the
 	 * current SAPI.
 	 *
+	 * @type Request
 	 * @param[in,optional] string $sapi The name of the SAPI to return an instance for
-	 * @return Request An instance of a request class
+	 * @return An instance of a request class matching the specified or default SAPI.
 	 */
 	public static function requestForSAPI($sapi = null)
 	{
@@ -245,7 +247,8 @@ abstract class Request
 	 * As a result of calling \m{Request::consume}, \P{Request::$pageUri} will be updated
 	 * accordingly.
 	 *
-	 * @return string The first request parameter, or \c{null} if \P{Request::$params} is empty.
+	 * @type string
+	 * @return The first request parameter, or \c{null} if \P{Request::$params} is empty.
 	 */
 	public function consume()
 	{
@@ -265,9 +268,10 @@ abstract class Request
 	}
 
 	/**
-	 * Move the first parameter from the request to the base array.
+	 * Move the first parameter from the request to the base array and return it.
 	 *
-	 * @return string The first request parameter
+	 * @type string
+	 * @return The first request parameter
 	 */
 	public function consumeForApp()
 	{

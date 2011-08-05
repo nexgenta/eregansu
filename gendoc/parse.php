@@ -138,6 +138,22 @@ class Parser extends Tokenizer
 		}
 	}
 
+	public function hidden($thing)
+	{
+		if(isset($thing['modifiers']) && is_array($thing['modifiers']))
+		{
+			if(in_array('protected', $thing['modifiers']) ||
+			   in_array('private', $thing['modifiers']))
+			{
+				return true;
+			}
+		}
+		if(!empty($thing['doc']['internal']))
+		{
+			return true;
+		}
+	}
+
 	protected function clean($doc)
 	{
 		if(!is_array($doc))

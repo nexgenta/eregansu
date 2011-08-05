@@ -21,6 +21,7 @@
  * @package EregansuLib Eregansu Core Library
  * @year 2010
  * @since Available in Eregansu 1.0 and later.
+ * @task Processing requests
  */
 
 require_once(dirname(__FILE__) . '/request.php');

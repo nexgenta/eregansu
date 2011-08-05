@@ -121,6 +121,10 @@ class GenDoc extends CommandLine
 		{
 			foreach($mod->classes as $className => $info)
 			{
+				if($mod->hidden($info))
+				{
+					continue;
+				}
 				if(isset($info['doc']['package']))
 				{
 					$pkgx = explode(' ', str_replace('  ', ' ', $info['doc']['package']), 2);
@@ -157,9 +161,13 @@ class GenDoc extends CommandLine
 				{
 					foreach($info['methods'] as $method)
 					{
+						if($mod->hidden($method))
+						{
+							continue;
+						}
 						if(strlen(@$method['doc']['task']))
 						{
-							$packages[$pkgx[0]]['tasks'][$method['doc']['task']][$info['ident'] . '::' . $method['ident']] = $method['doc']['brief'];
+							$packages[$pkgx[0]]['tasks'][$method['doc']['task']][$info['ident'] . '::' . $method['ident']] = @$method['doc']['brief'];
 						}
 					}
 				}

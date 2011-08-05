@@ -4,7 +4,7 @@ Consume the first request parameter as the name of a page.
 
 <code>uses('request');</code>
 
-<code>public function <b>[[Request]]::consume</b>()</code>
+<code>public function <i>string</i> <b>[[Request]]::consume</b>()</code>
 
 ## Description
 
@@ -12,5 +12,5 @@ Moves the first parameter from `[[Request::$params]]` to the `[[Request::$page]]
 
 ## Return Value
 
-string The first request parameter, or `null` if `[[Request::$params]]` is empty.
+The first request parameter, or `null` if `[[Request::$params]]` is empty.
 

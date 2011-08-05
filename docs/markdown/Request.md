@@ -21,7 +21,7 @@ The Request class and its descendants represents a single request from a user ag
 ## Public Methods
 
 * `[[Request::consume]]()`: Consume the first request parameter as the name of a page.
-* `[[Request::consumeForApp]]()`: Move the first parameter from the request to the base array.
+* `[[Request::consumeForApp]]()`: Move the first parameter from the request to the base array and return it.
 * `[[Request::consumeObject]]()`
 * `[[Request::addCrumb]]()`: Add an element to the breadcrumb array.
 * `[[Request::write]]()`

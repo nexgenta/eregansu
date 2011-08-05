@@ -107,8 +107,8 @@ class GenMarkdown extends GenFormatter
 
 	protected function generateClass($module, $path, $className, $info)
 	{
+		if($module->hidden($info)) return;
 		$this->currentScope = $this->currentClass = $className;
-		if(!empty($info['doc']['internal'])) return;;
 		$f = fopen($path . '/' . $className . '.md', 'w');
 		if(strlen(@$info['doc']['brief']))
 		{
@@ -170,9 +170,7 @@ class GenMarkdown extends GenFormatter
 		$pubsmethods = array();
 		foreach($info['methods'] as $k => $method)
 		{
-			if(!empty($method['doc']['internal']) ||
-			   in_array('private', $method['modifiers']) ||
-			   in_array('protected', $method['modifiers']))
+			if($module->hidden($method))
 			{
 				continue;
 			}
