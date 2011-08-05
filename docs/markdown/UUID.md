@@ -10,7 +10,10 @@ uses('uuid');
 
 ## Description
 
-The `UUID` class contains facilities for generating and manipulating Universally Unique Identifiers (UUIDs), according to [RFC 4122](http://www.ietf.org/rfc/rfc4122.txt) (equivalent to ITU-T Rec. X.667, ISO/IEC 9834-8:2005).
+The `UUID` class contains facilities for generating and manipulating
+Universally Unique Identifiers (UUIDs), according to
+[RFC 4122](http://www.ietf.org/rfc/rfc4122.txt) (equivalent to
+ITU-T Rec. X.667, ISO/IEC 9834-8:2005).
 
 ## Note
 

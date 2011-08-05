@@ -12,7 +12,14 @@ $request = Request::requestForSAPI();
 
 ## Description
 
-The Request class and its descendants represents a single request from a user agent of some kind. The `Request` class itself is abstract: descendants of `Request` are used to represent the various different kinds of request which can be represented, depending upon the current SAPI. For example, an HTTP request from a web browser is represented as an instance of the `[[HTTPRequest]]` class. Upon initialisation of the platform, a `Request` class instance is instantiated by calling `[[Request::requestForSAPI]]()` with no arguments, and the resulting instance is stored in the `$request` global variable.
+The Request class and its descendants represents a single request from a user
+agent of some kind. The `Request` class itself is abstract: descendants of `Request`
+are used to represent the various different kinds of request which can be
+represented, depending upon the current SAPI. For example, an HTTP request
+from a web browser is represented as an instance of the `[[HTTPRequest]]` class.
+Upon initialisation of the platform, a `Request` class instance is instantiated by
+calling `[[Request::requestForSAPI]]()` with no arguments, and the resulting instance is stored
+in the `$request` global variable.
 
 ## Public Static Methods
 

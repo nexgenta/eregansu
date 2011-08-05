@@ -14,5 +14,6 @@ throw new DBException($code, $message, $dbQuery);
 
 ## Public Methods
 
-* `[[DBException::__construct]]()`: The `DBException` constructor is responsible for initialising a new database exception object.
+* `[[DBException::__construct]]()`: The `DBException` constructor is responsible for initialising a new
+database exception object.
 

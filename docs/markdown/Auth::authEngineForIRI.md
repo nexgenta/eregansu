@@ -8,7 +8,10 @@ Create an instance of an authentication system given an IRI.
 
 ## Description
 
-The instance is returned by the call to `[[Auth::authEngineForScheme]]()`. `$iri` will be modified to strip the scheme (if supplied), which will be stored in `$scheme`. Thus, upon successful return, a fully-qualified IRI can be constructed from `$scheme . ':' . $iri`
+The instance is returned by the call to `[[Auth::authEngineForScheme]]()`.
+`$iri` will be modified to strip the scheme (if supplied), which will
+be stored in `$scheme`. Thus, upon successful return, a fully-qualified
+IRI can be constructed from `$scheme . ':' . $iri`
 
 ## Parameters
 
@@ -35,7 +38,8 @@ The IRI to match against
       <td><i>out</i></td>
       <td>string</td>
       <td>
-The authentication IRI scheme that was determined
+The authentication IRI scheme that was
+determined
       </td>
     </tr>
     <tr>
@@ -43,7 +47,8 @@ The authentication IRI scheme that was determined
       <td><i>in</i></td>
       <td>string</td>
       <td>
-The default authentication scheme to use if none can be determined from <code>$iri</code>
+The default authentication scheme to
+use if none can be determined from <code>$iri</code>
       </td>
     </tr>
   </tbody>

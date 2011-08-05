@@ -8,7 +8,8 @@ Return the null UUID as a string
 
 ## Description
 
-`UUID::nil()` returns a string containing the null UUID. It is the equivalent of calling <code>`[[UUID::generate]]()`(`UUID::NONE`);</code>
+`UUID::nil()` returns a string containing the null UUID.
+It is the equivalent of calling <code>`[[UUID::generate]]()`(`UUID::NONE`);</code>
 
 ## Example
 

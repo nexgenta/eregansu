@@ -8,7 +8,15 @@ Add an element to the breadcrumb array.
 
 ## Description
 
-`Request::addCrumb()` adds a new element to the breadcrumb array (`[[Request::$crumb]]`), optionally with an associated key. The `$info` parameter may be either the name of the current page or an array containing at least a name element. The link element of the array is used as the URI associated with this entry in the breadcrumb. If the link element is absent, or the `$info` parameter was a string, it is set to the value of the `[[Request::$pageUri]]` property. If $key is specified, the breadcrumb information is associated with the given value. Subsequent calls to `Request::addCrumb()` specifying the same value for `$key` will overwrite the previously-specified information (preserving the original order). If `$key` is not specified, a numeric key will be generated automatically.
+`Request::addCrumb()` adds a new element to the breadcrumb array (`[[Request::$crumb]]`), optionally with an associated key.
+The `$info` parameter may be either the name of the current page or an array containing at
+least a name element. The link element of the array is used as the URI associated
+with this entry in the breadcrumb. If the link element is absent, or the `$info` parameter
+was a string, it is set to the value of the `[[Request::$pageUri]]` property.
+If $key is specified, the breadcrumb information is associated with the given value. Subsequent
+calls to `Request::addCrumb()` specifying the same value for `$key` will overwrite the previously-specified
+information (preserving the original order).
+If `$key` is not specified, a numeric key will be generated automatically.
 
 ## Parameters
 

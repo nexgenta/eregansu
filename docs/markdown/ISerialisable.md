@@ -1,4 +1,5 @@
-The ISerialisable interface is implemented by classes which can serialise themselves.
+The ISerialisable interface is implemented by classes which can serialise
+themselves.
 
 `ISerialisable` is a base interface.
 

@@ -8,7 +8,9 @@ Attempt to perform content negotiation.
 
 ## Description
 
-Returns an associative array containing a set of HTTP-style headers, or an HTTP status code (method not allowed, not acceptable, etc.) upon failure.
+Returns an associative array containing a set of HTTP-style headers,
+or an HTTP status code (method not allowed, not acceptable, etc.) upon
+failure.
 
 ## Parameters
 

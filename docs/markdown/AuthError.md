@@ -1,4 +1,5 @@
-Exception class whose instances are thrown when an authentication exception occurs.
+Exception class whose instances are thrown when an authentication exception
+occurs.
 
 `AuthError` is a class derived from [[Exception]].
 

@@ -23,7 +23,9 @@ Initialise a `[[CSVImport]]` instance.
       <td><i>in</i></td>
       <td>string</td>
       <td>
-The path to the CSV file to read. If <code>$filename</code> ends in <code>.gz</code>, the file will be assumed to be gzipped and decompressed automatically as it is read.
+The path to the CSV file to read. If
+<code>$filename</code> ends in <code>.gz</code>, the file will be assumed to be
+gzipped and decompressed automatically as it is read.
       </td>
     </tr>
   </tbody>

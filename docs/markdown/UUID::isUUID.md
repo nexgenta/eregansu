@@ -39,5 +39,6 @@ The string that is potentially a UUID.
 
 ## Return Value
 
-If `$str` is a UUID, then the return value is `$str`, otherwise `null` is returned.
+If `$str` is a UUID, then the return value is `$str`,
+otherwise `null` is returned.
 

@@ -8,7 +8,9 @@ Encode an integer as base-32
 
 ## Description
 
-Encodes an integer as a base-32 value, that is, a value where each digit has 32 possible values (0-9, a-x). The letters 'i', 'l', 'o', 'y' and 'z' are not included in the alphabet.
+Encodes an integer as a base-32 value, that is, a value where each digit
+has 32 possible values (0-9, a-x). The letters 'i', 'l', 'o', 'y' and
+'z' are not included in the alphabet.
 
 ## Parameters
 

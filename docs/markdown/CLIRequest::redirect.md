@@ -6,5 +6,7 @@ Redirect a request to another location.
 
 ## Description
 
-Attempting to perform a redirect on the command-line causes the process to exit, because a 'redirect' in this context is nonsensical.
+Attempting to perform a redirect on the command-line causes the
+process to exit, because a 'redirect' in this context is
+nonsensical.
 

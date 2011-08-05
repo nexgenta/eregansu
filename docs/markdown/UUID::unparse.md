@@ -8,7 +8,8 @@ Constructs a UUID string given an array as returned by UUID::parse()
 
 ## Description
 
-`UUID::unparse()` accepts an array representation of a UUID as returned by `[[UUID::parse]]()` and returns a string representation of the same UUID.
+`UUID::unparse()` accepts an array representation of a UUID as returned by
+`[[UUID::parse]]()` and returns a string representation of the same UUID.
 
 ## Example
 

@@ -8,7 +8,8 @@ Decode a base-32 string and return the value as an integer
 
 ## Description
 
-Accepts a base-32-encoded string as encoded by `[[Base32::encode]]()` and returns its integer value.
+Accepts a base-32-encoded string as encoded by `[[Base32::encode]]()` and
+returns its integer value.
 
 ## Parameters
 

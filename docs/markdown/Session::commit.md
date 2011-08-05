@@ -6,7 +6,9 @@ Commit changes to the session data
 
 ## Description
 
-Session::commit() stores any changes which have been made to the session data so that they will be available when future requests attach to the session.
+Session::commit() stores any changes which have been made to the session
+data so that they will be available when future requests attach to the
+session.
 
 ## Parameters
 

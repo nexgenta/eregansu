@@ -29,8 +29,6 @@ abstract class GenFormatter
 	protected function format($str)
 	{
 		$this->cur = $str;
-		$str = str_replace("\n\n", '\newpara{.}', $str);
-		$str = str_replace("\n", ' ', $str);  
 		$str = preg_replace_callback('!\\\([a-z]+)\{([^\}]+)\}!mis', array($this, '_formatReplacement'), $str);
 		$str = preg_replace_callback('!\\\([a-z]+)\{|(.*)|\}!misU', array($this, '_formatReplacement'), $str);
 		return $str;

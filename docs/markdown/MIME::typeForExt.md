@@ -8,7 +8,12 @@ Return the MIME type matching a specified file extension
 
 ## Description
 
-`MIME::typeForExt()` attempts to resolve a file extension to a MIME type. The file extension, `$ext`, may be specified with or without a leading dot. If the file extension could not be mapped to a MIME type, `null` is returned.
+`MIME::typeForExt()` attempts to resolve a file extension to a MIME
+type.
+The file extension, `$ext`, may be specified with or without a
+leading dot.
+If the file extension could not be mapped to a MIME type, `null`
+is returned.
 
 ## Example
 

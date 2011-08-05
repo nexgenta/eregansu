@@ -12,7 +12,8 @@ $importer = new CSVImport('/path/to/file.csv');
 
 ## Description
 
-The `CSVImport` class provides the ability to import data from CSV files.
+The `CSVImport` class provides the ability to import data from
+CSV files.
 
 ## Public Methods
 

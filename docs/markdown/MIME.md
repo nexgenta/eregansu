@@ -1,4 +1,6 @@
-The `MIME` class provides facilities for mapping file extensions to MIME types and vice versa and obtaining human-readable descriptions from MIME types.
+The `MIME` class provides facilities for mapping file extensions to
+MIME types and vice versa and obtaining human-readable descriptions
+from MIME types.
 
 `MIME` is an abstract base class.
 

@@ -1,4 +1,5 @@
-The `[[DBException]]` constructor is responsible for initialising a new database exception object.
+The `[[DBException]]` constructor is responsible for initialising a new
+database exception object.
 
 ## Synopsis
 
@@ -8,7 +9,9 @@ The `[[DBException]]` constructor is responsible for initialising a new database
 
 ## Description
 
-The constructor will automatically populate the `[[DBException]]` instance's properties and generate a complete exception message which is passed along with `$errCode` to [Exception::__construct](http://www.php.net/manual/en/exception.construct.php).
+The constructor will automatically populate the `[[DBException]]`
+instance's properties and generate a complete exception message which is
+passed along with `$errCode` to [Exception::__construct](http://www.php.net/manual/en/exception.construct.php).
 
 ## Parameters
 

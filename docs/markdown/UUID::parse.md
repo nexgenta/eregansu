@@ -8,7 +8,18 @@ Parse a string containing a UUID and return an array representing its value.
 
 ## Description
 
-`UUID::parse()` converts a string representation of a UUID to an array. The array contains the following members: - `time_low` - `time_mid` - `time_hi_and_version` - `clock_seq_hi_and_reserved` - `clock_seq_low` - `node` - `version` - `variant` The `version` member contains a UUID version number, for example `UUID::RANDOM`. The `variant` member specifies the UUID variant, for example `UUID::DCE`.
+`UUID::parse()` converts a string representation of a UUID to an array. The
+array contains the following members:
+- `time_low`
+- `time_mid`
+- `time_hi_and_version`
+- `clock_seq_hi_and_reserved`
+- `clock_seq_low`
+- `node`
+- `version`
+- `variant`
+The `version` member contains a UUID version number, for example `UUID::RANDOM`.
+The `variant` member specifies the UUID variant, for example `UUID::DCE`.
 
 ## Example
 

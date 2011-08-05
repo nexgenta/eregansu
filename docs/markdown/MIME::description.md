@@ -8,7 +8,9 @@ Return a human-readable description of a MIME type
 
 ## Description
 
-`MIME::description()` returns a human-readable description of a specified MIME type. For example, the description for video/mp4 might be MPEG 4 video.
+`MIME::description()` returns a human-readable description of a specified
+MIME type.
+For example, the description for video/mp4 might be MPEG 4 video.
 
 ## Example
 

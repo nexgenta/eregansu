@@ -12,7 +12,8 @@ $structure = ASN1::decodeBER($blob);
 
 ## Description
 
-The ASN1 class provides the ability to decode ASN.1 structures which conform to the Basic Encoding Rules (BER).
+The ASN1 class provides the ability to decode ASN.1 structures which
+conform to the Basic Encoding Rules (BER).
 
 ## Public Static Methods
 

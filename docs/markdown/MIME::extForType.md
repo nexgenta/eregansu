@@ -8,7 +8,12 @@ Return the preferred file extension for a specified MIME type
 
 ## Description
 
-`MIME::extForType()` returns the preferred file extension, if any, for a given MIME type. For example, the preferred extension string for the text/plain type is .txt. If a file extension mapping exists, it will be returned with a leading dot. If no file extension mapping exists, an empty string will be returned.
+`MIME::extForType()` returns the preferred file extension, if any, for a
+given MIME type. For example, the preferred extension string for the
+text/plain type is .txt.
+If a file extension mapping exists, it will be returned with a leading
+dot. If no file extension mapping exists, an empty string will be
+returned.
 
 ## Example
 
