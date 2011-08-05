@@ -1,0 +1,12 @@
+ignore gendoc
+ignore t
+ignore simplehtmldom
+ignore docs
+ignore examples
+ignore index.dist.php
+ignore index.install.php
+ignore config.default.php
+sourcebase http://github.com/nexgenta/eregansu/blob/master/
+author Mo McRoberts <mo.mcroberts@nexgenta.com>
+framework EregansuPlatform Eregansu Platform
+copyright Mo McRoberts
