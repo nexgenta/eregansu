@@ -97,7 +97,7 @@ class GenMarkdown extends GenFormatter
 			}
 			if(strlen($brief))
 			{
-				$brief = ': ' . $brief;
+				$brief = ': ' . $this->format($brief);
 			}
 			fwrite($f, "* `[[" . $ref . "]]" . $suf . "`" . $brief . "\n");
 		}

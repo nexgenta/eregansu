@@ -1,6 +1,6 @@
 # Reading CSV files
 
-* `[[CSVImport::__construct]]()`: Initialise a \class{CSVImport} instance.
+* `[[CSVImport::__construct]]()`: Initialise a `[[CSVImport]]` instance.
 * `[[CSVImport::readFields]]()`: Read the list of field names from a CSV file.
 * `[[CSVImport::setFields]]()`: Specify an explicit column-to-field mapping.
 * `[[CSVImport::rewind]]()`: Move the file pointer back to the beginning of the file.
