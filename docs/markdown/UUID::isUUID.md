@@ -12,7 +12,7 @@ Determine whether a string is a valid UUID or not
 
 ## Example
 
-* [[examples/uuids.php|http://github.com/nexgenta/eregansu/blob/master/examples/uuids.php]]
+* [examples/uuids.php](http://github.com/nexgenta/eregansu/blob/master/examples/uuids.php)
 
 ## Parameters
 

@@ -12,7 +12,7 @@ Parse a string containing a UUID and return an array representing its value.
 
 ## Example
 
-* [[examples/uuids.php|http://github.com/nexgenta/eregansu/blob/master/examples/uuids.php]]
+* [examples/uuids.php](http://github.com/nexgenta/eregansu/blob/master/examples/uuids.php)
 
 ## Parameters
 

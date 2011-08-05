@@ -12,7 +12,7 @@ Return a human-readable description of a MIME type
 
 ## Example
 
-* [[mimetest.php|http://github.com/nexgenta/eregansu/blob/master/mimetest.php]]
+* [mimetest.php](http://github.com/nexgenta/eregansu/blob/master/mimetest.php)
 
 ## Parameters
 

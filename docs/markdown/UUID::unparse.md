@@ -12,7 +12,7 @@ Constructs a UUID string given an array as returned by UUID::parse()
 
 ## Example
 
-* [[examples/uuids.php|http://github.com/nexgenta/eregansu/blob/master/examples/uuids.php]]
+* [examples/uuids.php](http://github.com/nexgenta/eregansu/blob/master/examples/uuids.php)
 
 ## Parameters
 

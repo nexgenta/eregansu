@@ -14,7 +14,7 @@ uses('mime');
 
 ## Example
 
-* [[mimetest.php|http://github.com/nexgenta/eregansu/blob/master/mimetest.php]]
+* [mimetest.php](http://github.com/nexgenta/eregansu/blob/master/mimetest.php)
 
 ## Public Static Methods
 

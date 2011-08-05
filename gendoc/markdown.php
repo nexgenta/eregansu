@@ -164,7 +164,7 @@ class GenMarkdown extends GenFormatter
 		if(strlen(@$info['doc']['exampleurl']))
 		{
 			fwrite($f, "## Example\n\n");
-			fwrite($f, "* " . $this->link($info['doc']['exampleurl'], @$info['doc']['example']) . "\n\n");
+			fwrite($f, "* " . $this->hyperlink($info['doc']['exampleurl'], @$info['doc']['example']) . "\n\n");
 		}
 		$pubmethods = array();
 		$pubsmethods = array();
@@ -328,7 +328,7 @@ class GenMarkdown extends GenFormatter
 		if(strlen(@$methodInfo['doc']['exampleurl']))
 		{
 			fwrite($f, "## Example\n\n");
-			fwrite($f, "* " . $this->link($methodInfo['doc']['exampleurl'], @$methodInfo['doc']['example']) . "\n\n");
+			fwrite($f, "* " . $this->hyperlink($methodInfo['doc']['exampleurl'], @$methodInfo['doc']['example']) . "\n\n");
 		}
 		if(count($plist))
 		{

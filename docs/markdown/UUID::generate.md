@@ -12,7 +12,7 @@ Generate a new UUID
 
 ## Example
 
-* [[examples/uuids.php|http://github.com/nexgenta/eregansu/blob/master/examples/uuids.php]]
+* [examples/uuids.php](http://github.com/nexgenta/eregansu/blob/master/examples/uuids.php)
 
 ## Parameters
 

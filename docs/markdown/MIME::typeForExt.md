@@ -12,7 +12,7 @@ Return the MIME type matching a specified file extension
 
 ## Example
 
-* [[mimetest.php|http://github.com/nexgenta/eregansu/blob/master/mimetest.php]]
+* [mimetest.php](http://github.com/nexgenta/eregansu/blob/master/mimetest.php)
 
 ## Parameters
 

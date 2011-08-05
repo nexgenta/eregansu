@@ -12,7 +12,7 @@ Return the canonical form of a UUID string (i.e., no braces, no dashes, all lowe
 
 ## Example
 
-* [[examples/uuids.php|http://github.com/nexgenta/eregansu/blob/master/examples/uuids.php]]
+* [examples/uuids.php](http://github.com/nexgenta/eregansu/blob/master/examples/uuids.php)
 
 ## Parameters
 
