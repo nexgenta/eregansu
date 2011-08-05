@@ -15,14 +15,63 @@
  *  limitations under the License.
  */
 
+/**
+ * @include uses('db');
+ * @source http://github.com/nexgenta/eregansu/blob/master/lib/db.php
+ */
+
 uses('url');
 
+/**
+ * Class encapsulating database-related exceptions.
+ *
+ * @synopsis throw new DBException($code, $message, $dbQuery);
+ */
 class DBException extends Exception
 {
-	public $errMsg;
-	public $query;
+	/**
+	 * Error code relating to the exception condition.
+	 *
+	 * The \P{$code} property contains an error code relating to the exception
+	 * condition, usually as supplied by the database system itself.
+	 *
+	 * @type string
+	 * @note \C{DBException} overrides the visibility of \x{Exception::$code}
+	 * to make it \k{public}.
+	 */
 	public $code;
 	
+	/**
+	 * Human-readable error message relating to the exception condition.
+	 *
+	 * The \P{$errMsg} property contains a human-readable error message
+	 * relating to the exception condition, usually as supplied by the
+	 * database system itself.
+	 *
+	 * Unlike the message produced by converting the instance to a string,
+	 * \P{$errMsg} does not contain the query which was being executed when
+	 * the exception occurred.
+	 */
+	public $errMsg;
+
+	/**
+	 * Text of the database query being performed when the exception condition
+	 * occurred.
+	 *
+	 * The \P{$query} property contains the text of the database query being
+	 * performed when the exception condition ocurred, or \k{null} if no
+	 * query was in progress at the time.
+	 */
+	public $query;
+	
+	/**
+	 * The \C{DBException} constructor is responsible for initialising a new
+	 * database exception object.
+	 *
+	 * The constructor will automatically populate the \C{DBException}
+	 * instance's properties and generate a complete exception message which is
+	 * passed along with \p{$errCode} to \link{http://www.php.net/manual/en/exception.construct.php|Exception::__construct}.
+	 */
 	public function __construct($errCode, $errMsg, $query)
 	{
 		$this->errMsg = $errMsg;

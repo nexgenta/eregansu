@@ -17,8 +17,27 @@
  *  limitations under the License.
  */
 
+/**
+ * @package EregansuLib Eregansu Core Library
+ * @year 2011
+ * @include uses('asn1');
+ * @since Available in Eregansu 1.0 and later. 
+ */
+
+/**
+ * ASN.1 decoding support.
+ *
+ * The ASN1 class provides the ability to decode ASN.1 structures which
+ * conform to the Basic Encoding Rules (BER).
+ *
+ * @synopsis $structure = ASN1::decodeBER($blob);
+ */
+
 abstract class ASN1
 {
+	/**
+	 * @internal
+	 */
 	public static $types = array(
 		0 => 'EOC',
 		1 => 'BOOLEAN',
@@ -51,6 +70,29 @@ abstract class ASN1
 		30 => 'BMPString',
 		);
 	
+	/**
+	 * Decode a BER-encoded ASN.1 structure.
+	 *
+	 * \m{decodeBER} provides limited support for decoding a binary ASN.1
+	 * structure which was encoded using the Basic Encoding Rules (BER), such
+	 * as X.509 certificate data.
+	 *
+	 * Each member of the returned array is itself an associative array with
+	 * the following fields: \x{$type}, \x{$pc}, \x{$class}, \x{$len},
+	 * and \x{$data} (note that \x{$data} is base-64 encoded).
+	 *
+	 * For entries which are sequences, the \x{$sequence} member is an
+	 * indexed array of structures.
+	 *
+	 * For entries which are bit-strings, the \x{$value} member is set to the
+	 * value of the bit-string, and the \x{$unused} member is set to the
+	 * number of leading unused bits in the string.
+	 *
+	 * @type array
+	 * @param[in] string $binary The BER-encoded ASN.1 structure
+	 * @return An indexed array representing the ASN.1 structure.
+	 * @task ASN.1 decoding
+	 */
 	public static function decodeBER($binary)
 	{
 		$output = array();

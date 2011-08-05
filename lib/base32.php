@@ -16,24 +16,21 @@
  */
 
 /**
- * @framework EregansuCore Eregansu Core Library
- * @author Mo McRoberts <mo.mcroberts@nexgenta.com>
+ * @package EregansuLib Eregansu Core Library
  * @year 2009, 2010
- * @copyright Mo McRoberts
- * @include uses('uuid');
- * @sourcebase http://github.com/nexgenta/eregansu/blob/master/
+ * @include uses('base32');
  * @since Available in Eregansu 1.0 and later. 
  */
  
 /**
- * Abstract class implementing base-32 encoding and decoding
+ * Abstract class implementing base-32 encoding and decoding.
  *
- * <note>Instances of the Base32 class are never created; all methods are static.</note>
+ * @note Instances of the Base32 class are never created; all methods are static.
  */
 abstract class Base32
 {
 	/**
-	 * @brief Maps numerical values to base-32 digits
+	 * Maps numerical values to base-32 digits
 	 * @internal
 	 * @hideinitializer
 	 */
@@ -44,20 +41,22 @@ abstract class Base32
 		'w', 'x',
 	);
 	/**
-	 * @brief Maps base-32 digits to numerical values
+	 * Maps base-32 digits to numerical values
 	 * @internal
 	 */
 	protected static $ralphabet;
 	
 	/**
-	 * @brief Encode an integer as base-32
+	 * Encode an integer as base-32
 	 * @task Encoding and decoding base-32 values
 	 *
 	 * Encodes an integer as a base-32 value, that is, a value where each digit
-	 * has 32 possible values (0-9, a-x).
+	 * has 32 possible values (0-9, a-x). The letters 'i', 'l', 'o', 'y' and
+	 * 'z' are not included in the alphabet.
 	 *
+	 * @type string
 	 * @param[in] int $input The number to encode
-	 * @return string A string containing \p{$input} encoded as base-32
+	 * @return A string containing the value of \p{$input} encoded as base-32
 	 */
 	public static function encode($input)
 	{
@@ -73,15 +72,15 @@ abstract class Base32
 	}
 	
 	/**
-	 * @fn int decode($input)
-	 * @brief Decode a base-32 string and return the value as an integer
+	 * Decode a base-32 string and return the value as an integer
 	 * @task Encoding and decoding base-32 values
 	 *
 	 * Accepts a base-32-encoded string as encoded by \m{Base32::encode} and
 	 * returns its integer value.
 	 *
+	 * @type int
 	 * @param[in] string $input A base-32 encoded value
-	 * @return int The integer value represented by \p{$input}
+	 * @return The integer value represented by \p{$input}
 	 */
 	public static function decode($input)
 	{

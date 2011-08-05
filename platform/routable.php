@@ -18,7 +18,13 @@
  */
 
 /**
- * @framework Eregansu
+ * @package EregansuPlatform Eregansu Platform
+ * @year 2009-2011
+ * @since Available in Eregansu 1.0 and later.
+ */
+
+/**
+ * The interface implemented by all classes which can process requests.
  */
 
 interface IRequestProcessor
@@ -26,8 +32,18 @@ interface IRequestProcessor
 	public function process(Request $req);
 }
 
+/**
+ * Route module loader.
+ */
 abstract class Loader
 {
+	/**
+	 * Attempt to load the module which handles a route.
+	 *
+	 * @type boolean
+	 * @param[in] array $route An associative array containing route information.
+	 * @return \c{true} if the module was loaded successfully, \c{false} otherwise.
+	 */
 	public static function load($route)
 	{
 		global $MODULE_ROOT;
@@ -72,7 +88,9 @@ abstract class Loader
 	}
 }
 
-
+/**
+ * Base class for all Eregansu-provided routable instances.
+ */
 class Routable implements IRequestProcessor
 {
 	protected $model;
@@ -116,6 +134,9 @@ class Routable implements IRequestProcessor
 	}
 }
 
+/**
+ * Perform a redirect when a route is requested.
+ */
 class Redirect extends Routable
 {
 	protected $target = '';
@@ -159,11 +180,17 @@ class Redirect extends Routable
 	}
 }
 
+/**
+ * A routable class capable of passing a request to child routes.
+ */
 class Router extends Routable
 {
 	protected $sapi = array('http' => array(), 'cli' => array());
 	protected $routes;
-	
+
+	/**
+	 * @internal
+	 */
 	public function __construct()
 	{
 		/* Shorthand, as most stuff is web-based */
@@ -180,7 +207,10 @@ class Router extends Routable
 		}
 		return null;
 	}
-	
+
+	/**
+	 * @internal
+	 */	
 	public function locateRoute(Request $req)
 	{
 		global $MODULE_ROOT;
@@ -316,7 +346,10 @@ class Router extends Routable
 		}
 		return true;
 	}
-	
+
+	/**
+	 * @internal
+	 */	
 	public function routeInstance(Request $req, $route)
 	{
 		global $MODULE_ROOT;
@@ -343,6 +376,9 @@ class Router extends Routable
 	}
 }
 
+/**
+ * A routable class which encapsulates an application.
+ */
 class App extends Router
 {
 	public $parent;
@@ -435,6 +471,9 @@ class App extends Router
 	}
 }
 
+/**
+ * The default application class.
+ */
 class DefaultApp extends App
 {
 	public function __construct()
@@ -469,7 +508,9 @@ class DefaultApp extends App
 	}
 }
 
-/* Route requests to a particular app based upon a domain name */
+/**
+ * Route requests to a particular app based upon a domain name.
+ */
 class HostnameRouter extends DefaultApp
 {
 	public function __construct()
@@ -491,7 +532,9 @@ class HostnameRouter extends DefaultApp
 	}
 }
 
-
+/**
+ * Routable class designed to support presenting views of data objects.
+ */
 class Proxy extends Router
 {
 	public static $willPerformMethod;
@@ -813,12 +856,17 @@ class Proxy extends Router
 	}
 }
 
-/* A helper command-line-only proxy class */
+/**
+ * Interface implemented by command-line routable classes.
+ */
 interface ICommandLine
 {
 	function main($args);
 }
 
+/**
+ * Encapsulation of a command-line interface handler.
+ */
 abstract class CommandLine extends Proxy implements ICommandLine
 {
 	const no_argument = 0;
@@ -1011,6 +1059,7 @@ abstract class CommandLine extends Proxy implements ICommandLine
 			{
 				if(!empty($this->longopt['has_arg']))
 				{
+					$c = $this->optind;
 					if($c + 1 < count($args))
 					{
 						if(substr($args[$c + 1], 0, 1) != '-')

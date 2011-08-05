@@ -2,7 +2,7 @@
 
 /* Eregansu: Encapsulation of a request
  *
- * Copyright 2009, 2010 Mo McRoberts.
+ * Copyright 2001, 2010 Mo McRoberts.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -18,17 +18,14 @@
  */
  
 /**
- * @framework EregansuCore Eregansu Core Library
- * @author Mo McRoberts <mo.mcroberts@nexgenta.com>
- * @year 2010
- * @copyright Mo McRoberts
+ * @framework EregansuLib Eregansu Core Library
+ * @year 2009-2011
  * @include uses('request');
- * @sourcebase http://github.com/nexgenta/eregansu/blob/master/
  * @since Available in Eregansu 1.0 and later. 
  */
 
 /** 
- * @brief Encapsulation of a request from a client.
+ * Encapsulation of a request from a client.
  *
  * The Request class and its descendants represents a single request from a user
  * agent of some kind. The \C{Request} class itself is abstract: descendants of \C{Request}
@@ -39,6 +36,8 @@
  * Upon initialisation of the platform, a \C{Request} class instance is instantiated by
  * calling \m{requestForSAPI} with no arguments, and the resulting instance is stored
  * in the \v{$request} global variable.
+ *
+ * @synopsis $request = Request::requestForSAPI();
  */
 abstract class Request
 {
@@ -585,10 +584,7 @@ abstract class Request
 }
 
 /**
- * @package EregansuCore
- * @since Eregansu 1.0 or later
- *
- * Implements the Request class for HTTP requests
+ * Encapsulation of an HTTP request.
  */
 class HTTPRequest extends Request
 {
