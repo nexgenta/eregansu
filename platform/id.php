@@ -20,7 +20,9 @@ uses('model', 'uuid');
  */
 
 /**
- * @framework Eregansu
+ * @year 2009
+ * @include uses('id');
+ * @since Available in Eregansu 1.0 and later. 
  */
 
 /* Note regarding the difference between this functionality and that in
@@ -55,7 +57,10 @@ uses('model', 'uuid');
  * identity database itself. If a file: IRI is specified, identity details are
  * read from the specified file path, which is expected to be an XML file.
  */
- 
+
+/**
+ * Identity management.
+ */
 class Identity extends Model
 {
 	public $writeable = true;
@@ -99,7 +104,10 @@ class Identity extends Model
 	
 }
 
-/* This class implements a read-only identity database read from an XML file.
+/**
+ * Support for static identity data in an XML file.
+ *
+ * This class implements a read-only identity database read from an XML file.
  * Note that users authenticating using the 'builtin:' and 'posix:' schemes
  * will always pass identity checks, because the authentication layers are
  * capable of providing the required details themselves. These authentication
@@ -250,7 +258,9 @@ class IdentityFile extends Identity
 	}
 }
 
-/* Identity/authorisation database using an LDAP database */
+/**
+ * Identity/authorisation database using an LDAP directory server.
+ */
 class IdentityDirectory extends Identity
 {
 	public function uuidFromIRI($iri, $data = null)

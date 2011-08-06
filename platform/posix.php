@@ -1,6 +1,6 @@
 <?php
 
-/* Eregansu: Authentication — Posix pseudo-authentication engine
+/* Eregansu: Authentication — Posix pseudo-authentication engine
  *
  * Copyright 2009 Mo McRoberts.
  *
@@ -18,9 +18,14 @@
  */
 
 /**
- * @framework Eregansu
+ * @year 2009
+ * @include uses('auth');
+ * @since Available in Eregansu 1.0 and later. 
  */
 
+/**
+ * Implementation of the \x{posix:} pseudo-authentication scheme.
+ */
 class PosixAuth extends Auth
 {
 	protected $builtinAuthScheme = false;

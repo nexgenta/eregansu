@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('module');</code>
+
 <code>public static function <b>[[Module]]::getInstance</b>(<b>$args</b> = null)</code>
 
 ## Parameters

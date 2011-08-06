@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('auth');</code>
+
 <code>public function <b>[[PosixAuth]]::retrieveUserData</b>(<b>$scheme</b>, <b>$uid</b>)</code>
 
 ## Parameters

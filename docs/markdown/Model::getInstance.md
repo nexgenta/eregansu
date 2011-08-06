@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('model');</code>
+
 <code>public static function <b>[[Model]]::getInstance</b>(<b>$args</b> = null)</code>
 
 ## Parameters

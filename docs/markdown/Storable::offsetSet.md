@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('store');</code>
+
 <code>public function <b>[[Storable]]::offsetSet</b>(<b>$name</b>, <b>$value</b>)</code>
 
 ## Parameters

@@ -1,4 +1,12 @@
+Base class for encapsulations of stored objects.
+
 `Storable` is a base class.
+
+## Synopsis
+
+```php
+uses('store');
+```
 
 ## Public Static Methods
 

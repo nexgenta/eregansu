@@ -76,9 +76,9 @@ class GenDoc extends CommandLine
 	protected function processDirectory($path, $relPath = null, $global = null)
 	{
 		$modules = array();
-		if($relPath === null && file_exists($path . '/.gendocrc'))
+		if(file_exists($path . '/.gendocrc'))
 		{
-			$global = $this->parseRC($path . '/.gendocrc');
+			$global = $this->parseRC($path . '/.gendocrc', $global, $relPath);
 		}
 		$d = opendir($path);
 		while(($de = readdir($d)) !== false)
@@ -180,9 +180,12 @@ class GenDoc extends CommandLine
 		}
 	}
 
-	protected function parseRC($path)
+	protected function parseRC($path, $options = null, $relPath = null)
 	{
-		$options = array('ignore' => array());
+		if(!is_array($options))
+		{		   
+			$options = array('ignore' => array());
+		}
 		$lines = explode("\n", file_get_contents($path));
 		foreach($lines as $line)
 		{
@@ -203,7 +206,7 @@ class GenDoc extends CommandLine
 			}
 			if(!strcmp($line[0], 'ignore'))
 			{
-				$options['ignore'][] = $line[1];
+				$options['ignore'][] = $relPath . $line[1];
 			}
 			else
 			{

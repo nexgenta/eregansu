@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('store');</code>
+
 <code>public function <b>[[Store]]::updateObjectWithUUID</b>(<b>$uuid</b>)</code>
 
 ## Parameters

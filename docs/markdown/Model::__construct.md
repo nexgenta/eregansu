@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('model');</code>
+
 <code>public function <b>[[Model]]::__construct</b>(<b>$args</b>)</code>
 
 ## Parameters

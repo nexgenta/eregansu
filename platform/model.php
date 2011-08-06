@@ -18,11 +18,16 @@
  */
 
 /**
- * @framework Eregansu
+ * @year 2009
+ * @include uses('model');
+ * @since Available in Eregansu 1.0 and later. 
  */
 
 uses('db');
 
+/**
+ * Base class for data models
+ */
 class Model
 {
 	protected static $instances = array();

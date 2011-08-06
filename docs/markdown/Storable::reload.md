@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('store');</code>
+
 <code>public function <b>[[Storable]]::reload</b>(<b>$data</b> = null)</code>
 
 ## Parameters

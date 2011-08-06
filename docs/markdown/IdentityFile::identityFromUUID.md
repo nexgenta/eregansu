@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('id');</code>
+
 <code>public function <b>[[IdentityFile]]::identityFromUUID</b>(<b>$uuid</b>, <b>$data</b> = null)</code>
 
 ## Parameters

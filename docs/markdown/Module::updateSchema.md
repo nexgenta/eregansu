@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('module');</code>
+
 <code>public function <b>[[Module]]::updateSchema</b>(<b>$targetVersion</b>)</code>
 
 ## Parameters

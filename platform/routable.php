@@ -18,7 +18,6 @@
  */
 
 /**
- * @package EregansuPlatform Eregansu Platform
  * @year 2009-2011
  * @since Available in Eregansu 1.0 and later.
  */

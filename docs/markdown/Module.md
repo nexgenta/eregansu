@@ -1,5 +1,11 @@
 `Module` is an abstract class derived from [[Model]].
 
+## Synopsis
+
+```php
+uses('module');
+```
+
 ## Public Static Methods
 
 * `[[Module::getInstance]]()`

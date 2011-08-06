@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('template');</code>
+
 <code>public function <b>[[Template]]::__construct</b>(<b>$req</b>, <b>$filename</b>, <b>$skin</b> = null, <b>$fallbackSkin</b> = null)</code>
 
 ## Parameters

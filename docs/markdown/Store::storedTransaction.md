@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('store');</code>
+
 <code>public function <b>[[Store]]::storedTransaction</b>(<b>$db</b>, <b>$args</b>)</code>
 
 ## Parameters

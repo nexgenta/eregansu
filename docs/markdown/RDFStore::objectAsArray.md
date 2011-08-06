@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('rdfstore');</code>
+
 <code>public function <b>[[RDFStore]]::objectAsArray</b>(<b>$object</b>)</code>
 
 ## Parameters

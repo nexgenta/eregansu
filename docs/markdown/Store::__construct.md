@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('store');</code>
+
 <code>public function <b>[[Store]]::__construct</b>(<b>$args</b>)</code>
 
 ## Parameters

@@ -18,7 +18,9 @@
  */
 
 /**
- * @framework Eregansu
+ * @year 2009-2011
+ * @include uses('error');
+ * @since Available in Eregansu 1.0 and later. 
  */
 
 if(!defined('TEMPLATES_PATH')) define('TEMPLATES_PATH', 'templates');

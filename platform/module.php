@@ -17,6 +17,12 @@
  *  limitations under the License.
  */
 
+/**
+ * @year 2011
+ * @include uses('module');
+ * @since Available in Eregansu 1.0 and later. 
+ */
+
 /* A “module” is essentially a class which, rather than
  * being responsible for storing and retrieving data in a
  * database, instead is concerned with managing the

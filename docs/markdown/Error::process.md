@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('error');</code>
+
 <code>public function <b>[[Error]]::process</b>(<b>$req</b>)</code>
 
 ## Parameters

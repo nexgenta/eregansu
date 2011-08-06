@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('store');</code>
+
 <code>public function <b>[[Storable]]::offsetUnset</b>(<b>$name</b>)</code>
 
 ## Parameters

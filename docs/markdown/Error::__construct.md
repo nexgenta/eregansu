@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('error');</code>
+
 <code>public function <b>[[Error]]::__construct</b>(<b>$aStatus</b> = null)</code>
 
 ## Parameters

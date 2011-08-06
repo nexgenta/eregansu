@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('store');</code>
+
 <code>public function <b>[[Store]]::pendingObjectsSet</b>(<b>$limit</b> = null)</code>
 
 ## Parameters

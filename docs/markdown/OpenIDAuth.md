@@ -1,5 +1,11 @@
 `OpenIDAuth` is a class derived from [[Auth]].
 
+## Synopsis
+
+```php
+uses('openid');
+```
+
 ## Public Methods
 
 * `[[OpenIDAuth::verifyAuth]]()`

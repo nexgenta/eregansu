@@ -1,4 +1,12 @@
+Eregansu web page templating.
+
 `Template` is a base class.
+
+## Synopsis
+
+```php
+uses('template');
+```
 
 ## Public Methods
 

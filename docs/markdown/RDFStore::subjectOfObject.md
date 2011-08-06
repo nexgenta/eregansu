@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('rdfstore');</code>
+
 <code>public function <b>[[RDFStore]]::subjectOfObject</b>(<b>$object</b>)</code>
 
 ## Parameters

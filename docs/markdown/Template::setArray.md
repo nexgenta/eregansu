@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('template');</code>
+
 <code>public function <b>[[Template]]::setArray</b>(<b>$vars</b>)</code>
 
 ## Parameters

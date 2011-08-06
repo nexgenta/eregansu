@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('store');</code>
+
 <code>public function <b>[[Store]]::uuidOfObject</b>(<b>$object</b>)</code>
 
 ## Parameters

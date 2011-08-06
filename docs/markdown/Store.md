@@ -1,4 +1,12 @@
+Base class for complex object stores.
+
 `Store` is a class derived from [[Model]].
+
+## Synopsis
+
+```php
+uses('store');
+```
 
 ## Public Static Methods
 

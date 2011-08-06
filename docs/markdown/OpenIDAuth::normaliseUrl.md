@@ -4,6 +4,8 @@ It returns the normalised URL on success and false of failure.
 
 ## Synopsis
 
+<code>uses('openid');</code>
+
 <code>public function <b>[[OpenIDAuth]]::normaliseUrl</b>(<b>$id</b>)</code>
 
 ## Description

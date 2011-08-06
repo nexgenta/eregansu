@@ -18,8 +18,7 @@
  */
 
 /**
- * @package EregansuLib Eregansu Core Library
- * @year 2011
+ * @year 2009
  * @include uses('auth');
  * @since Available in Eregansu 1.0 and later. 
  */

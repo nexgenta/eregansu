@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('store');</code>
+
 <code>public function <b>[[Store]]::markAllAsDirty</b>(<b>$isDirty</b> = true)</code>
 
 ## Parameters

@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('id');</code>
+
 <code>public function <b>[[IdentityDirectory]]::uuidFromIRI</b>(<b>$iri</b>, <b>$data</b> = null)</code>
 
 ## Parameters

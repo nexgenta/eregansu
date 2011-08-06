@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('store');</code>
+
 <code>public function <b>[[Store]]::firstObject</b>(<b>$objects</b>)</code>
 
 ## Parameters

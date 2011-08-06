@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('store');</code>
+
 <code>public function <b>[[Store]]::setData</b>(<b>$data</b>, <b>$user</b> = null, <b>$lazy</b> = false, <b>$owner</b> = null)</code>
 
 ## Parameters

@@ -18,11 +18,16 @@
  */
 
 /**
- * @framework Eregansu
+ * @year 2009-2011
+ * @include uses('template');
+ * @since Available in Eregansu 1.0 and later. 
  */
 
 if(!defined('TEMPLATES_PATH')) define('TEMPLATES_PATH', 'templates');
 
+/**
+ * Eregansu web page templating.
+ */
 class Template
 {
 	public $path;

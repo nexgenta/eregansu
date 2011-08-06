@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('rdfstore');</code>
+
 <code>public static function <b>[[RDFStoredObject]]::objectForData</b>(<b>$data</b>, <b>$model</b> = null, <b>$className</b> = null)</code>
 
 ## Parameters

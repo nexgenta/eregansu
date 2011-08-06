@@ -18,9 +18,13 @@
  */
 
 /**
- * @framework Eregansu
+ * @year 2009-2011
+ * @since Available in Eregansu 1.0 and later. 
  */
 
+/**
+ * Implements the default 'help' command-line route
+ */
 class CliHelp extends CommandLine
 {
 	public function main($args)

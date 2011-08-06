@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('store');</code>
+
 <code>public static function <b>[[Store]]::getInstance</b>(<b>$args</b> = null)</code>
 
 ## Parameters

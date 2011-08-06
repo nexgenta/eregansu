@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('store');</code>
+
 <code>public function <b>[[Store]]::dirty</b>(<b>$uuid</b>, <b>$isDirty</b> = true)</code>
 
 ## Parameters

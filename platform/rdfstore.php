@@ -17,10 +17,20 @@
  *  limitations under the License.
  */
 
+/**
+ * @year 2011
+ * @include uses('rdfstore');
+ * @since Available in Eregansu 1.0 and later. 
+ */
+
 require_once(dirname(__FILE__) . '/../lib/rdf.php');
 require_once(dirname(__FILE__) . '/store.php');
 
-/* RDFStore extends Store to store RDF graphs using the JSON encoding
+/**
+ * Object store implementation with facilities for storage of instances of
+ * \class{RDFInstance}.
+ *
+ * RDFStore extends Store to store RDF graphs using the JSON encoding
  * described at http://n2.talis.com/wiki/RDF_JSON_Specification
  */
 

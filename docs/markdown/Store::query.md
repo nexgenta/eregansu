@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('store');</code>
+
 <code>public function <b>[[Store]]::query</b>(<b>$query</b>)</code>
 
 ## Parameters

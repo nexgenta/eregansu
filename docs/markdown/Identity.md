@@ -1,4 +1,12 @@
+Identity management.
+
 `Identity` is a class derived from [[Model]].
+
+## Synopsis
+
+```php
+uses('id');
+```
 
 ## Public Static Methods
 

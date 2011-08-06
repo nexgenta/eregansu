@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('store');</code>
+
 <code>public function <b>[[Store]]::objectForIri</b>(<b>$iri</b>, <b>$owner</b> = null, <b>$kind</b> = null, <b>$firstOnly</b> = false)</code>
 
 ## Parameters

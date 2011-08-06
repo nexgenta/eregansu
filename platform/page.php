@@ -18,7 +18,13 @@
  */
 
 /**
- * @framework Eregansu
+ * @year 2009-2011
+ * @include uses('auth');
+ * @since Available in Eregansu 1.0 and later. 
+ */
+
+/**
+ * Templated web page generation.
  */
 
 class Page extends Proxy

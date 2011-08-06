@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('module');</code>
+
 <code>public function <b>[[Module]]::__construct</b>(<b>$args</b>)</code>
 
 ## Parameters

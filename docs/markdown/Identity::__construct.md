@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('id');</code>
+
 <code>public function <b>[[Identity]]::__construct</b>(<b>$args</b>)</code>
 
 ## Parameters

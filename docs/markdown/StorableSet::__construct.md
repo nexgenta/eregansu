@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('store');</code>
+
 <code>public function <b>[[StorableSet]]::__construct</b>(<b>$model</b>, <b>$args</b>)</code>
 
 ## Parameters

@@ -2,7 +2,7 @@
 
 /* Eregansu: Complex object store
  *
- * Copyright 2010 Mo McRoberts.
+ * Copyright 2010-2011 Mo McRoberts.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -18,11 +18,16 @@
  */
 
 /**
- * @framework Eregansu
+ * @year 2010-2011
+ * @include uses('store');
+ * @since Available in Eregansu 1.0 and later. 
  */
 
 uses('model', 'uuid');
 
+/**
+ * Base class for encapsulations of stored objects.
+ */
 class Storable implements ArrayAccess
 {
 	protected static $models = array();
@@ -176,6 +181,9 @@ class Storable implements ArrayAccess
 	}
 }
 
+/**
+ * Base class for datasets whose rows are instances of \class{Storable}
+ */
 abstract class StorableSet implements DataSet, Countable
 {
 	protected $model;
@@ -243,6 +251,9 @@ abstract class StorableSet implements DataSet, Countable
 	
 }
 
+/**
+ * Implementation of a \class{StorableSet} which uses a static list of objects.
+ */
 class StaticStorableSet extends StorableSet
 {
 	protected $list;
@@ -332,6 +343,10 @@ class StaticStorableSet extends StorableSet
 	}
 }
 
+/**
+ * Implementation of a \class{StorableSet} which is driven by the results of a
+ * database query.
+ */
 class DBStorableSet extends StorableSet
 {
 	protected $rs;
@@ -419,6 +434,9 @@ class DBStorableSet extends StorableSet
 	}
 }
 
+/**
+ * Base class for complex object stores.
+ */
 class Store extends Model
 {
 	protected $storableClass = 'Storable';

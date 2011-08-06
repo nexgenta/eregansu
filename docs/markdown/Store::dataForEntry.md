@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('store');</code>
+
 <code>public function <b>[[Store]]::dataForEntry</b>(<b>$uuid</b>)</code>
 
 ## Parameters
