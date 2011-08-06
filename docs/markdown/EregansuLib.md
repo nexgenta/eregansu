@@ -11,7 +11,8 @@
 
 ## Interfaces
 
-* `[[ISerialisable]]`
+* `[[ISerialisable]]`: The ISerialisable interface is implemented by classes which can serialise
+themselves.
 * `[[DataSet]]`
 * `[[IDBCore]]`
 * `[[ISearchEngine]]`
@@ -19,14 +20,14 @@
 
 ## Classes
 
-* `[[ASN1]]`
-* `[[Base32]]`
-* `[[CLIRequest]]`
-* `[[CSVImport]]`
+* `[[ASN1]]`: ASN.1 decoding support.
+* `[[Base32]]`: Abstract class implementing base-32 encoding and decoding.
+* `[[CLIRequest]]`: Implementation of the Request class for command-line (`cli`) requests.
+* `[[CSVImport]]`: Import data from a CSV file
 * `[[Curl]]`
 * `[[CurlCache]]`
 * `[[EregansuDateTime]]`
-* `[[LDAP]]`
+* `[[LDAP]]`: LDAP database support.
 * `[[LDAPSet]]`
 * `[[MySQLSchema]]`
 * `[[MySQLTable]]`
@@ -36,7 +37,7 @@
 * `[[SQLite3Table]]`
 * `[[SQLite3DB]]`
 * `[[SQLite3Set]]`
-* `[[DBException]]`
+* `[[DBException]]`: Class encapsulating database-related exceptions.
 * `[[DBSystemException]]`
 * `[[DBNetworkException]]`
 * `[[DBRollbackException]]`
@@ -47,10 +48,12 @@
 * `[[DBCol]]`
 * `[[DBSchema]]`
 * `[[DBTable]]`
-* `[[Form]]`
-* `[[MIME]]`
+* `[[Form]]`: HTML form generation and handling
+* `[[MIME]]`: The `MIME` class provides facilities for mapping file extensions to
+MIME types and vice versa and obtaining human-readable descriptions
+from MIME types.
 * `[[RDF]]`
-* `[[RDFDocument]]`
+* `[[RDFDocument]]`: An RDF document
 * `[[RDFSet]]`
 * `[[RDFTripleSet]]`
 * `[[RDFTriple]]`
@@ -70,18 +73,18 @@
 * `[[RedlandSerializer]]`
 * `[[RedlandJSONSerializer]]`
 * `[[RedlandJSONTriplesSerializer]]`
-* `[[Request]]`
-* `[[HTTPRequest]]`
+* `[[Request]]`: Encapsulation of a request from a client.
+* `[[HTTPRequest]]`: Encapsulation of an HTTP request.
 * `[[DbpediaLiteSearch]]`
 * `[[XapianSearch]]`
 * `[[XapianIndexer]]`
 * `[[SearchEngine]]`
 * `[[SearchIndexer]]`
 * `[[GenericWebSearch]]`
-* `[[Session]]`
-* `[[TransientSession]]`
+* `[[Session]]`: Session handling
+* `[[TransientSession]]`: Descendant of the Session class which has no persistent storage capabilities.
 * `[[URL]]`
-* `[[UUID]]`
+* `[[UUID]]`: Abstract class containing UUID manipulation facilities.
 * `[[XMLParser]]`
 * `[[XMLNS]]`
 

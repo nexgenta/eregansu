@@ -151,11 +151,11 @@ class GenDoc extends CommandLine
 				}
 				if($info['type'] == 'class')
 				{
-					$packages[$pkgx[0]]['classes'][] = $className;
+					$packages[$pkgx[0]]['classes'][$className] = @$info['doc']['brief'];
 				}
 				else if($info['type'] == 'interface')
 				{
-					$packages[$pkgx[0]]['interfaces'][] = $className;
+					$packages[$pkgx[0]]['interfaces'][$className] = @$info['doc']['brief'];
 				}
 				if(isset($info['methods']) && count($info['methods']))
 				{

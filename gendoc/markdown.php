@@ -65,18 +65,26 @@ class GenMarkdown extends GenFormatter
 		if(count($info['interfaces']))
 		{
 			fwrite($f, "## Interfaces\n\n");
-			foreach($info['interfaces'] as $name)
+			foreach($info['interfaces'] as $name => $brief)
 			{
-				fwrite($f, "* `[[" . $name . "]]`\n");
+				if(strlen($brief))
+				{
+					$brief = ': ' . $this->format($brief);
+				}
+				fwrite($f, "* `[[" . $name . "]]`" . $brief . "\n");
 			}
 			fwrite($f, "\n");
 		}
 		if(count($info['classes']))
 		{
 			fwrite($f, "## Classes\n\n");
-			foreach($info['classes'] as $name)
+			foreach($info['classes'] as $name => $brief)
 			{
-				fwrite($f, "* `[[" . $name . "]]`\n");
+				if(strlen($brief))
+				{
+					$brief = ': ' . $this->format($brief);
+				}
+				fwrite($f, "* `[[" . $name . "]]`" . $brief . "\n");
 			}
 			fwrite($f, "\n");
 		}
