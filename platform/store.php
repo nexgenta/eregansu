@@ -705,6 +705,14 @@ class Store extends Model
 		return $inst;
 	}
 
+	/**
+	 * Return the UUID of the object with the specified IRI, $iri.
+	 */
+	public function uuidForIri($iri)
+	{
+		return $this->db->value('SELECT "uuid" FROM {' . $this->objects_iri . '} WHERE "iri" = ?', $iri);
+	}
+
 	/* Return the data for the object with the specified IRI, $iri.
 	 *
 	 * If $owner is specified, only an object owned by $owner will be

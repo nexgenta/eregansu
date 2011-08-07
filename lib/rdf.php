@@ -1143,7 +1143,7 @@ class RDFSet implements Countable
 		array_shift($instances);
 		foreach($instances as $list)
 		{
-			if(!is_array($list))
+			if($list instanceof RDFInstance)
 			{
 				$list = array($list);
 			}
@@ -1157,6 +1157,10 @@ class RDFSet implements Countable
 				{
 					throw new Exception('RDFSet::setFromInstances() invoked with a non-object instance');
 				}
+				if(!($instance instanceof RDFInstance))
+				{
+					throw new Exception('RDFSet::setFromInstances() invoked with a non-RDF instance');
+				}		
 				$set->add($instance->all($keys));
 			}
 		}
