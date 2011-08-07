@@ -56,27 +56,72 @@ if test x"$worktree" = x"" ; then
 	echo "**** Detached working tree has not been configured for this repository; aborting" >&2
 	exit 1
 fi
+test -d "$worktree" || mkdir "$worktree"
 deploy_to=`( cd $worktree/.. && pwd)`
 here=`pwd`
 rotate="`git config --bool --get eregansu.rotate`"
 appname="`git config --get eregansu.application`"
 instname="`git config --get eregansu.instance`"
+onlybranch="`git config --get eregansu.branch`"
+
+read oldrev newrev refname
+
+if test x"$onlybranch" = x"" ; then
+	true
+else
+	if test x"$refname" = x"refs/heads/$onlybranch" ; then
+		true
+	else
+		echo "==> Skipping $newrev as $refname is not the deployment branch" >&2
+		exit 0
+	fi
+fi
 
 test x"$rotate" = x"" && rotate=false
-test x"$GIT_DIR" = x"" && GIT_DIR=`pwd`
-
+test x"$GIT_DIR" = x"" && GIT_DIR="."
+GIT_DIR="`cd $GIT_DIR && pwd`"
 export GIT_DIR
 
 if test x"$rotate" = x"true" ; then
-	echo "---> Performing pre-deployment checkout in $deploy_to" >&2
+	echo "==> Performing pre-deployment checkout in $deploy_to" >&2
 	rm -rf "$worktree" || exit $?
 	mkdir "$worktree" || exit $?
+	cd "$worktree" || exit $?
 	git checkout -f || exit $?
-	echo "---> Updating submodules" >&2
-	git submodule init || exit $?
-	git submodule update || exit $?
+	echo "==> Updating submodules" >&2
+	git submodule update --init || exit $?
 
-	echo "---> Setting up the new release" >&2
+	cd "$deploy_to" || exit $?
+	echo "==> Rotating previous releases" >&2
+	if test -L grandfather ; then
+		target="`readlink grandfather`"
+		echo "==> Removing grandfather version $target" >&2
+		rm -rf "$target"
+	fi
+	rm -f grandfather
+
+	if test -L father ; then
+		target="`readlink father`"
+		echo "==> Revision $target is now grandfather" >&2
+        ln -s "$target" grandfather
+	fi
+	rm -f father
+
+	if test -L son ; then
+		target="`readlink son`"
+		echo "==> Revision $target is now father" >&2
+        ln -s "$target" father
+	fi
+	rm -f son
+
+	echo "==> Revision $newrev is now son" >&2
+	mv worktree "$newrev"
+	worktree="$deploy_to/$newrev"
+	ln -s "$newrev" son
+
+	cd "$deploy_to/$newrev" || exit $?
+
+	echo "==> Setting up the new release $newrev" >&2
 	if test -x "$GIT_DIR/hooks/pre-deploy" ; then
 		( cd "$worktree" && "$GIT_DIR/hooks/pre-deploy" ) || exit $?
 	fi
@@ -98,7 +143,7 @@ if test x"$rotate" = x"true" ; then
 	elif test -r "$worktree/config/appconfig.$application.php" ; then
 		echo "  +> Symbolically linking config/appconfig.$application.php" >&2
 		rm -f "$worktree/config/appconfig.php" || exit $?
-		cd ( "$worktree/config" && ln -s "appconfig.$application.php" appconfig.php ) || exit $?
+		( cd "$worktree/config" && ln -s "appconfig.$application.php" appconfig.php ) || exit $?
 	else
 		echo "$0: warning: $worktree/config/appconfig.$application.php does not exist; cannot create link to appconfig.php" >&2		
 	fi
@@ -110,7 +155,7 @@ if test x"$rotate" = x"true" ; then
 	elif test -r "$worktree/config/config.$instance.php" ; then
 		echo "  +> Symbolically linking config/config.$instance.php" >&2
 		rm -f "$worktree/config/config.php" || exit $?
-		cd ( "$worktree/config" && ln -s "config.$instance.php" config.php ) || exit $?
+		( cd "$worktree/config" && ln -s "config.$instance.php" config.php ) || exit $?
 	else
 		echo "$0: warning: $worktree/config/config.$instance.php does not exist; cannot create link to config.php" >&2		
 	fi
@@ -133,22 +178,14 @@ if test x"$rotate" = x"true" ; then
 		done
 	fi
 	
-	echo "---> Rotating previous releases" >&2
-	rm -rf "$deploy_to/grandfather" || exit $?
-	if test -d "$deploy_to/father" ; then
-		mv "$deploy_to/father" "$deploy_to/grandfather" || exit $?
-	fi
-    echo "---> Deploying the new release to $deploy_to/current" >&2
-    if test -d "$deploy_to/current" ; then
-        mv "$deploy_to/current" "$deploy_to/father" || exit $?
-    fi
-    mv "$worktree" "$deploy_to/current" || exit $?
-	worktree="$deploy_to/current"
+	echo "==> Making $newrev current" || exit $?
+	cd "$deploy_to" || exit $?
+	rm -f current && ln -s "$newrev" "current"
 else
     test -d "$worktree" || mkdir "$worktree" || exit $?
     git checkout -f || exit $?
 	
-    echo "---> Setting up the new release" >&2
+    echo "==> Setting up the new release" >&2
 	if test -x "$GIT_DIR/hooks/pre-deploy" ; then
 		( cd "$worktree" && "$GIT_DIR/hooks/pre-deploy" ) || exit $?
 	fi
@@ -164,8 +201,8 @@ else
 fi
 
 if test -x "$GIT_DIR/hooks/post-deploy" ; then
-	echo "---> Performing post-deploying tasks" >&2
+	echo "==> Performing post-deploying tasks" >&2
 	( cd "$worktree" && "$GIT_DIR/hooks/post-deploy" ) || exit $?	
 fi
 
-echo "---> New release successfully deployed." >&2
+echo "==> New release successfully deployed." >&2
