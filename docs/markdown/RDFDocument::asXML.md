@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('rdf');</code>
+
 <code>public function <b>[[RDFDocument]]::asXML</b>(<b>$leader</b> = null)</code>
 
 ## Parameters

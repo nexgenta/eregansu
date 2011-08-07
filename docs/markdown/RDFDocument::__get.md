@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('rdf');</code>
+
 <code>public function <b>[[RDFDocument]]::__get</b>(<b>$name</b>)</code>
 
 ## Parameters

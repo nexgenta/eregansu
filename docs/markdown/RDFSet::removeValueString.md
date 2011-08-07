@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('rdf');</code>
+
 <code>public function <b>[[RDFSet]]::removeValueString</b>(<b>$string</b>)</code>
 
 ## Parameters

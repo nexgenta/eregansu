@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('rdf');</code>
+
 <code>public function <b>[[RDFInstance]]::asXML</b>(<b>$doc</b>)</code>
 
 ## Parameters

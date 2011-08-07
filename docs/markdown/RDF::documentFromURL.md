@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('rdf');</code>
+
 <code>public static function <b>[[RDF]]::documentFromURL</b>(<b>$location</b>)</code>
 
 ## Parameters

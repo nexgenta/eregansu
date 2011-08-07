@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('rdf');</code>
+
 <code>public function <b>[[RDFDocument]]::replace</b>(<b>$graph</b>, <b>$addIfNotFound</b> = true)</code>
 
 ## Parameters

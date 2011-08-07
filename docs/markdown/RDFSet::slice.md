@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('rdf');</code>
+
 <code>public function <b>[[RDFSet]]::slice</b>(<b>$start</b>, <b>$count</b>)</code>
 
 ## Parameters

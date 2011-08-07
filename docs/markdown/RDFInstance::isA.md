@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('rdf');</code>
+
 <code>public function <b>[[RDFInstance]]::isA</b>(<b>$type</b>)</code>
 
 ## Parameters

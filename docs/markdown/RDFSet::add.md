@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('rdf');</code>
+
 <code>public function <b>[[RDFSet]]::add</b>(<b>$property</b>)</code>
 
 ## Parameters

@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('rdf');</code>
+
 <code>public function <b>[[RDFInstance]]::merge</b>(<b>$source</b>, <b>$doc</b> = null)</code>
 
 ## Parameters

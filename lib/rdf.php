@@ -15,10 +15,18 @@
  *  limitations under the License.
  */
 
+/**
+ * @year 2010-2011
+ * @include uses('rdf');
+ */
+
 require_once(dirname(__FILE__) . '/date.php');
 require_once(dirname(__FILE__) . '/xmlns.php');
 require_once(dirname(__FILE__) . '/url.php');
 
+/**
+ * Utility methods for instantiating RDF documents.
+ */
 abstract class RDF extends XMLNS
 {
 	/* Registered ontology handlers */
@@ -37,7 +45,18 @@ abstract class RDF extends XMLNS
 	 */
 	public static $uriPredicates; 
 
-	/* Create a new RDFDocument given an RDF/XML DOMElement */
+	/**
+	 * Create a new \class{RDFDocument} given an RDF/XML \class{DOMElement}.
+	 *
+	 * Construct a new \class{RDFDocument} given the root element of an RDF/XML
+	 * document, such as that returned by \f{dom_import_simplexml}().
+	 *
+	 * @type RDFDocument
+	 * @param[in] DOMElement $dom The root element of the RDF/XML document
+	 * @param[in,optional] string $location The canonical source URL of the
+	 *   document.
+	 * @return On success, returns a new \class{RDFDocument} instance.
+	 */
 	public static function documentFromDOM($dom, $location = null)
 	{
 		$doc = new RDFDocument();
@@ -46,7 +65,9 @@ abstract class RDF extends XMLNS
 		return $doc;
 	}
 
-	/* Create a new set of triples from an RDF/XML DOMElement */
+	/**
+	 * Create a new set of triples from an RDF/XML DOMElement
+	 */
 	public static function tripleSetFromDOM($dom, $location = null)
 	{
 		$set = new RDFTripleSet();
@@ -55,10 +76,23 @@ abstract class RDF extends XMLNS
 		return $set;
 	}
 	
-	/* Create a new RDFDocument given a string containing an RDF/XML document */
-	public static function documentFromXMLString($string, $location = null)
+	/**
+	 * Create a new \class{RDFDocument} given a string containin an RDF/XML
+	 * document.
+	 *
+	 * Parses the RDF/XML contained within \p{$document} and passes the
+	 * resulting DOM tree to \m{documentFromDOM}, returning the resulting
+	 * \class{RDFDocument}.
+	 *
+	 * @type RDFDocument
+	 * @param[in] string $document The string containing the RDF/XML document.
+	 * @param[in,optional] string $location The canonical source URL of the
+	 *   document.
+	 * @return On success, returns a new \class{RDFDocument} instance.
+	 */
+	public static function documentFromXMLString($document, $location = null)
 	{
-		$xml = simplexml_load_string($string);
+		$xml = simplexml_load_string($document);
 		if(!is_object($xml))
 		{
 			return null;

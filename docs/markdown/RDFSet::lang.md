@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('rdf');</code>
+
 <code>public function <b>[[RDFSet]]::lang</b>(<b>$langs</b> = null, <b>$fallbackFirst</b> = false)</code>
 
 ## Parameters

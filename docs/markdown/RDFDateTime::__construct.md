@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('rdf');</code>
+
 <code>public function <b>[[RDFDateTime]]::__construct</b>(<b>$when</b> = null)</code>
 
 ## Parameters

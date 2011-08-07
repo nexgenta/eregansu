@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('rdf');</code>
+
 <code>public function <b>[[RDFInstance]]::first</b>(<b>$key</b>)</code>
 
 ## Parameters

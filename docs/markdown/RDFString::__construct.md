@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('rdf');</code>
+
 <code>public function <b>[[RDFString]]::__construct</b>(<b>$value</b>, <b>$lang</b> = null)</code>
 
 ## Parameters

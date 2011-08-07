@@ -52,7 +52,7 @@ themselves.
 * `[[MIME]]`: The `MIME` class provides facilities for mapping file extensions to
 MIME types and vice versa and obtaining human-readable descriptions
 from MIME types.
-* `[[RDF]]`
+* `[[RDF]]`: Utility methods for instantiating RDF documents.
 * `[[RDFDocument]]`: An RDF document
 * `[[RDFSet]]`
 * `[[RDFTripleSet]]`
@@ -86,5 +86,5 @@ from MIME types.
 * `[[URL]]`
 * `[[UUID]]`: Abstract class containing UUID manipulation facilities.
 * `[[XMLParser]]`
-* `[[XMLNS]]`
+* `[[XMLNS]]`: Placeholder class for XML namespace constants.
 

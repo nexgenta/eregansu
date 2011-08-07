@@ -21,7 +21,7 @@ occurs.
 * `[[Identity]]`: Identity management.
 * `[[IdentityFile]]`: Support for static identity data in an XML file.
 * `[[IdentityDirectory]]`: Identity/authorisation database using an LDAP directory server.
-* `[[Model]]`: Base class for data models
+* `[[Model]]`: Base class for data models.
 * `[[Module]]`
 * `[[OpenIDAuth]]`
 * `[[Page]]`: Templated web page generation.

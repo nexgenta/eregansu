@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('rdf');</code>
+
 <code>public function <b>[[RDFTripleSet]]::subject</b>(<b>$uri</b>)</code>
 
 ## Parameters

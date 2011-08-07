@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('rdf');</code>
+
 <code>public function <b>[[RDFDocument]]::namespacedName</b>(<b>$qname</b>, <b>$generate</b> = true)</code>
 
 ## Parameters

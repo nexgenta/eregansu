@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('rdf');</code>
+
 <code>public static function <b>[[RDFComplexLiteral]]::literal</b>(<b>$type</b> = null, <b>$value</b> = null)</code>
 
 ## Parameters

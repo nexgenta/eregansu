@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('rdf');</code>
+
 <code>public function <b>[[RDFSet]]::__construct</b>(<b>$values</b> = null)</code>
 
 ## Parameters

@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('rdf');</code>
+
 <code>public function <b>[[RDFInstance]]::asJSONLD</b>(<b>$doc</b>)</code>
 
 ## Parameters

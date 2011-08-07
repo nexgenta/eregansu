@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('rdf');</code>
+
 <code>public function <b>[[RDFDocument]]::offsetSet</b>(<b>$key</b>, <b>$what</b>)</code>
 
 ## Parameters

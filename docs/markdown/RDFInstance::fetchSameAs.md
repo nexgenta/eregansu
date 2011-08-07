@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('rdf');</code>
+
 <code>public function <b>[[RDFInstance]]::fetchSameAs</b>(<b>$doc</b> = null, <b>$useDoc</b> = true)</code>
 
 ## Parameters

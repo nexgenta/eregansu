@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('rdf');</code>
+
 <code>public function <b>[[RDFDocument]]::__construct</b>(<b>$fileURI</b> = null, <b>$primaryTopic</b> = null)</code>
 
 ## Parameters

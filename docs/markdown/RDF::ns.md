@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('rdf');</code>
+
 <code>public static function <b>[[RDF]]::ns</b>(<b>$uri</b> = null, <b>$suggestedPrefix</b> = null, <b>$overwrite</b> = false)</code>
 
 ## Parameters

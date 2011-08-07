@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('rdf');</code>
+
 <code>public function <b>[[RDFDocument]]::add</b>(<b>$subject</b>, <b>$pos</b> = null)</code>
 
 ## Parameters

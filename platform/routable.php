@@ -89,6 +89,11 @@ abstract class Loader
 
 /**
  * Base class for all Eregansu-provided routable instances.
+ *
+ * The \class{Routable} class is the ultimate ancestor of all classes which
+ * process \class{Request} instances and perform actions based upon their
+ * properties (typically producing some kind of output). The \class{Routable}
+ * class implements the [[IRequestProcessor]] interface.
  */
 class Routable implements IRequestProcessor
 {
@@ -98,6 +103,11 @@ class Routable implements IRequestProcessor
 	protected $crumbName = null;
 	protected $crumbClass = null;
 	
+	/**
+	 * Initialise a \class{Routable} instance.
+	 *
+	 * Constructs an instance of [[Routable]]. If the protected property [[Routable::$modelClass]] has been set, then the class named by that property’s `[[getInstance|Model::getInstance]]()` method will be invoked and its return value will be set as the protected property [[Routable::$model]]. If [[Routable::$modelArgs]] is set, it will be passed as the first parameter in the call to `[[getInstance|Model::getInstance]]()`.
+	 */
 	public function __construct()
 	{
 		if($this->modelClass)
@@ -533,6 +543,13 @@ class HostnameRouter extends DefaultApp
 
 /**
  * Routable class designed to support presenting views of data objects.
+ *
+ * The \class{Proxy} class is a descendant of \class{Router} intended to be
+ * used in situations where objects are retrieved via a \class{Model} and
+ * presented according to the \class{Request}. That is, conceptually,
+ * descendants of this class are responsible for proxying objects from storage
+ * to presentation. \class{Page} and \class{CommandLine} are notable
+ * descendants of \class{Proxy}.
  */
 class Proxy extends Router
 {

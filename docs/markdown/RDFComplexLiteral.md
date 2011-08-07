@@ -1,5 +1,11 @@
 `RDFComplexLiteral` is a base class.
 
+## Synopsis
+
+```php
+uses('rdf');
+```
+
 ## Public Static Methods
 
 * `[[RDFComplexLiteral::literal]]()`

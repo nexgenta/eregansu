@@ -1,5 +1,11 @@
 `RDFInstance` is a base class.
 
+## Synopsis
+
+```php
+uses('rdf');
+```
+
 ## Public Methods
 
 * `[[RDFInstance::__construct]]()`

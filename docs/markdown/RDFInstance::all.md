@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('rdf');</code>
+
 <code>public function <b>[[RDFInstance]]::all</b>(<b>$key</b>, <b>$nullOnEmpty</b> = false)</code>
 
 ## Parameters

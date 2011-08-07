@@ -2,6 +2,12 @@ An RDF document
 
 `RDFDocument` is a base class.
 
+## Synopsis
+
+```php
+uses('rdf');
+```
+
 ## Public Methods
 
 * `[[RDFDocument::__construct]]()`

@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('rdf');</code>
+
 <code>public function <b>[[RDFInstance]]::fromDOM</b>(<b>$root</b>, <b>$doc</b>)</code>
 
 ## Parameters

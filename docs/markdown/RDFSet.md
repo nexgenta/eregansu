@@ -1,5 +1,11 @@
 `RDFSet` is a base class.
 
+## Synopsis
+
+```php
+uses('rdf');
+```
+
 ## Public Static Methods
 
 * `[[RDFSet::setFromInstances]]()`

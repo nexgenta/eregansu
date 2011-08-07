@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('rdf');</code>
+
 <code>public function <b>[[RDFInstance]]::__construct</b>(<b>$uri</b> = null, <b>$type</b> = null)</code>
 
 ## Parameters

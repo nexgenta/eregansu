@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('rdf');</code>
+
 <code>public function <b>[[RDFInstance]]::dump</b>(<b>$doc</b> = null)</code>
 
 ## Parameters

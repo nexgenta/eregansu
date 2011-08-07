@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('rdf');</code>
+
 <code>public function <b>[[RDFDocument]]::serialise</b>(<b>$type</b>, <b>$returnBuffer</b> = false, <b>$request</b> = null, <b>$sendHeaders</b> = null)</code>
 
 ## Parameters

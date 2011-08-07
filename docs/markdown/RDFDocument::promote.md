@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('rdf');</code>
+
 <code>public function <b>[[RDFDocument]]::promote</b>(<b>$subject</b>)</code>
 
 ## Parameters

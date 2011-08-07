@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('rdf');</code>
+
 <code>public function <b>[[RDFInstance]]::fromTriples</b>(<b>$set</b>)</code>
 
 ## Parameters

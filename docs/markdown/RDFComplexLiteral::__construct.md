@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('rdf');</code>
+
 <code>public function <b>[[RDFComplexLiteral]]::__construct</b>(<b>$type</b> = null, <b>$value</b> = null)</code>
 
 ## Parameters

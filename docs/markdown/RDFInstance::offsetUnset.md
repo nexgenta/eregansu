@@ -1,5 +1,7 @@
 ## Synopsis
 
+<code>uses('rdf');</code>
+
 <code>public function <b>[[RDFInstance]]::offsetUnset</b>(<b>$offset</b>)</code>
 
 ## Parameters

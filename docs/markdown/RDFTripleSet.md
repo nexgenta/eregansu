@@ -1,5 +1,11 @@
 `RDFTripleSet` is a base class.
 
+## Synopsis
+
+```php
+uses('rdf');
+```
+
 ## Public Methods
 
 * `[[RDFTripleSet::fromDOM]]()`
