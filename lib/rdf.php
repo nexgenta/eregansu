@@ -137,22 +137,22 @@ abstract class RDF extends XMLNS
 	}
 
 	/* Construct an RDFDocument from a URL */
-	public static function documentFromURL($location)
+	public static function documentFromURL($location, $curl = null)
 	{
 		$location = strval($location);
 		$ct = null;
-		$doc = self::fetch($location, $ct, 'application/rdf+xml');
+		$doc = self::fetch($location, $ct, 'application/rdf+xml', $curl);
 		if($doc === null)
 		{
 			return null;
 		}
 		if(self::isHTML($doc, $ct))
 		{
-			return self::documentFromHTML($doc, $location);
+			return self::documentFromHTML($doc, $location, $curl);
 		}
 		if(self::isXML($doc, $ct))
 		{
-			return self::documentFromXMLString($doc, $location);
+			return self::documentFromXMLString($doc, $location, $curl);
 		}
 		return null;
 	}
@@ -222,7 +222,7 @@ abstract class RDF extends XMLNS
 	/* Attempt to construct an RDFDocument instance given an HTML document
 	 * (no RDFa parsing -- yet)
 	 */
-	protected static function documentFromHTML($doc, $location)
+	protected static function documentFromHTML($doc, $location, $curl = null)
 	{
 		require_once(dirname(__FILE__) . '/../simplehtmldom/simple_html_dom.php');
 		$html = new simple_html_dom();
@@ -268,7 +268,7 @@ abstract class RDF extends XMLNS
 			}
 			$href .= '.rdf';
 		}
-		$doc = self::fetch($href, $ct, 'application/rdf+xml');
+		$doc = self::fetch($href, $ct, 'application/rdf+xml', $curl);
 		if(self::isXML($doc, $ct))
 		{
 			return self::documentFromXMLString($doc, $href);
@@ -277,7 +277,7 @@ abstract class RDF extends XMLNS
 	}
 	
 	/* Wrapper around Curl to fetch a resource */
-	protected static function fetch($url, &$contentType, $accept = null)
+	protected static function fetch($url, &$contentType, $accept = null, $curl = null)
 	{
 		require_once(dirname(__FILE__) . '/curl.php');
 		$url = strval($url);
@@ -295,14 +295,17 @@ abstract class RDF extends XMLNS
 		{
 			$url = substr($url, 0, $p);
 		}
-		if(defined('CACHE_DIR'))
+		if($curl === null)
 		{
 			$curl = new CurlCache($url);
+			$curl->followLocation = true;
+			$curl->autoReferrer = true;
+			$curl->unrestrictedAuth = true;
+			$curl->httpAuth = Curl::AUTH_ANYSAFE;
 		}
-		else
-		{
-			$curl = new Curl($url);
-		}
+		$curl->returnTransfer = true;
+		$curl->fetchHeaders = false;
+		$headers = $curl->headers;
 		if(!is_array($accept))
 		{
 			if(strlen($accept))
@@ -315,14 +318,12 @@ abstract class RDF extends XMLNS
 			}
 		}
 		$accept[] = '*/*';
-		$curl->returnTransfer = true;
-		$curl->followLocation = true;
-		$curl->autoReferrer = true;
-		$curl->unrestrictedAuth = true;
-		$curl->headers = array('Accept: ' . implode(',', $accept));
-		$curl->httpAuth = Curl::AUTH_ANYSAFE;
+		$h = $headers;
+		$h[] = array('Accept: ' . implode(',', $accept));
+		$curl->headers = $h;
 		$buf = $curl->exec();
 		$info = $curl->info;
+		$curl->headers = $headers;
 		if(intval($info['http_code']) > 399)
 		{
 			echo "RDF::fetch(): HTTP status " . $info['http_code'] . "\n";
