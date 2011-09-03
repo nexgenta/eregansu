@@ -112,6 +112,7 @@ if(function_exists('curl_init'))
 			'unrestrictedAuth' => CURLOPT_UNRESTRICTED_AUTH,
 			'upload' => CURLOPT_UPLOAD,
 			'verbose' => CURLOPT_VERBOSE,
+			'trackRequestString' => CURLINFO_HEADER_OUT,
 		);
 		
 		protected static $intProps = array(
@@ -185,7 +186,9 @@ if(function_exists('curl_init'))
 		
 		protected $handle;
 		protected $options = array();
-		
+
+		public $headers;
+
 		public static function version()
 		{
 			return curl_version();
@@ -206,6 +209,7 @@ if(function_exists('curl_init'))
 			{
 				$this->__set('verbose', true);
 			}
+			$this->headers = new CurlHeaders();
 		}
 		
 		public function close()
@@ -231,7 +235,7 @@ if(function_exists('curl_init'))
 			return $string;
 		}
 					
-		public function exec()
+		public function exec($_applyHeaders_internal = true)
 		{
 			if(!$this->handle)
 			{
@@ -243,6 +247,21 @@ if(function_exists('curl_init'))
 				if(null !== ($auth = $this->authDataForURL($this->options['url'])))
 				{
 					$this->__set('authData', $auth);
+				}
+			}
+			if($_applyHeaders_internal)
+			{
+				if(is_object($this->headers))
+				{
+					$this->headers->apply($this->handle);
+				}
+				else if(is_array($this->headers))
+				{
+					curl_setopt($this->handle, CURLOPT_HTTPHEADER, $this->headers);
+				}
+				else if($this->headers !== null)
+				{
+					trigger_error('Curl::exec() - $this->headers is non-null but is not an array or a CurlHeaders instance', E_USER_NOTICE);
 				}
 			}
 			return curl_exec($this->handle);
@@ -271,6 +290,10 @@ if(function_exists('curl_init'))
 			{
 				return curl_getinfo($this->handle);
 			}
+			if($name == 'headers')
+			{
+				return $this->headers;
+			}
 			if(isset($this->options[$name]))
 			{
 				return $this->options[$name];
@@ -289,6 +312,10 @@ if(function_exists('curl_init'))
 			{
 				trigger_error('Curl - cannot set information for a request which has been closed', E_USER_NOTICE);
 				return null;
+			}
+			if($name == 'headers')
+			{
+				$this->headers = $value;
 			}
 			/* Deal with mutually-exclusive options */
 			if($name == 'httpGET' || $name == 'httpPOST' || $name == 'httpPUT' || $name == 'customRequest')
@@ -328,7 +355,7 @@ if(function_exists('curl_init'))
 		public $cacheErrors = false;
 		protected $cachedInfo = null;
 
-		public function exec()
+		public function exec($_applyHeaders_internal = true)
 		{
 			$this->cachedInfo = null;
 			$fetch = true;
@@ -337,6 +364,21 @@ if(function_exists('curl_init'))
 			$time = $this->cacheTime;
 			$cacheFile = null;
 			$info = null;
+			if($_applyHeaders_internal)
+			{
+				if(is_object($this->headers))
+				{
+					$this->headers->apply($this->handle);
+				}
+				else if(is_array($this->headers))
+				{
+					curl_setopt($this->handle, CURLOPT_HTTPHEADER, $this->headers);
+				}
+				else if($this->headers !== null)
+				{
+					trigger_error('Curl::exec() - $this->headers is non-null but is not an array or a CurlHeaders instance', E_USER_NOTICE);
+				}
+			}
 			if(!strlen($dir))
 			{
 				if(defined('CACHE_DIR'))
@@ -400,7 +442,7 @@ if(function_exists('curl_init'))
 			}
 			if($fetch)
 			{
-				$buf = parent::exec();
+				$buf = parent::exec(false);
 				$info = curl_getinfo($this->handle);
 				if($store && ($buf !== false || $this->cacheErrors))
 				{
@@ -436,5 +478,111 @@ if(function_exists('curl_init'))
 			return parent::__get($name);
 		}
 
+	}
+}
+
+/*
+ * The internal $headers array looks like this:
+ *
+ * $headers['content-type']['@name'] = 'Content-type';
+ * $headers['content-type'][0] = 'text/plain; charset=UTF-8';
+ * ...
+ *
+ * Note that the value of the @name property is the last name used in a
+ * call to CurlHeaders::offsetSet()
+ */
+ 
+class CurlHeaders implements ArrayAccess
+{
+	protected $headers = array();
+
+	public function apply(&$handle)
+	{
+		curl_setopt($handle, CURLOPT_HTTPHEADER, $this->asList());
+	}
+
+	public function __toString()
+	{
+		return implode("\r\n", $this->list());
+	}
+
+	public function asList()
+	{
+		$list = array();
+		
+		foreach($this->headers as $values)
+		{
+			$name = $values['@name'];
+			foreach($values as $k => $v)
+			{
+				if($k === '@name')
+				{
+					continue;
+				}
+				$list[] = $name . ': ' . $v;
+			}
+		}
+		return $list;
+	}
+
+	/* $inst[] = 'Content-type: text/plain';
+	 * $inst['Content-type'] = 'text/plain';
+	 * 
+	 * The former always appends, the latter always overwrites. The
+	 * latter can accept an array of values.
+	 *
+	 * Keys are case-insensitive. Trailing whitespace will be removed.
+	 */
+	public function offsetSet($name, $value)
+	{
+		if($name === null)
+		{
+			$s = explode(':', $value, 2);
+			if(!isset($s[1]))
+			{
+				trigger_error('Malformed header (' . $value . ') in CurlHeaders::offsetSet()', E_USER_WARNING);
+				return;
+			}
+			$key = strtolower($s[0]);
+			$value = $s[1];
+		}
+		$key = strtolower($name);
+		$this->headers[$key]['@name'] = $name;
+		$this->headers[$key][] = trim($value);
+	}
+
+	/* Note that this function returns an array of values if more than one
+	 * header is set for the supplied key.
+	 */
+	public function offsetGet($name)
+	{
+		$key = strtolower($name);
+		if(!isset($this->headers[$key]) || count($this->headers[$key]) < 2)
+		{
+			return null;
+		}
+		$entries = $this->headers[$key];
+		unset($entries['@name']);
+		if(count($entries) == 1)
+		{
+			return $entries[0];
+		}
+		return $entries;
+	}
+	
+	public function offsetUnset($name)
+	{
+		$key = strtolower($name);
+		unset($this->headers[$key]);
+	}
+
+	public function offsetExists($name)
+	{
+		$key = strtolower($name);
+		if(isset($this->headers[$key]) && count($this->headers[$key]) > 1)
+		{
+			return true;
+		}
+		return false;
 	}
 }
