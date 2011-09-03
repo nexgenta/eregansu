@@ -279,7 +279,13 @@ class XapianIndexer extends SearchIndexer
 		$this->db[0] = null;
 		XapianSearch::chmod($this->path);
 	}
-
+	
+	public function deleteDocument($identifier)
+	{
+		$this->begin();
+		$this->db[0]->delete_document('Q' . $identifier);		
+	}
+   
 	public function indexDocument($identifier, $fullText, $attributes = null)
 	{
 		$this->begin();
