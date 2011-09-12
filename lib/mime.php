@@ -152,7 +152,8 @@ abstract class MIME
 		'json' => 'application/json',
 		'rdfjson' => 'application/x-rdf+json',
 		'yaml' => 'application/x-yaml',
-		'mp4' => 'application/mp4',
+		'wadl' => 'application/vnd.sun.wadl+xml',
+
 
 		'gif' => 'image/gif',
 		'jpg' => 'image/jpeg',
@@ -164,6 +165,8 @@ abstract class MIME
 		'j2k' => 'image/jp2',
 		'jpx' => 'image/jpx',
 		'jpm' => 'image/jpm',
+
+		'mp4' => 'application/mp4',
 
 		'm4v' => 'video/mp4',
 
