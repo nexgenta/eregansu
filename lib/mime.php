@@ -150,11 +150,26 @@ abstract class MIME
 		'rdf' => 'application/rdf+xml',
 		'atom' => 'application/atom+xml',
 		'json' => 'application/json',
-		'rdfjson' => 'application/x-rdf+json',
+		'jsonld' => 'application/ld+json',
+		'rdfjson' => 'application/rdf+json',
+		'rj' => 'application/rdf+json',
 		'yaml' => 'application/x-yaml',
 		'wadl' => 'application/vnd.sun.wadl+xml',
-
-
+		'ctv' => 'application/vnd.ctv.xhtml+xml',
+		'hbbtv' => 'application/vnd.hbbtv.xhtml+xml',
+		'pem' => 'application/x-pem-file',
+		'pfx' => 'application/x-pkcs12',
+		'p12' => 'application/x-pkcs12',
+		'spc' => 'application/x-pkcs7-certificates',
+		'p7b' => 'application/x-pkcs7-certificates',
+		'p7r' => 'application/x-pkcs7-certreqresp',
+		'der' => 'application/x-x509-ca-cert',
+		'crt' => 'application/x-x509-ca-cert',
+		'mp4' => 'application/mp4',
+		'pgp' => 'application/pgp-encrypted',
+		'asc' => 'application/pgp-signature',
+		'sig' => 'application/pgp-signature',
+		
 		'gif' => 'image/gif',
 		'jpg' => 'image/jpeg',
 		'jpeg' => 'image/jpeg',
@@ -166,15 +181,30 @@ abstract class MIME
 		'jpx' => 'image/jpx',
 		'jpm' => 'image/jpm',
 
-		'mp4' => 'application/mp4',
-
 		'm4v' => 'video/mp4',
-
+		'3gp' => 'video/3gpp',
+		'3gpp2' => 'video/3gpp2',
+		'qt' => 'video/quicktime',
+		'mov' => 'video/quicktime',
+		'ts' => 'video/mp2t',
+		'flv' => 'video/x-flv',
+		'webm' => 'video/webm',
+		'avi' => 'video/x-msvideo',
+		'mpg' => 'video/mpeg',
+		'm1v' => 'video/mpeg',
+		'm2v' => 'video/mpeg',
+		'mpeg' => 'video/mpeg',
+		'ogv' => 'video/ogg',
+		
 		'm4p' => 'audio/mp4',
 		'm4b' => 'audio/mp4',
 		'm4a' => 'audio/mp4',
-
-		'pem' => 'application/x-pem-file',
+		'mp2' => 'audio/mpeg',
+		'm2a' => 'audio/mpeg',
+		'm3a' => 'audio/mpeg',
+		'mp3' => 'audio/mpeg',
+		'oga' => 'audio/ogg',
+		'ogg' => 'audio/ogg',
 	);
 	/**
 	 * @internal
