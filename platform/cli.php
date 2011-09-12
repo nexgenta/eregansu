@@ -104,7 +104,14 @@ class CliSetup extends CommandLine
 		{
 			if(!isset($mod['file']))
 			{
-				$mod['file'] = 'module.php';
+				if(file_exists(MODULES_ROOT . $mod['name'] . '/module.php'))
+				{
+					$mod['file'] = 'module.php';
+				}
+				else
+				{
+					$mod['file'] = 'schema.php';
+				}
 			}
 			if(!isset($mod['class']))
 			{
