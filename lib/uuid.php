@@ -79,21 +79,53 @@ abstract class UUID
 	{
 		switch($kind)
 		{
-			case self::UNKNOWN:
-				return null;
-			case self::NONE:
-				return self::nil();
-			default:
-				/* Generate a random (version 4) UUID if all else fails */
-				return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-					mt_rand(0, 0xffff), mt_rand(0, 0xffff),
-					mt_rand(0, 0xffff),
-					mt_rand(0, 0x0fff) | 0x4000,
-					mt_rand(0, 0x3fff) | 0x8000, 
-					mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff));
+		case self::UNKNOWN:
+			return null;
+		case self::NONE:
+			return self::nil();
+		case self::HASH_MD5:
+		case self::HASH_SHA1:
+			if($namespace !== null && $name !== null)
+			{
+				return self::hash($namespace, $name, $kind);
+			}
+		default:
+			/* Generate a random (version 4) UUID if all else fails */
+			return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+						   mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+						   mt_rand(0, 0xffff),
+						   mt_rand(0, 0x0fff) | 0x4000,
+						   mt_rand(0, 0x3fff) | 0x8000, 
+						   mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff));
 		}		
 	}
 	
+	protected static function hash($namespace, $name, $version)
+	{
+		$namespace = self::canonical($namespace);
+		$nsdata = pack('H*', str_replace('-', '', $namespace));
+		if($version == self::HASH_MD5)
+		{
+			$hash = md5($nsdata . $name, true);
+		}
+		else
+		{
+			$hash = sha1($nsdata . $name, true);
+		}
+		$result = unpack('Ntime_low/ntime_mid/ntime_hi_and_version/Cclock_seq_hi_and_reserved/Cclock_seq_low/C*', $hash);		
+		$result['time_hi_and_version'] &= 0x0FFF;
+		$result['time_hi_and_version'] |= ($version << 12);
+		$result['clock_seq_hi_and_reserved'] &= 0x3F;
+		$result['clock_seq_hi_and_reserved'] |= 0x80;
+		$out = sprintf('%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x',
+					   $result['time_low'], $result['time_mid'],
+					   $result['time_hi_and_version'],
+					   $result['clock_seq_hi_and_reserved'], $result['clock_seq_low'],
+					   $result[1], $result[2], $result[3], $result[4],
+					   $result[5], $result[6]);
+		return $out;
+	}
+
 	/**
 	 * @brief Return the null UUID as a string
 	 * @task Generating UUIDs
