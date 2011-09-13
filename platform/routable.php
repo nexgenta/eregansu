@@ -573,35 +573,31 @@ class Proxy extends Router
 			$this->request = null;
 			$this->sessionObject = null;
 			return false;
-		}		
-		if(!in_array($method, $this->supportedMethods))
-		{
-			$req->method = $method;
-			return $this->error(Error::METHOD_NOT_ALLOWED, $req, null, 'Method ' . $method . ' is not supported by ' . get_class($this));
 		}
-		$type = null;
-		foreach($req->types as $atype)
+		$r = $req->negotiate($this->supportedMethods, $this->supportedTypes);
+		if(is_array($r))
 		{
-			if(in_array($atype, $this->supportedTypes))
+			$type = $r['Content-Type'];
+			foreach($r as $k => $value)
 			{
-				$type = $atype;
-				break;
+				$req->header($k, $value);
 			}
 		}
-		if($type == null)
+		else
 		{
-			if(in_array('*/*', $req->types))
-			{
-				foreach($this->supportedTypes as $atype)
-				{
-					$type = $atype;
-					break;
-				}
-			}
-		}
-		if($type == null)
-		{
-			return $this->error(Error::TYPE_NOT_SUPPORTED, $req, null, "None of the requested MIME types matched the route instance's list of supported types");
+			$desc = array(
+				'Failed to negotiate ' . $method . ' with ' . get_class($this),
+				'Requested content types:',
+				);
+			ob_start();
+			print_r($req->types);
+			$desc[] = ob_get_clean();
+			$desc[] = 'Supported content types:';
+			ob_start();
+			print_r($this->supportedTypes);
+			$desc[] = ob_get_clean();
+			$req->header('Allow', implode(', ', $this->supportedMethods));
+			return $this->error($r, $req, null, implode("\n\n", $desc));
 		}
 		if(self::$willPerformMethod)
 		{
