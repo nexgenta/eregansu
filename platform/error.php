@@ -176,20 +176,31 @@ class Error implements IRequestProcessor
 		$desc = $this->statusDescription($this->status, $req);
 		error_log($this->status . ' [' . $title . '] ' . $req->method . ' ' . $req->uri . ' ' . $this->detail);
 		@header('HTTP/1.0 ' . floor($this->status) . ' ' . $title);
-		if(!isset($req->types) || !in_array('text/html', $req->types) && !in_array('*/*', $req->types))
+		if(!isset($req->types) || (!isset($req->types['text/html']) && !isset($req->types['*'])))
 		{
 			@header('Content-type: text/plain');			
 			echo $title . " (" . $this->status . ")\n\n";
 			/* On the command-line, we don't have to worry quite so much about who
 			 * we the detailed information to.
 			 */
-			if($this->detail)
+			if($req instanceof CLIRequest)
 			{
-				echo $this->detail . "\n";
+				if($this->detail)
+				{
+					echo $this->detail . "\n";
+				}
+				else
+				{
+					echo $desc . "\n";
+				}
 			}
 			else
 			{
-				echo $desc . "\n";
+				echo $desc . "\n\n";
+				if(defined('EREGANSU_DEBUG') && EREGANSU_DEBUG)
+				{
+					echo $this->detail . "\n";
+				}
 			}
 			if(self::$throw) throw new TerminalErrorException($title, $this->status);
 			if($req) $req->abort();
