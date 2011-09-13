@@ -206,12 +206,14 @@ abstract class Request
 		if($ext !== null)
 		{
 			$this->explicitSuffix = '.' . $ext;
-			$this->types = array(MIME::typeForExt($ext));
+			$t = MIME::typeForExt($ext);
+			$this->types = array(
+				$t => array('type' => $t, 'q' => 1),
+				);
 			return;
 		}
 		$accept = explode(',', $acceptHeader);
-		$types = array();
-		$c = 99;
+		$this->types = array();
 		foreach($accept as $h)
 		{
 			$h = explode(';', $h);
@@ -224,11 +226,13 @@ abstract class Request
 					break;
 				}
 			}
-			$types[sprintf('%05.02f-%02d', $q, $c)] = trim($h[0]);
-			$c--;
+			$t = trim($h[0]);
+			if(!strcmp($t, '*/*'))
+			{
+				$t = '*';
+			}
+			$this->types[$t] = array('type' => $t, 'q' => $q);
 		}
-		krsort($types);			
-		$this->types = array_values($types);
 	}
 	
 	/**
@@ -440,38 +444,95 @@ abstract class Request
 		 *    need to support it being an array anyway, as there are additional
 		 *    attributes (e.g., "hide") which would be useful to expose.
 		 */
+
+		/* Transform $contentTypes into a form we can use */
 		if($contentTypes !== null)
 		{
-			/* Negotiate the content-type */
-			$type = null;
-			foreach($this->types as $atype)
+			$match = array();
+			$alternates = array();
+			$uri = $this->uri;
+			while(substr($uri, -1) == '/')
 			{
-				if(in_array($atype, $contentTypes))
-				{
-					$type = $atype;
-					break;
-				}
+				$uri = substr($uri, 0, -1);
 			}
-			if($type == null)
+			if(!strlen($uri))
 			{
-				/* If the client ultimately accepts anything, send back the first
-				 * type.
-				 */
-				if(in_array('*/*', $req->types))
+				$uri = '/index';
+			}
+			foreach($contentTypes as $k => $value)
+			{
+				if(is_array($value))
 				{
-					foreach($contentTypes as $atype)
+					if(!isset($value['q']))
 					{
-						$type = $atype;
-						break;
+						$value['q'] = 1;
+					}
+					if(!isset($value['type']))
+					{
+						$value['type'] = $k;
 					}
 				}
+				else
+				{
+					$value = array('q' => 1, 'type' => $value);
+				}
+				if(empty($value['hide']))
+				{
+					if(isset($value['location']))
+					{
+						$l = $value['location'];
+					}
+					else if(isset($value['ext']))
+					{
+						$l = $uri . '.' . $value['ext'];
+						$value['location'] = $l;
+					}
+					else
+					{
+						$e = MIME::extForType($value['type']);
+						if(strlen($e))
+						{
+							$l = $uri . $e;
+							$value['location'] = $l;
+						}
+						else
+						{
+							continue;
+						}
+					}
+					$alternates[] = '{"' . addslashes($l) . '" ' . floatval($value['q']) . ' {type ' . $value['type'] . '}}';
+				}
+				if(isset($this->types[$value['type']]))
+				{
+					$value['cq'] = $this->types[$value['type']]['q'];
+				}
+				else if(isset($this->types['*']))
+				{
+					$value['cq'] = $this->types['*']['q'];
+				}
+				else
+				{
+					continue;
+				}
+				$key = sprintf('%1.05f-%s', $value['q'] * $value['cq'], $value['type']);
+				$match[$key] = $value;		   
 			}
+			krsort($match);
+			$type = array_shift($match);
 			if($type === null)
 			{
 				return 406;
 			}
-			$headers['Content-type'] = $type;
+			$headers['Content-Type'] = $type['type'];
+			if(isset($type['location']))
+			{
+				$headers['Content-Location'] = $type['location'];
+			}
 			$headers['Vary'] = 'Accept';
+			if(count($alternates))
+			{
+				$headers['Alternates'] = implode(', ', $alternates);
+			}
 		}
 		return $headers;
 	}
