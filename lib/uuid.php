@@ -103,7 +103,7 @@ abstract class UUID
 	protected static function hash($namespace, $name, $version)
 	{
 		$namespace = self::canonical($namespace);
-		$nsdata = pack('H*', str_replace('-', '', $namespace));
+		$nsdata = pack('H*', $namespace);
 		if($version == self::HASH_MD5)
 		{
 			$hash = md5($nsdata . $name, true);
