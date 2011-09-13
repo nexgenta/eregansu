@@ -62,7 +62,7 @@ if(!function_exists('uses'))
 { 
 	function uses()
 	{
-		static $_lib_modules = array('asn1', 'base32', 'cli', 'curl', 'date', 'db', 'dbschema', 'execute', 'form', 'ldap', 'mime', 'rdf', 'redland', 'request', 'session', 'url', 'uuid', 'xmlns', 'csv-import', 'xml', 'rdfxmlstream', 'searchengine');
+		static $_lib_modules = array('asn1', 'base32', 'cli', 'curl', 'date', 'db', 'dbschema', 'execute', 'form', 'ldap', 'mime', 'observer', 'rdf', 'redland', 'request', 'session', 'url', 'uuid', 'xmlns', 'csv-import', 'xml', 'rdfxmlstream', 'searchengine');
 		
 		$_modules = func_get_args();
 		foreach($_modules as $_mod)
@@ -119,6 +119,9 @@ if(!defined('EREGANSU_SKIP_CONFIG'))
 if(!defined('PLUGINS_ROOT')) define('PLUGINS_ROOT', INSTANCE_ROOT . 'plugins/');
 if(!isset($PLUGINS) || !is_array($PLUGINS)) $PLUGINS = array();
 
+/* Ensure plugins can register observers */
+require_once(PLATFORM_LIB . 'observer.php');
+
 foreach($PLUGINS as $pluginName)
 {
 	$pluginBase = basename($pluginName);
@@ -152,14 +155,12 @@ require_once(PLATFORM_PATH . 'error.php');
  */
 
 /**
- * @class PlatformEventSink
  * @internal
- * @brief Class containing callbacks registered by the platform itself
  */
  
-abstract class PlatformEventSink
+abstract class PlatformRequestObserver
 {
-	public static function sessionInitialised($req, $session)
+	public static function sessionInitialised($req, $session, $data = null)
 	{
 		if(isset($session->user))
 		{
@@ -209,9 +210,10 @@ abstract class PlatformEventSink
 	}
 }
 
+Observers::observe('sessionInitialised', array('PlatformRequestObserver', 'sessionInitialised'));
+
 /* Create an instance of the request class */
 $request = Request::requestForSAPI();
-$request->sessionInitialised = array('PlatformEventSink', 'sessionInitialised');
 
 /* Create the initial app instance */
 $app = App::initialApp();
