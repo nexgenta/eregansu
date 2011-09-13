@@ -51,7 +51,7 @@ class CLIRequest extends Request
 	
 	protected function determineTypes($acceptHeader = null)
 	{
-		$this->types = array('text/plain');
+		$this->types = array('text/plain' => array('type' => 'text/plain', 'q' => 1));
 	}
 	
 	/**
