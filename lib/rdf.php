@@ -318,9 +318,7 @@ abstract class RDF extends XMLNS
 			}
 		}
 		$accept[] = '*/*';
-		$h = $headers;
-		$h[] = array('Accept: ' . implode(',', $accept));
-		$curl->headers = $h;
+		$curl->headers['Accept'] = implode(',', $accept);
 		$buf = $curl->exec();
 		$info = $curl->info;
 		$curl->headers = $headers;
@@ -967,6 +965,19 @@ class RDFDocument implements ArrayAccess, ISerialisable
 			}
 		}
 		return $turtle;
+	}
+
+	public function subjects($all = false)
+	{
+		$list = array();
+		foreach($this->subjects as $subj)
+		{
+			if($all || $this->isKeySubject($subj))
+			{
+				$list[] = $subj;
+			}
+		}
+		return $list;
 	}
 
 	protected function isKeySubject($i)
@@ -2104,6 +2115,20 @@ class RDFInstance implements ArrayAccess
 			$subjects[] = $this->localId;
 		}
 		return $subjects;
+	}
+
+	public function hasSubject($uri)
+	{
+		$uri = strval($uri);
+		$list = $this->subjects();
+		foreach($list as $v)
+		{
+			if(!strcmp($v, $uri))
+			{
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/* Implemented in descendent classes; maps RDF predicate/object
