@@ -171,10 +171,6 @@ class RDFStoredObject extends RDFInstance
 		{
 			$className = 'RDFStoredObject';
 		}
-		if(!isset(self::$models[$className]))
-		{
-			self::$models[$className] = $model;
-		}
 		$inst = null;
 		if(isset($data[RDF::rdf.'type']))
 		{
