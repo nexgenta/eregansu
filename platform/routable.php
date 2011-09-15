@@ -691,11 +691,25 @@ class Proxy extends Router
 			return $this->perform_GET_Text();		   
 		case 'text/html':
 			return $this->perform_GET_HTML();
-		}	
+		}
+		/* Try to construct a method name based on the MIME type */
+		$ext = preg_replace('![^A-Z]!', '_', strtoupper(MIME::extForType($type)));
+		if(strlen($ext))
+		{
+			$methodName = 'perform_GET' . $ext;
+			if(method_exists($this, $methodName))
+			{
+				return $this->$methodName();
+			}
+		}		
 		if($this->object instanceof ISerialisable)
 		{
-			$this->object->serialise($type, false, $this->request);
+			if($r == $this->object->serialise($type, false, $this->request))
+			{
+				return $r;
+			}
 		}
+		return $this->error(Error::METHOD_NOT_IMPLEMENTED, $this->request, null, 'No method found to perform a GET for ' . $type);
 	}
 	
 	protected function perform_GET_XML()
