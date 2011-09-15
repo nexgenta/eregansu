@@ -40,14 +40,17 @@ class RDFStore extends Store
 
 	/* Ingest RDF from a URI; returns an instance relating to its primary
 	 * topic.
+	 *
+	 * If $canonicalUri is non-null, then it is the canonical URI of the
+	 * resource, while $uri is a mirror URL.
 	 */
-	public function ingestRDF($uri, $refresh = false, $realUri = null, $firstOnly = false)
+	public function ingestRDF($uri, $refresh = false, $canonicalUri = null, $firstOnly = false, $newUuid = null)
 	{
 		$uuid = null;
 		$primary = null;
-		if(strlen($realUri))
+		if(strlen($canonicalUri))
 		{
-			$primary = $this->objectForIri($realUri, null, null, $firstOnly);
+			$primary = $this->objectForIri($canonicalUri, null, null, $firstOnly);
 		}
 		if($primary == null)
 		{
@@ -63,7 +66,18 @@ class RDFStore extends Store
 		}
 		if($primary === null)
 		{
-			$uuid = UUID::generate();
+			$primary = $newUuid;
+		}
+		if($primary === null)
+		{
+			if(strlen($canonicalUri))
+			{
+				$uuid = UUID::generate(UUID::HASH_SHA1, UUID::URL, $canonicalUri);
+			}
+			else
+			{
+				$uuid = UUID::generate(UUID::HASH_SHA1, UUID::URL, $uri);
+			}
 		}
 		else
 		{
@@ -91,22 +105,49 @@ class RDFStore extends Store
 		{
 			$uris[] = $uri;
 		}
-		if(strlen($realUri) && !in_array($realUri, $uris))
+		if(strlen($canonicalUri) && !in_array($canonicalUri, $uris))
 		{
-			$uris[] = $realUri;
+			$uris[] = $canonicalUri;
 		}
 		$subj = $this->subjectOfObject($primary);
 		if(strlen($subj) && strncmp($subj, '#', 1) && strncmp($subj, '_:', 2) && !in_array($subj, $uris))
 		{
+			
 			$uris[] = strval($subj);
 		}
 		$data = $this->objectAsArray($primary);
 		$data['kind'] = 'graph';
 		$data['iri'] = $uris;
 		$data['uuid'] = $uuid;
+		/* Include all of the entries which reference the primary topic */
+		$others = $doc->subjects();
+		$set = array();
+		foreach($doc->subjects as $subj)
+		{
+			foreach($subj as $prop => $value)
+			{
+				if(strpos($prop, ':') !== false && is_array($value))
+				{
+					foreach($value as $v)
+					{
+						if($v instanceof RDFURI && $primary->hasSubject($v))
+						{
+							echo "Adding " . $subj . "\n";
+							$set[] = $this->objectAsArray($subj);
+							break 2;
+						}
+					}
+				}
+			}
+		}
+		if(count($set))
+		{
+			array_unshift($set, $data);
+			$data = $set;
+		}
 		if(($data = $this->setData($data, null, false)))
 		{
-			return $this->objectForUuid($data['uuid'], null, null, $firstOnly);
+			return $this->objectForUuid($uuid, null, null, $firstOnly);
 		}
 		return null;
 	}
