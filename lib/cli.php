@@ -18,19 +18,21 @@
  */
 
 /**
- * @framework EregansuCore Eregansu Core Library
- * @author Mo McRoberts <mo.mcroberts@nexgenta.com>
+ * @package EregansuLib Eregansu Core Library
  * @year 2010
- * @copyright Mo McRoberts
- * @sourcebase http://github.com/nexgenta/eregansu/blob/master/
- * @since Available in Eregansu 1.0 and later. 
+ * @since Available in Eregansu 1.0 and later.
+ * @task Processing requests
  */
 
 require_once(dirname(__FILE__) . '/request.php');
 
 /**
- * @class CLIRequest
- * @brief Implementation of the Request class for command-line (<code>cli</code>) requests.
+ * Implementation of the Request class for command-line (\x{cli}) requests.
+ *
+ * An instance of \C{CLIRequest} is returned by \m{Request::requestForSAPI}
+ * if the current (or explicitly specified) SAPI is \x{cli}.
+ *
+ * @synopsis $req = Request::requestForSAPI('cli');
  */
 class CLIRequest extends Request
 {
@@ -49,9 +51,16 @@ class CLIRequest extends Request
 	
 	protected function determineTypes($acceptHeader = null)
 	{
-		$this->types = array('text/plain');
+		$this->types = array('text/plain' => array('type' => 'text/plain', 'q' => 1));
 	}
 	
+	/**
+	 * Redirect a request to another location.
+	 *
+	 * Attempting to perform a redirect on the command-line causes the
+	 * process to exit, because a 'redirect' in this context is
+	 * nonsensical.
+	 */
 	public function redirect()
 	{
 		exit();

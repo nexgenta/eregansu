@@ -17,6 +17,11 @@
  *  limitations under the License.
  */
 
+/**
+ * @year 2010-2011
+ * @since Available in Eregansu 1.0 and later. 
+ */
+
 if(!defined('IDENTITY_IRI')) define('IDENTITY_IRI', null);
 
 class IdentityModule extends Module

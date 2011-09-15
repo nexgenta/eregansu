@@ -18,9 +18,13 @@
  */
 
 /**
- * @framework Eregansu
+ * @year 2009-2011
+ * @since Available in Eregansu 1.0 and later. 
  */
 
+/**
+ * Implements the default 'help' command-line route
+ */
 class CliHelp extends CommandLine
 {
 	public function main($args)
@@ -100,7 +104,14 @@ class CliSetup extends CommandLine
 		{
 			if(!isset($mod['file']))
 			{
-				$mod['file'] = 'module.php';
+				if(file_exists(MODULES_ROOT . $mod['name'] . '/module.php'))
+				{
+					$mod['file'] = 'module.php';
+				}
+				else
+				{
+					$mod['file'] = 'schema.php';
+				}
 			}
 			if(!isset($mod['class']))
 			{

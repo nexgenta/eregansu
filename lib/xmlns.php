@@ -1,6 +1,6 @@
 <?php
 
-/* Copyright 2010 Mo McRoberts.
+/* Copyright 2010-2011 Mo McRoberts.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -15,6 +15,9 @@
  *  limitations under the License.
  */
 
+/**
+ * Placeholder class for XML namespace constants.
+ */
 abstract class XMLNS
 {
 	const xml = 'http://www.w3.org/XML/1998/namespace';
@@ -39,26 +42,38 @@ abstract class XMLNS
 	const participation = 'http://purl.org/vocab/participation/schema#';
 	const xhv = 'http://www.w3.org/1999/xhtml/vocab#';
 	const gn = 'http://www.geonames.org/ontology#';
-
-	public static function fqname($namespace, $local = null)
+	const exif = 'http://www.kanzaki.com/ns/exif#';
+	
+	/**
+	 * Generate a fully-qualified URI for a namespace URI and local name.
+	 *
+	 * @type string
+	 * @param[in] mixed $namespaceURI A string containing a namespace URI, or
+	 *   a DOMNode instance whose fully-qualified node name should be returned.
+	 * @param[in,optional] string $local The local part to combine with
+	 *   \p{$namespaceURI}.
+	 * @return On success, returns a fully-qualified URI. 
+	 * @note If \p{$namespaceURI} is a \c{DOMNode}, \p{$local} must be \c{null}. If \p{$namespaceURI} is a string, \p{$local} must not be \c{null}.
+	 */
+	public static function fqname($namespaceURI, $local = null)
 	{
 		if($local == null)
 		{
-			if(is_object($namespace))
+			if(is_object($namespaceURI))
 			{
-				$local = $namespace->localName;
-				$namespace = $namespace->namespaceURI;
+				$local = $namespaceURI->localName;
+				$namespaceURI = $namespaceURI->namespaceURI;
 			}
 			else
 			{
-				return $namespace;
+				return $namespaceURI;
 			}
 		}
-		$t = substr($namespace, -1);
+		$t = substr($namespaceURI, -1);
 		if(!ctype_alnum($t))
 		{
-			return $namespace . $local;
+			return $namespaceURI . $local;
 		}
-		return $namespace . ' ' . $local;
+		return $namespaceURI . ' ' . $local;
 	}
 }

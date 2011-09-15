@@ -1,6 +1,12 @@
+all: tests docs
+
+tests:
+	cd t && $(MAKE)
+
 docs:
-	php -f ../app/NGDocKit/docgen . xml/
+	rm -rf docs
+	php -f gendoc/gendoc.php -- -o docs .
 
 clean:
-	rm -rf xml
-	
+
+.PHONY: all tests docs clean

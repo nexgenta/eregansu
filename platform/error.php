@@ -18,7 +18,9 @@
  */
 
 /**
- * @framework Eregansu
+ * @year 2009-2011
+ * @include uses('error');
+ * @since Available in Eregansu 1.0 and later. 
  */
 
 if(!defined('TEMPLATES_PATH')) define('TEMPLATES_PATH', 'templates');
@@ -111,7 +113,7 @@ class Error implements IRequestProcessor
 		self::FORBIDDEN => 'Access to the object %1$swas denied.',
 		self::OBJECT_NOT_FOUND => 'The requested object %1$scould not be found.',
 		self::NO_OBJECT => 'Your request could not be processed because an object is required, but none was specified.',
-		self::METHOD_NOT_ALLOWED => 'Your request could not be processed because the method %3$s is not supported by this object.',
+		self::METHOD_NOT_ALLOWED => 'Your request could not be processed because the method %2$s is not supported by this object.',
 		self::TYPE_NOT_SUPPORTED => 'Your request could not be processed because the requested type is not supported by the object %1$s',
 		
 		self::UNSUPPORTED_MEDIA_TYPE => 'Your request could not be processed because the submitted type %3$s is not supported by this object',
@@ -172,21 +174,33 @@ class Error implements IRequestProcessor
 	{	
 		$title = $this->statusTitle($this->status);
 		$desc = $this->statusDescription($this->status, $req);
+		error_log($this->status . ' [' . $title . '] ' . $req->method . ' ' . $req->uri . ' ' . $this->detail);
 		@header('HTTP/1.0 ' . floor($this->status) . ' ' . $title);
-		if(!isset($req->types) || !in_array('text/html', $req->types) && !in_array('*/*', $req->types))
+		if(!isset($req->types) || (!isset($req->types['text/html']) && !isset($req->types['*'])))
 		{
 			@header('Content-type: text/plain');			
 			echo $title . " (" . $this->status . ")\n\n";
 			/* On the command-line, we don't have to worry quite so much about who
 			 * we the detailed information to.
 			 */
-			if($this->detail)
+			if($req instanceof CLIRequest)
 			{
-				echo $this->detail . "\n";
+				if($this->detail)
+				{
+					echo $this->detail . "\n";
+				}
+				else
+				{
+					echo $desc . "\n";
+				}
 			}
 			else
 			{
-				echo $desc . "\n";
+				echo $desc . "\n\n";
+				if(defined('EREGANSU_DEBUG') && EREGANSU_DEBUG)
+				{
+					echo $this->detail . "\n";
+				}
 			}
 			if(self::$throw) throw new TerminalErrorException($title, $this->status);
 			if($req) $req->abort();
@@ -211,7 +225,7 @@ class Error implements IRequestProcessor
 		echo '<!DOCTYPE html>' . "\n";
 		echo '<html>' . "\n";
 		echo "\t" . '<head>' . "\n";
-		echo "\t\t" . '<meta http-equiv="Content-type" value="text/html;charset=UTF-8" />' . "\n";
+		echo "\t\t" . '<meta charset="UTF-8">' . "\n";
 		echo "\t\t" . '<title>' . _e($title) . '</title>' . "\n";
 		echo "\t" . '</head>' . "\n";
 		echo "\t" . '<body>' . "\n";

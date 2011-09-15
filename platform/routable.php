@@ -18,7 +18,12 @@
  */
 
 /**
- * @framework Eregansu
+ * @year 2009-2011
+ * @since Available in Eregansu 1.0 and later.
+ */
+
+/**
+ * The interface implemented by all classes which can process requests.
  */
 
 interface IRequestProcessor
@@ -26,8 +31,18 @@ interface IRequestProcessor
 	public function process(Request $req);
 }
 
+/**
+ * Route module loader.
+ */
 abstract class Loader
 {
+	/**
+	 * Attempt to load the module which handles a route.
+	 *
+	 * @type boolean
+	 * @param[in] array $route An associative array containing route information.
+	 * @return \c{true} if the module was loaded successfully, \c{false} otherwise.
+	 */
 	public static function load($route)
 	{
 		global $MODULE_ROOT;
@@ -72,7 +87,14 @@ abstract class Loader
 	}
 }
 
-
+/**
+ * Base class for all Eregansu-provided routable instances.
+ *
+ * The \class{Routable} class is the ultimate ancestor of all classes which
+ * process \class{Request} instances and perform actions based upon their
+ * properties (typically producing some kind of output). The \class{Routable}
+ * class implements the [[IRequestProcessor]] interface.
+ */
 class Routable implements IRequestProcessor
 {
 	protected $model;
@@ -81,6 +103,11 @@ class Routable implements IRequestProcessor
 	protected $crumbName = null;
 	protected $crumbClass = null;
 	
+	/**
+	 * Initialise a \class{Routable} instance.
+	 *
+	 * Constructs an instance of [[Routable]]. If the protected property [[Routable::$modelClass]] has been set, then the class named by that property’s `[[getInstance|Model::getInstance]]()` method will be invoked and its return value will be set as the protected property [[Routable::$model]]. If [[Routable::$modelArgs]] is set, it will be passed as the first parameter in the call to `[[getInstance|Model::getInstance]]()`.
+	 */
 	public function __construct()
 	{
 		if($this->modelClass)
@@ -116,6 +143,9 @@ class Routable implements IRequestProcessor
 	}
 }
 
+/**
+ * Perform a redirect when a route is requested.
+ */
 class Redirect extends Routable
 {
 	protected $target = '';
@@ -159,11 +189,17 @@ class Redirect extends Routable
 	}
 }
 
+/**
+ * A routable class capable of passing a request to child routes.
+ */
 class Router extends Routable
 {
 	protected $sapi = array('http' => array(), 'cli' => array());
 	protected $routes;
-	
+
+	/**
+	 * @internal
+	 */
 	public function __construct()
 	{
 		/* Shorthand, as most stuff is web-based */
@@ -180,7 +216,10 @@ class Router extends Routable
 		}
 		return null;
 	}
-	
+
+	/**
+	 * @internal
+	 */	
 	public function locateRoute(Request $req)
 	{
 		global $MODULE_ROOT;
@@ -316,7 +355,10 @@ class Router extends Routable
 		}
 		return true;
 	}
-	
+
+	/**
+	 * @internal
+	 */	
 	public function routeInstance(Request $req, $route)
 	{
 		global $MODULE_ROOT;
@@ -343,6 +385,9 @@ class Router extends Routable
 	}
 }
 
+/**
+ * A routable class which encapsulates an application.
+ */
 class App extends Router
 {
 	public $parent;
@@ -435,6 +480,9 @@ class App extends Router
 	}
 }
 
+/**
+ * The default application class.
+ */
 class DefaultApp extends App
 {
 	public function __construct()
@@ -469,7 +517,9 @@ class DefaultApp extends App
 	}
 }
 
-/* Route requests to a particular app based upon a domain name */
+/**
+ * Route requests to a particular app based upon a domain name.
+ */
 class HostnameRouter extends DefaultApp
 {
 	public function __construct()
@@ -491,7 +541,16 @@ class HostnameRouter extends DefaultApp
 	}
 }
 
-
+/**
+ * Routable class designed to support presenting views of data objects.
+ *
+ * The \class{Proxy} class is a descendant of \class{Router} intended to be
+ * used in situations where objects are retrieved via a \class{Model} and
+ * presented according to the \class{Request}. That is, conceptually,
+ * descendants of this class are responsible for proxying objects from storage
+ * to presentation. \class{Page} and \class{CommandLine} are notable
+ * descendants of \class{Proxy}.
+ */
 class Proxy extends Router
 {
 	public static $willPerformMethod;
@@ -514,35 +573,31 @@ class Proxy extends Router
 			$this->request = null;
 			$this->sessionObject = null;
 			return false;
-		}		
-		if(!in_array($method, $this->supportedMethods))
-		{
-			$req->method = $method;
-			return $this->error(Error::METHOD_NOT_ALLOWED, $req, null, 'Method ' . $method . ' is not supported by ' . get_class($this));
 		}
-		$type = null;
-		foreach($req->types as $atype)
+		$r = $req->negotiate($this->supportedMethods, $this->supportedTypes);
+		if(is_array($r))
 		{
-			if(in_array($atype, $this->supportedTypes))
+			$type = $r['Content-Type'];
+			foreach($r as $k => $value)
 			{
-				$type = $atype;
-				break;
+				$req->header($k, $value);
 			}
 		}
-		if($type == null)
+		else
 		{
-			if(in_array('*/*', $req->types))
-			{
-				foreach($this->supportedTypes as $atype)
-				{
-					$type = $atype;
-					break;
-				}
-			}
-		}
-		if($type == null)
-		{
-			return $this->error(Error::TYPE_NOT_SUPPORTED, $req, null, "None of the requested MIME types matched the route instance's list of supported types");
+			$desc = array(
+				'Failed to negotiate ' . $method . ' with ' . get_class($this),
+				'Requested content types:',
+				);
+			ob_start();
+			print_r($req->types);
+			$desc[] = ob_get_clean();
+			$desc[] = 'Supported content types:';
+			ob_start();
+			print_r($this->supportedTypes);
+			$desc[] = ob_get_clean();
+			$req->header('Allow', implode(', ', $this->supportedMethods));
+			return $this->error($r, $req, null, implode("\n\n", $desc));
 		}
 		if(self::$willPerformMethod)
 		{
@@ -560,7 +615,7 @@ class Proxy extends Router
 		$methodName = 'perform_' . preg_replace('/[^A-Za-z0-9_]+/', '_', $method);
 		if(!method_exists($this, $methodName))
 		{
-			return $this->error(Error::METHOD_NOT_IMPLEMENTED, $req, null, 'Method ' . $methodName . ' is not implemented by ' . get_class($this));
+			return $this->error(Error::METHOD_NOT_IMPLEMENTED, $this->request, null, 'Method ' . $methodName . ' is not implemented by ' . get_class($this));
 		}
 		$r = $this->$methodName($type);
 		if($r && !in_array($method, $this->noFallThroughMethods))
@@ -599,6 +654,14 @@ class Proxy extends Router
 	{
 		return true;
 	}
+
+	protected function perform_OPTIONS($type)
+	{
+		$this->request->header('Allow', implode(' ', $this->supportedMethods));
+		$this->request->header('Content-length', 0);
+		$this->request->header('Content-type');
+		return false;
+	}
 	
 	protected function perform_HEAD($type)
 	{
@@ -628,11 +691,25 @@ class Proxy extends Router
 			return $this->perform_GET_Text();		   
 		case 'text/html':
 			return $this->perform_GET_HTML();
-		}	
+		}
+		/* Try to construct a method name based on the MIME type */
+		$ext = preg_replace('![^A-Z]!', '_', strtoupper(MIME::extForType($type)));
+		if(strlen($ext))
+		{
+			$methodName = 'perform_GET' . $ext;
+			if(method_exists($this, $methodName))
+			{
+				return $this->$methodName();
+			}
+		}		
 		if($this->object instanceof ISerialisable)
 		{
-			$this->object->serialise($type, false, $this->request);
+			if($r == $this->object->serialise($type, false, $this->request))
+			{
+				return $r;
+			}
 		}
+		return $this->error(Error::METHOD_NOT_IMPLEMENTED, $this->request, null, 'No method found to perform a GET for ' . $type);
 	}
 	
 	protected function perform_GET_XML()
@@ -666,62 +743,24 @@ class Proxy extends Router
 	{
 		if(isset($this->request->query['jsonp']))
 		{
-			$p = true;
 			$prefix = $this->request->query['jsonp'] . '(';
 			$suffix = ')';
 			$type = 'text/javascript';
 		}
 		else if(isset($this->request->query['callback']))
 		{
-			$p = true;
 			$prefix = $this->request->query['callback'] . '(';
 			$suffix = ')';
 			$type = 'text/javascript';
 		}
 		else
 		{
-			$p = false;
 			$prefix = null;
 			$suffix = null;
 			$type = 'application/json';
 		}
 		$this->request->header('Content-type', $type);
-		$this->request->flush();
-		if(strlen($prefix))
-		{
-			echo $prefix;
-		}
-		if(isset($this->object))
-		{
-			if(!($this->object instanceof ISerialisable) || $this->object->serialise('application/json') === false)
-			{					
-				echo json_encode($this->object);
-			}
-		}
-		else if(isset($this->objects))
-		{
-			echo json_encode($this->objects);
-		}
-		if(strlen($suffix))
-		{
-			echo $suffix;
-		}
-	}
-
-	protected function perform_GET_RDFJSON()
-	{
-		$type = 'application/x-rdf+json';
-		$this->request->header('Content-type', 'application/json');
-		$this->request->flush();
-		if(isset($this->request->query['jsonp']))
-		{
-			$p = true;
-			echo $this->request->query['jsonp'] . '(';
-		}
-		else
-		{
-			$p = false;
-		}
+		echo $prefix;
 		if(isset($this->object))
 		{
 			if(!($this->object instanceof ISerialisable) || $this->object->serialise($type) === false)
@@ -733,10 +772,43 @@ class Proxy extends Router
 		{
 			echo json_encode($this->objects);
 		}
-		if($p)
+		echo $suffix;
+	}
+
+	protected function perform_GET_RDFJSON()
+	{
+		if(isset($this->request->query['jsonp']))
 		{
-			echo ')';
+			$type = 'text/javascript';
+			$prefix = $this->request->query['jsonp'] . '(';
+			$suffix = ')';
 		}
+		else if(isset($this->request->query['callback']))
+		{
+			$type = 'text/javascript';
+			$prefix = $this->request->query['callback'] . '(';
+			$suffix = ')';
+		}
+		else
+		{
+			$type = 'application/x-rdf+json';
+			$prefix = null;
+			$suffix = null;
+		}
+		$this->request->header('Content-type', $type);
+		echo $prefix;
+		if(isset($this->object))
+		{
+			if(!($this->object instanceof ISerialisable) || $this->object->serialise($type) === false)
+			{					
+				echo json_encode($this->object);
+			}
+		}
+		else if(isset($this->objects))
+		{
+			echo json_encode($this->objects);
+		}
+		echo $suffix;
 	}
 
 	protected function perform_GET_RDF()
@@ -810,12 +882,17 @@ class Proxy extends Router
 	}
 }
 
-/* A helper command-line-only proxy class */
+/**
+ * Interface implemented by command-line routable classes.
+ */
 interface ICommandLine
 {
 	function main($args);
 }
 
+/**
+ * Encapsulation of a command-line interface handler.
+ */
 abstract class CommandLine extends Proxy implements ICommandLine
 {
 	const no_argument = 0;
@@ -1008,6 +1085,7 @@ abstract class CommandLine extends Proxy implements ICommandLine
 			{
 				if(!empty($this->longopt['has_arg']))
 				{
+					$c = $this->optind;
 					if($c + 1 < count($args))
 					{
 						if(substr($args[$c + 1], 0, 1) != '-')

@@ -17,7 +17,7 @@
  *  limitations under the License.
  */
 
-function parse_datetime($s)
+class EregansuDateTime extends DateTime
 {
 	static $months = array(
 		'jan' => '01',
@@ -34,79 +34,166 @@ function parse_datetime($s)
 		'dec' => '12',
 		);
 
-	$s = trim($s);
-	if(!strlen($s))
+	/* Beefier parsing than with PHP's own DateTime; always uses UTC */
+	public static function parse($s, $tz = null)
 	{
-		return null;
-	}
-	if(strpos($s, ' ') !== false)
-	{
-		return strtotime($s);
-	}
-	/* Day, 99 Mon 9999 00:00[:00] (GMT|UTC|(+|-)00[:]00) */
-	if(preg_match('!^[a-z]+,?\s+(\d{1,2})\s+([a-z]+)\s+(\d{4})\s+(\d{2}:\d{2}(:\d{2})?)(\s.*)?$!i', $s, $matches) && isset($matches[6]) && isset($months[strtolower($matches[2])]))
-	{
-		$tm = strftime($matches[3] . '-' . $months[strtolower($matches[2])] . '-' . $matches[1] . ' ' . $matches[4]);
-		$tz = strtoupper(trim($matches[6]));
-		if(!strlen($tz) || !strcmp($tz, 'UTC') || !strcmp($tz, 'GMT'))
+		static $utc = null;
+		
+		$s = trim(strtolower($s));
+		if(!strlen($s))
 		{
-			return $tm;
+			return;
+		}
+		if($utc === null)
+		{
+			$utc = new DateTimeZone('UTC');
+		}
+		if($tz === null)
+		{
+			$tz = $utc;
+		}
+		/* Standard PHP format */
+		if(preg_match('!^\d{2,4}-\d{1,2}-\d{1,2}(\s+\d{1,2}:\d{1,2}(:\d{1,2})?)?$!', $s))
+		{
+			$dt = new EregansuDateTime($s, $tz);
+			$dt->setTimezone($utc);
+			return $dt;
+		}
+		/* Day, 99 Mon 9999 00:00[:00] (GMT|UTC|(+|-)00[:]00) */
+		if(preg_match('!^[a-z]+,?\s+(\d{1,2})\s+([a-z]+)\s+(\d{4})\s+(\d{2}:\d{2}(:\d{2})?)(\s.*)?$!i', $s, $matches) && isset($matches[6]) && isset(self::$months[$matches[2]]))
+		{
+			$time = explode(':', $matches[4]);
+			if(!isset($time[2]))
+			{
+				$time[2] = '00';
+			}
+			$s = sprintf('%04d-%02d-%02d %02d:%02d:%02d',
+						 $matches[3], self::$months[$matches[2]], $matches[1], $time[0], $time[1], @$time[2]);
+			$dt = new EregansuDateTime($s, $tz);
+			$dt->applyTimezoneString($matches[6]);
+			$dt->setTimezone($utc);
+			return $dt;
+		}
+		if(preg_match('/^\d{4}-\d{2}-\d{2}t\d{2}:\d{2}(:\d{2})?[+-]\d{2}:\d{2}$/', $s))
+		{
+			$date = explode(' ', preg_replace('/^(\d{4}-\d{2}-\d{2})t(\d{2}:\d{2}(:\d{2}?))([+-]\d{2}:\d{2})$/', '\1 \2 \4', $s));
+			$dt = new EregansuDateTime($date[0] . ' ' . $date[1], $tz);
+			$dt->applyTimezoneString($date[2]);
+			$dt->setTimezone($utc);
+			return $dt;
+		}
+		if(preg_match('/^\d{4}-\d{2}-\d{2}t\d{2}:\d{2}(:\d{2})?[+-]\d{4}$/', $s))
+		{
+			$dt = explode(' ', preg_replace('/^(\d{4}-\d{2}-\d{2})t(\d{2}:\d{2}(:\d{2}?))([+-]\d{4})/', '\1 \2 \4', $s));
+			$dt = new EregansuDateTime($date[0] . ' ' . $date[1], $tz);
+			$dt->applyTimezoneString($date[2]);
+			$dt->setTimezone($utc);
+			return $dt;
+		}
+		if(preg_match('/^\d{4}-\d{2}-\d{2}t\d{2}:\d{2}(:\d{2})?z?$/', $s))
+		{
+			$s = preg_replace('/^(\d{4}-\d{2}-\d{2})t(\d{2}:\d{2}(:\d{2})?)z?/', '\1 \2', $s);
+			$dt = new EregansuDateTime($s, $tz);
+			$dt->setTimezone($utc);
+			return $dt;
+		}
+		if(preg_match('/^(\d{4})(\d{2})(\d{2})t(\d{2})(\d{2})(\d{2})?z?$/', $s, $match))
+		{
+			$s = $match[1] . '-' . $match[2] . '-' . $match[3] . ' ' . $match[4] . ':' . $match[5] . ':' . (isset($match[6]) ? $match[6] : '00');
+			$dt = new EregansuDateTime($s, $tz);
+			$dt->setTimezone($utc);
+			return $dt;
+		}
+		if(preg_match('/^\d{4}-\d{2}-\d{2}$/', $s))
+		{
+			$dt = new EregansuDateTime($s . ' 00:00:00', $tz);
+			$dt->setTimezone($utc);
+			return $dt;
+		}
+		if(preg_match('/^\d{4}-\d{2}$/', $s))
+		{
+			$dt = new EregansuDateTime($s . '-01 00:00:00', $tz);
+			$dt->setTimezone($utc);			
+			return $dt;
+		}
+		if(preg_match('/^\d{4}$/', $s))
+		{
+			$dt = new EreganuDateTime($s . '-01-01 00:00:00', $tz);
+			$dt->setTimezone($utc);
+			return $dt;
+		}
+	trigger_error('Unsupported date format while parsing "' . $s . '"', E_USER_NOTICE);
+	}
+
+	protected function applyTimezoneString($tz)
+	{
+		$tz = strtoupper(trim($tz));
+		if(!strlen($tz) || !strcmp($tz, 'utc') || !strcmp($tz, 'gmt'))
+		{
+			return;
+		}
+		if(!isset($tz['hour']) || !isset($tz['minute']))
+		{
+			return;
 		}
 		if(strpos($tz, ':') !== false)
 		{
 			$hm = sscanf($tz, '%d:%d');
-			$hm[1] = ($hm[0] < 0 ? $hm[1] * -1 : $hm[1]);
-			$tm -= ($hm[0] * 3600) + ($hm[1] * 60);
 		}
 		else
 		{
-			$hm = array(intval(substr($dt[2], 0, 3)), intval(substr($dt[2], 3)));
-			$hm[1] = ($hm[0] < 0 ? $hm[1] * -1 : $hm[1]);
-			$tm -= ($hm[0] * 3600) + ($hm[1] * 60);
+			$hm = array(intval(substr($tz, 0, 3)), intval(substr($tz, 3)));
 		}
-		return $tm;
+		if(empty($hm[0]) && empty($hm[1]))
+		{
+			return;
+		}
+		$sub = true;
+		if(intval($hm[0]) < 0)
+		{
+			$sub = false;
+			$hm[0] = intval($hm[0]) * -1;
+		}
+		$interval = new DateInterval('PT' . $hm[0] . 'H' . $hm[1] . 'M');
+		if($sub)
+		{
+			$this->sub($interval);
+		}
+		else
+		{
+			$this->add($interval);
+		}			
 	}
-	if(preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?[+-]\d{2}:\d{2}$/', $s))
+
+	public function __toString()
 	{
-		$dt = explode(' ', preg_replace('/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}(:\d)?{2})([+-]\d{2}:\d{2})/', '\1 \2 \4', $s));
-		$tm = strtotime($dt[0] . ' ' . $dt[1]);
-		$hm = sscanf($dt[2], '%d:%d');
-		$hm[1] = ($hm[0] < 0 ? $hm[1] * -1 : $hm[1]);
-		$tm -= ($hm[0] * 3600) + ($hm[1] * 60);
-		return $tm;
+		return str_replace('+00:00', 'Z', $this->format(self::RFC3339));
 	}
-	if(preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?[+-]\d{4}$/', $s))
+
+	/* Return YYYY-MM-DD */
+	public function date()
 	{
-		$dt = explode(' ', preg_replace('/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}(:\d{2}))([+-]\d{4})/', '\1 \2 \4', $s));
-		$tm = strtotime($dt[0] . ' ' . $dt[1]);
-		$hm = array(intval(substr($dt[2], 0, 3)), intval(substr($dt[2], 3)));
-		$hm[1] = ($hm[0] < 0 ? $hm[1] * -1 : $hm[1]);
-		$tm -= ($hm[0] * 3600) + ($hm[1] * 60);
-		return $tm;
+		return $this->format('Y-m-d');
 	}
-	if(preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?Z?$/', $s))
+	
+	/* Return HH:MM:SS */
+	public function time()
 	{
-		$s = preg_replace('/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}(:\d{2})?)Z?/', '\1 \2', $s);
-		return strtotime($s);
+		return $this->format('H:i:s');
 	}
-	if(preg_match('/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})?Z?$/', $s, $match))
+}
+
+function parse_datetime($s, $object = false, $tz = null)
+{
+	if(($dt = EregansuDateTime::parse($s, $tz)) === null)
 	{
-		$s = $match[1] . '-' . $match[2] . '-' . $match[3] . ' ' . $match[4] . ':' . $match[5] . ':' . (isset($match[6]) ? $match[6] : '00');
-		return strtotime($s);
+		return null;
 	}
-	if(preg_match('/^\d{4}-\d{2}-\d{2}$/', $s))
+	if($object)
 	{
-		return strtotime($s . ' 00:00:00');
+		return $dt;
 	}
-	if(preg_match('/^\d{4}-\d{2}$/', $s))
-	{
-		return strtotime($s . '-01 00:00:00');
-	}
-	if(preg_match('/^\d{4}$/', $s))
-	{
-		return strtotime($s . '-01-01 00:00:00');
-	}
-	trigger_error('Unsupported date format while parsing "' . $s . '"', E_USER_NOTICE);
+	return $dt->getTimestamp();
 	return null;
 }
 

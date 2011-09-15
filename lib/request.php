@@ -2,7 +2,7 @@
 
 /* Eregansu: Encapsulation of a request
  *
- * Copyright 2009, 2010 Mo McRoberts.
+ * Copyright 2001, 2010 Mo McRoberts.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -18,17 +18,15 @@
  */
  
 /**
- * @framework EregansuCore Eregansu Core Library
- * @author Mo McRoberts <mo.mcroberts@nexgenta.com>
- * @year 2010
- * @copyright Mo McRoberts
+ * @package EregansuLib Eregansu Core Library
+ * @year 2009-2011
  * @include uses('request');
- * @sourcebase http://github.com/nexgenta/eregansu/blob/master/
- * @since Available in Eregansu 1.0 and later. 
+ * @since Available in Eregansu 1.0 and later.
+ * @task Processing requests
  */
 
 /** 
- * @brief Encapsulation of a request from a client.
+ * Encapsulation of a request from a client.
  *
  * The Request class and its descendants represents a single request from a user
  * agent of some kind. The \C{Request} class itself is abstract: descendants of \C{Request}
@@ -39,8 +37,10 @@
  * Upon initialisation of the platform, a \C{Request} class instance is instantiated by
  * calling \m{requestForSAPI} with no arguments, and the resulting instance is stored
  * in the \v{$request} global variable.
+ *
+ * @synopsis $request = Request::requestForSAPI();
  */
-abstract class Request
+abstract class Request implements IObservable
 {
 	public $sapi; /**< The name of the server API (SAPI) */
 	public $data = array(); /**< Application-defined per-request storage */
@@ -86,8 +86,9 @@ abstract class Request
 	 * of the class named by \c{REQUEST_CLASS} will be created instead of the default for the
 	 * current SAPI.
 	 *
+	 * @type Request
 	 * @param[in,optional] string $sapi The name of the SAPI to return an instance for
-	 * @return Request An instance of a request class
+	 * @return An instance of a request class matching the specified or default SAPI.
 	 */
 	public static function requestForSAPI($sapi = null)
 	{
@@ -144,6 +145,7 @@ abstract class Request
 	protected function beginSession()
 	{
 		$this->session = Session::sessionForRequest($this);
+		Observers::invoke('sessionInitialised', $this, $this->session);
 		if($this->sessionInitialised)
 		{
 			call_user_func($this->sessionInitialised, $this, $this->session);
@@ -205,12 +207,14 @@ abstract class Request
 		if($ext !== null)
 		{
 			$this->explicitSuffix = '.' . $ext;
-			$this->types = array(MIME::typeForExt($ext));
+			$t = MIME::typeForExt($ext);
+			$this->types = array(
+				$t => array('type' => $t, 'q' => 1),
+				);
 			return;
 		}
 		$accept = explode(',', $acceptHeader);
-		$types = array();
-		$c = 99;
+		$this->types = array();
 		foreach($accept as $h)
 		{
 			$h = explode(';', $h);
@@ -223,11 +227,13 @@ abstract class Request
 					break;
 				}
 			}
-			$types[sprintf('%05.02f-%02d', $q, $c)] = trim($h[0]);
-			$c--;
+			$t = trim($h[0]);
+			if(!strcmp($t, '*/*'))
+			{
+				$t = '*';
+			}
+			$this->types[$t] = array('type' => $t, 'q' => $q);
 		}
-		krsort($types);			
-		$this->types = array_values($types);
 	}
 	
 	/**
@@ -246,7 +252,8 @@ abstract class Request
 	 * As a result of calling \m{Request::consume}, \P{Request::$pageUri} will be updated
 	 * accordingly.
 	 *
-	 * @return string The first request parameter, or \c{null} if \P{Request::$params} is empty.
+	 * @type string
+	 * @return The first request parameter, or \c{null} if \P{Request::$params} is empty.
 	 */
 	public function consume()
 	{
@@ -266,9 +273,10 @@ abstract class Request
 	}
 
 	/**
-	 * Move the first parameter from the request to the base array.
+	 * Move the first parameter from the request to the base array and return it.
 	 *
-	 * @return string The first request parameter
+	 * @type string
+	 * @return The first request parameter
 	 */
 	public function consumeForApp()
 	{
@@ -373,9 +381,16 @@ abstract class Request
 		flush();
 	}
 	
-	public function header($name, $value, $replace = true)
-	{
-		if($name == 'Status')
+	public function header($name, $value = null, $replace = true)
+	{	   
+		if($value === null)
+		{
+			if(function_exists('header_remove'))
+			{
+				header_remove($name);
+			}
+		}
+		else if($name == 'Status')
 		{
 			header($value);
 		}
@@ -430,38 +445,95 @@ abstract class Request
 		 *    need to support it being an array anyway, as there are additional
 		 *    attributes (e.g., "hide") which would be useful to expose.
 		 */
+
+		/* Transform $contentTypes into a form we can use */
 		if($contentTypes !== null)
 		{
-			/* Negotiate the content-type */
-			$type = null;
-			foreach($this->types as $atype)
+			$match = array();
+			$alternates = array();
+			$uri = $this->uri;
+			while(substr($uri, -1) == '/')
 			{
-				if(in_array($atype, $contentTypes))
-				{
-					$type = $atype;
-					break;
-				}
+				$uri = substr($uri, 0, -1);
 			}
-			if($type == null)
+			if(!strlen($uri))
 			{
-				/* If the client ultimately accepts anything, send back the first
-				 * type.
-				 */
-				if(in_array('*/*', $req->types))
+				$uri = '/index';
+			}
+			foreach($contentTypes as $k => $value)
+			{
+				if(is_array($value))
 				{
-					foreach($contentTypes as $atype)
+					if(!isset($value['q']))
 					{
-						$type = $atype;
-						break;
+						$value['q'] = 1;
+					}
+					if(!isset($value['type']))
+					{
+						$value['type'] = $k;
 					}
 				}
+				else
+				{
+					$value = array('q' => 1, 'type' => $value);
+				}
+				if(empty($value['hide']))
+				{
+					if(isset($value['location']))
+					{
+						$l = $value['location'];
+					}
+					else if(isset($value['ext']))
+					{
+						$l = $uri . '.' . $value['ext'];
+						$value['location'] = $l;
+					}
+					else
+					{
+						$e = MIME::extForType($value['type']);
+						if(strlen($e))
+						{
+							$l = $uri . $e;
+							$value['location'] = $l;
+						}
+						else
+						{
+							continue;
+						}
+					}
+					$alternates[] = '{"' . addslashes($l) . '" ' . floatval($value['q']) . ' {type ' . $value['type'] . '}}';
+				}
+				if(isset($this->types[$value['type']]))
+				{
+					$value['cq'] = $this->types[$value['type']]['q'];
+				}
+				else if(isset($this->types['*']))
+				{
+					$value['cq'] = $this->types['*']['q'];
+				}
+				else
+				{
+					continue;
+				}
+				$key = sprintf('%1.05f-%s', $value['q'] * $value['cq'], $value['type']);
+				$match[$key] = $value;		   
 			}
+			krsort($match);
+			$type = array_shift($match);
 			if($type === null)
 			{
 				return 406;
 			}
-			$headers['Content-type'] = $type;
+			$headers['Content-Type'] = $type['type'];
+			if(isset($type['location']))
+			{
+				$headers['Content-Location'] = $type['location'];
+			}
 			$headers['Vary'] = 'Accept';
+			if(count($alternates))
+			{
+				$headers['Alternates'] = implode(', ', $alternates);
+			}
 		}
 		return $headers;
 	}
@@ -578,10 +650,7 @@ abstract class Request
 }
 
 /**
- * @package EregansuCore
- * @since Eregansu 1.0 or later
- *
- * Implements the Request class for HTTP requests
+ * Encapsulation of an HTTP request.
  */
 class HTTPRequest extends Request
 {

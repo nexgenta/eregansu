@@ -54,8 +54,14 @@ abstract class MIME
 	 */
 	public static function extForType($type)
 	{
-		if(!self::$extMap) self::$extMap = array_flip(self::$map);
-		if(isset(self::$extMap[$type])) return '.' . self::$extMap[$type];
+		if(!self::$typeMap)
+		{
+			foreach(self::$map as $mime => $exts)
+			{
+				self::$typeMap[$mime] = $exts[0];
+			}
+		}
+		if(isset(self::$typeMap[$type])) return '.' . self::$typeMap[$type];
 		return '';
 	}
 	
@@ -76,8 +82,21 @@ abstract class MIME
 	 */
 	public static function typeForExt($ext)
 	{
+		if(!self::$extMap)
+		{
+			foreach(self::$map as $mime => $exts)
+			{
+				foreach($exts as $e)
+				{
+					if(!isset(self::$extMap[$e]))
+					{
+						self::$extMap[$e] = $mime;
+					}
+				}
+			}
+		}
 		while(substr($ext, 0, 1) == '.') $ext = substr($ext, 1);
-		if(isset(self::$map[$ext])) return self::$map[$ext];
+		if(isset(self::$extMap[$ext])) return self::$map[$ext];
 		return null;
 	}
 	
@@ -129,55 +148,75 @@ abstract class MIME
 		return trim($prefix . ' ' . $suffix);
 	}
 	
-	/* Because we use array_flip(), the last entry for a given MIME type
-	 * specifies the preferred extension
-	 */
 	/**
 	 * @internal
 	 */
 	protected static $map = array(
-		'htm' => 'text/html',
-		'mp' => 'text/html', /* .mp => "mobile page", borrowed from BBC */
-		'html' => 'text/html',
-		'txt' => 'text/plain',
-		'text' => 'text/plain',
-		'rtf' => 'text/rtf',
-		'xml' => 'text/xml',
-		'ttl' => 'text/turtle',
+		'text/html' => array('html', 'mp', 'htm'),
+		'text/plain' => array('text', 'txt'),
+		'text/rtf' => array('rtf'),
+		'text/xml' => array('xml'),
+		'text/turtle' => array('ttl'),
 
-		'xhtml' => 'application/xhtml+xml',
-		'rss' => 'application/rss+xml',
-		'rdf' => 'application/rdf+xml',
-		'atom' => 'application/atom+xml',
-		'json' => 'application/json',
-		'rdfjson' => 'application/x-rdf+json',
-		'yaml' => 'application/x-yaml',
-		'mp4' => 'application/mp4',
+		'application/xml' => array('xml'),
+		'application/xhtml+xml' => array('xhtml'),
+		'application/vnd.ctv.xhtml+xml' => array('ctv'),
+		'application/vnd.hbbtv.xhtml+xml' => array('hbbtv'),
+		'application/rss+xml' => array('rss'),
+		'application/rdf+xml' => array('rdf'),
+		'application/atom+xml' => array('atom'),		
+		'application/vnd.sun.wadl+xml' => array('wadl'),
 
-		'gif' => 'image/gif',
-		'jpg' => 'image/jpeg',
-		'jpeg' => 'image/jpeg',
-		'png' => 'image/png',
-		'tif' => 'image/tiff',
-		'tiff' => 'image/tiff',
-		'jp2' => 'image/jp2',
-		'j2k' => 'image/jp2',
-		'jpx' => 'image/jpx',
-		'jpm' => 'image/jpm',
+		'application/json' => array('json'),
+		/* Note that application/x-jsonp is never sent; it's a pseudotype */
+		'application/x-jsonp' => array('jsonp'),
+		'application/ld+json' => array('jsonld'),
+		'application/rdf+json' => array('rj', 'rdfjson'),
+		'application/x-yaml' => array('yaml'),
+		
+		'application/x-pem-file' => array('pem'),
+		'application/x-pkcs12' => array('pfx', 'p12'),
+		'application/x-pkcs7-certificates' => array('p7b', 'spc'),
+		'application/x-x509-ca-cert' => array('crt', 'der'),
 
-		'm4v' => 'video/mp4',
+		'application/mp4' => array('mp4'),
+		'application/pgp-encrypted' => array('pgp'),
+		'application/pgp-signature' => array('sig', 'asc'),
 
-		'm4p' => 'audio/mp4',
-		'm4b' => 'audio/mp4',
-		'm4a' => 'audio/mp4',
-
-		'pem' => 'application/x-pem-file',
+		'image/gif' => array('gif'),
+		'image/jpeg' => array('jpeg', 'jpg'),
+		'image/png' => array('png'),
+		'image/tiff' => array('tiff', 'tif'),
+		'image/jp2' => array('j2k', 'jp2'),
+		'image/jpx' => array('jpx'),
+		'image/jpm' => array('jpm'),
+		
+		'video/mp4' => array('m4v'),
+		'video/3gpp' => array('3gpp', '3gp'),
+		'video/3gpp2' => array('3gpp2'),
+		'video/quicktime' => array('mov', 'qt'),
+		'video/mp2t' => array('ts'),
+		'video/x-flv' => array('flv'),
+		'video/x-msvideo' => array('avi'),
+		'video/x-ms-wmv' => array('wmv'),
+		'video/x-ms-asf' => array('asf'),
+		'video/vnd.ms-asf' => array('asf'),
+		'video/mpeg' => array('mpeg', 'm2v', 'm1v', 'mpg'),
+		'video/ogg' => array('ogv'),
+		
+		'audio/mp4' => array('m4a', 'm4b', 'm4p'),
+		'audio/mpeg' => array('mp3', 'm3a', 'm2a', 'mp2'),
+		'audio/ogg' => array('ogg', 'oga'),
 	);
 	/**
 	 * @internal
 	 */
 	protected static $extMap;
-	
+	/**
+	 * @internal
+	 */
+	protected static $typeMap;
+
 	/**
 	 * @internal
 	 */

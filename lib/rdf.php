@@ -15,10 +15,18 @@
  *  limitations under the License.
  */
 
+/**
+ * @year 2010-2011
+ * @include uses('rdf');
+ */
+
 require_once(dirname(__FILE__) . '/date.php');
 require_once(dirname(__FILE__) . '/xmlns.php');
 require_once(dirname(__FILE__) . '/url.php');
 
+/**
+ * Utility methods for instantiating RDF documents.
+ */
 abstract class RDF extends XMLNS
 {
 	/* Registered ontology handlers */
@@ -37,7 +45,18 @@ abstract class RDF extends XMLNS
 	 */
 	public static $uriPredicates; 
 
-	/* Create a new RDFDocument given an RDF/XML DOMElement */
+	/**
+	 * Create a new \class{RDFDocument} given an RDF/XML \class{DOMElement}.
+	 *
+	 * Construct a new \class{RDFDocument} given the root element of an RDF/XML
+	 * document, such as that returned by \f{dom_import_simplexml}().
+	 *
+	 * @type RDFDocument
+	 * @param[in] DOMElement $dom The root element of the RDF/XML document
+	 * @param[in,optional] string $location The canonical source URL of the
+	 *   document.
+	 * @return On success, returns a new \class{RDFDocument} instance.
+	 */
 	public static function documentFromDOM($dom, $location = null)
 	{
 		$doc = new RDFDocument();
@@ -46,7 +65,9 @@ abstract class RDF extends XMLNS
 		return $doc;
 	}
 
-	/* Create a new set of triples from an RDF/XML DOMElement */
+	/**
+	 * Create a new set of triples from an RDF/XML DOMElement
+	 */
 	public static function tripleSetFromDOM($dom, $location = null)
 	{
 		$set = new RDFTripleSet();
@@ -55,10 +76,23 @@ abstract class RDF extends XMLNS
 		return $set;
 	}
 	
-	/* Create a new RDFDocument given a string containing an RDF/XML document */
-	public static function documentFromXMLString($string, $location = null)
+	/**
+	 * Create a new \class{RDFDocument} given a string containin an RDF/XML
+	 * document.
+	 *
+	 * Parses the RDF/XML contained within \p{$document} and passes the
+	 * resulting DOM tree to \m{documentFromDOM}, returning the resulting
+	 * \class{RDFDocument}.
+	 *
+	 * @type RDFDocument
+	 * @param[in] string $document The string containing the RDF/XML document.
+	 * @param[in,optional] string $location The canonical source URL of the
+	 *   document.
+	 * @return On success, returns a new \class{RDFDocument} instance.
+	 */
+	public static function documentFromXMLString($document, $location = null)
 	{
-		$xml = simplexml_load_string($string);
+		$xml = simplexml_load_string($document);
 		if(!is_object($xml))
 		{
 			return null;
@@ -103,22 +137,22 @@ abstract class RDF extends XMLNS
 	}
 
 	/* Construct an RDFDocument from a URL */
-	public static function documentFromURL($location)
+	public static function documentFromURL($location, $curl = null)
 	{
 		$location = strval($location);
 		$ct = null;
-		$doc = self::fetch($location, $ct, 'application/rdf+xml');
+		$doc = self::fetch($location, $ct, 'application/rdf+xml', $curl);
 		if($doc === null)
 		{
 			return null;
 		}
 		if(self::isHTML($doc, $ct))
 		{
-			return self::documentFromHTML($doc, $location);
+			return self::documentFromHTML($doc, $location, $curl);
 		}
 		if(self::isXML($doc, $ct))
 		{
-			return self::documentFromXMLString($doc, $location);
+			return self::documentFromXMLString($doc, $location, $curl);
 		}
 		return null;
 	}
@@ -188,7 +222,7 @@ abstract class RDF extends XMLNS
 	/* Attempt to construct an RDFDocument instance given an HTML document
 	 * (no RDFa parsing -- yet)
 	 */
-	protected static function documentFromHTML($doc, $location)
+	protected static function documentFromHTML($doc, $location, $curl = null)
 	{
 		require_once(dirname(__FILE__) . '/../simplehtmldom/simple_html_dom.php');
 		$html = new simple_html_dom();
@@ -234,7 +268,7 @@ abstract class RDF extends XMLNS
 			}
 			$href .= '.rdf';
 		}
-		$doc = self::fetch($href, $ct, 'application/rdf+xml');
+		$doc = self::fetch($href, $ct, 'application/rdf+xml', $curl);
 		if(self::isXML($doc, $ct))
 		{
 			return self::documentFromXMLString($doc, $href);
@@ -243,7 +277,7 @@ abstract class RDF extends XMLNS
 	}
 	
 	/* Wrapper around Curl to fetch a resource */
-	protected static function fetch($url, &$contentType, $accept = null)
+	protected static function fetch($url, &$contentType, $accept = null, $curl = null)
 	{
 		require_once(dirname(__FILE__) . '/curl.php');
 		$url = strval($url);
@@ -261,14 +295,17 @@ abstract class RDF extends XMLNS
 		{
 			$url = substr($url, 0, $p);
 		}
-		if(defined('CACHE_DIR'))
+		if($curl === null)
 		{
 			$curl = new CurlCache($url);
+			$curl->followLocation = true;
+			$curl->autoReferrer = true;
+			$curl->unrestrictedAuth = true;
+			$curl->httpAuth = Curl::AUTH_ANYSAFE;
 		}
-		else
-		{
-			$curl = new Curl($url);
-		}
+		$curl->returnTransfer = true;
+		$curl->fetchHeaders = false;
+		$headers = $curl->headers;
 		if(!is_array($accept))
 		{
 			if(strlen($accept))
@@ -281,14 +318,10 @@ abstract class RDF extends XMLNS
 			}
 		}
 		$accept[] = '*/*';
-		$curl->returnTransfer = true;
-		$curl->followLocation = true;
-		$curl->autoReferrer = true;
-		$curl->unrestrictedAuth = true;
-		$curl->headers = array('Accept: ' . implode(',', $accept));
-		$curl->httpAuth = Curl::AUTH_ANYSAFE;
+		$curl->headers['Accept'] = implode(',', $accept);
 		$buf = $curl->exec();
 		$info = $curl->info;
+		$curl->headers = $headers;
 		if(intval($info['http_code']) > 399)
 		{
 			echo "RDF::fetch(): HTTP status " . $info['http_code'] . "\n";
@@ -324,6 +357,7 @@ abstract class RDF extends XMLNS
 			self::$namespaces[RDF::dcmit] = 'dcmit';
 			self::$namespaces[RDF::xsd] = 'xsd';
 			self::$namespaces[RDF::gn] = 'gn';
+			self::$namespaces[RDF::exif] = 'exif';
 		}
 		if(strlen($uri))
 		{
@@ -933,6 +967,19 @@ class RDFDocument implements ArrayAccess, ISerialisable
 		return $turtle;
 	}
 
+	public function subjects($all = false)
+	{
+		$list = array();
+		foreach($this->subjects as $subj)
+		{
+			if($all || $this->isKeySubject($subj))
+			{
+				$list[] = $subj;
+			}
+		}
+		return $list;
+	}
+
 	protected function isKeySubject($i)
 	{
 		if($i instanceof RDFInstance)
@@ -1108,7 +1155,7 @@ class RDFSet implements Countable
 		array_shift($instances);
 		foreach($instances as $list)
 		{
-			if(!is_array($list))
+			if($list instanceof RDFInstance)
 			{
 				$list = array($list);
 			}
@@ -1122,6 +1169,10 @@ class RDFSet implements Countable
 				{
 					throw new Exception('RDFSet::setFromInstances() invoked with a non-object instance');
 				}
+				if(!($instance instanceof RDFInstance))
+				{
+					throw new Exception('RDFSet::setFromInstances() invoked with a non-RDF instance');
+				}		
 				$set->add($instance->all($keys));
 			}
 		}
@@ -1208,15 +1259,12 @@ class RDFSet implements Countable
 			{
 				$l = $val->{RDF::xml . ' lang'}[0];
 			}
+			$val = strval($val);
 			if(!in_array($l, $langs))
 			{
 				$langs[] = $l;
+				$list[$l] = ($asSet ? new RDFString($val, $l) : $val);
 			}
-		}
-		foreach($langs as $l)
-		{
-			$s = $this->lang($l, false);
-			$list[$l] = ($asSet ? new RDFString($s, $l) : $s);
 		}
 		if($asSet)
 		{
@@ -1978,7 +2026,7 @@ class RDFInstance implements ArrayAccess
 	{
 		return $this->lang(
 			array(
-				'http://purl.org/ontology/po/medium',
+				'http://purl.org/ontology/po/medium_synopsis',
 				RDF::rdfs . 'comment',
 				'http://purl.org/ontology/po/short_synopsis',
 				'http://purl.org/ontology/po/long_synopsis',
@@ -2000,7 +2048,7 @@ class RDFInstance implements ArrayAccess
 	{
 		return $this->lang(
 			array(
-				'http://purl.org/ontology/po/medium',
+				'http://purl.org/ontology/po/medium_synopsis',
 				RDF::rdfs . 'comment',
 				), $langs, $fallbackFirst);
 	}
@@ -2067,6 +2115,20 @@ class RDFInstance implements ArrayAccess
 			$subjects[] = $this->localId;
 		}
 		return $subjects;
+	}
+
+	public function hasSubject($uri)
+	{
+		$uri = strval($uri);
+		$list = $this->subjects();
+		foreach($list as $v)
+		{
+			if(!strcmp($v, $uri))
+			{
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/* Implemented in descendent classes; maps RDF predicate/object
@@ -2252,8 +2314,7 @@ class RDFInstance implements ArrayAccess
 			{				
 				if($v instanceof RDFURI)
 				{
-					$vn = $doc->namespacedName($v, false);
-					
+					$vn = $doc->namespacedName($v, false);				
 				}
 				if(is_object($v))
 				{
@@ -2269,7 +2330,10 @@ class RDFInstance implements ArrayAccess
 					{
 						$up[$name] = $kn;
 					}
-					$value = $value['@uri'];
+					if(isset($value['@uri']))
+					{
+						$value = $value['@uri'];
+					}
 				}
 				if(isset($array[$kn]))
 				{

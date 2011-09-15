@@ -3,8 +3,8 @@
   <test>constants.php</test>
   <test>uses.php</test>
   <test>uuid-gen.php</test>
-  <test expect="fail" issue="15">uuid-gen-md5.php</test>
-  <test expect="fail" issue="15">uuid-gen-sha1.php</test>
+  <test>uuid-gen-md5.php</test>
+  <test>uuid-gen-sha1.php</test>
   <test>uuid-nil.php</test>
   <test>uuid-version.php</test>
   <test>error-exception.php</test>

@@ -4,6 +4,19 @@
  * Eregansu installer.
  */
 
-require(dirname(__FILE__) . '/eregansu/platform.php');
+/* If you're using the old-style directory layout, where there's no
+ * "public" subdirectory, you want to have the following:
+ *
+ * require(dirname(__FILE__) . '/eregansu/platform.php');
+ * $app->process($request);
+ *
+ * Otherwise, use the below...
+ */
+
+define('INSTANCE_ROOT', realpath(dirname(__FILE__) . '/..') . '/');
+define('PUBLIC_ROOT', realpath(dirname(__FILE__)) . '/');
+
+require(INSTANCE_ROOT . '/eregansu/platform.php');
 
 $app->process($request);
+

@@ -18,11 +18,16 @@
  */
 
 /**
- * @framework Eregansu
+ * @year 2009
+ * @include uses('auth');
+ * @since Available in Eregansu 1.0 and later. 
  */
 
 if(!defined('DEFAULT_AUTH_SCHEME')) define('DEFAULT_AUTH_SCHEME', 'https');
 
+/**
+ * Interface implemented by authentication engines.
+ */
 interface IAuthEngine
 {
 	public function verifyAuth($request, $scheme, $remainder, $authData, $callbackIRI);
@@ -32,6 +37,12 @@ interface IAuthEngine
 	public function retrieveUserData($scheme, $remainder);	
 }
 
+/**
+ * Exception class whose instances are thrown when an authentication exception
+ * occurs.
+ *
+ * @synopsis throw new AuthError($engine, $message, $reason);
+ */
 class AuthError extends Exception
 {
 	public $reason;
@@ -55,11 +66,19 @@ abstract class Auth implements IAuthEngine
 	protected $id = null;
 	protected $builtinAuthScheme = false;
 	
-	/* Create an instance of an authentication system given an IRI.
-	 * The instance is returned by the call to Auth::authEngineForScheme().
-	 * $iri will be modified to strip the scheme (if supplied), which will be
-	 * stored in $scheme. Thus, upon successful return, a fully-qualified
-	 * IRI can be constructed from $scheme . ':' . $iri
+	/** Create an instance of an authentication system given an IRI.
+	 *
+	 * The instance is returned by the call to \m{Auth::authEngineForScheme}.
+	 * \p{$iri} will be modified to strip the scheme (if supplied), which will
+	 * be stored in \p{$scheme}. Thus, upon successful return, a fully-qualified
+	 * IRI can be constructed from \x{$scheme . ':' . $iri}
+	 *
+	 * @param[in,out] string $iri The IRI to match against
+	 * @param[out] string $scheme The authentication IRI scheme that was
+	 *   determined
+	 * @param[in] string $defaultScheme The default authentication scheme to
+	 *   use if none can be determined from \p{$iri}
+	 * 
 	 */
 	public static function authEngineForIRI(&$iri, &$scheme, $defaultScheme = null)
 	{

@@ -1,32 +1,62 @@
 #! /bin/sh
 
-if test x"$1" = x"" ; then
+verbose=no
+base=""
+link=no
+
+usage()
+{
    echo "Create a rotating deployment destination" >&2
    echo "" >&2
-   echo "Usage: $0 PATH" >&2
+   echo "Usage: $0 [-v] [-l] PATH" >&2
    exit 1
-fi
+}
 
-if test -d "$1" ; then
-   echo "$0: $1: already exists" >&2
+for arg ; do
+	case "$arg" in
+		-v)
+			verbose=yes
+			;;
+		-l)
+			link=yes
+			;;
+		-*)
+			echo "$0: unrecognised option: '$arg'" >&2
+			exit 1
+			;;
+		*)
+			test x"$base" = x"" || usage
+			base="$arg"
+	esac
+done
+
+if test -d "$base" ; then
+   echo "$0: $base: already exists" >&2
    exit 1
 fi
 
 selfdir=`dirname "$0"`
 src=`cd "$selfdir" && pwd`
-base=`cd "$1" && pwd` || exit
 
 mkdir "$base" || exit
+base=`cd "$base" && pwd` || exit
 mkdir "$base/repo.git" || exit
 
+test verbose = yes && echo "$0: Creating repository in $base/repo.git" >&2
 cd "$base/repo.git" || exit
 git init --bare || exit
-git config core.worktree "$base/son"
+git config core.worktree "$base/worktree"
 git config core.bare false
 git config eregansu.rotate true
 git config receive.denycurrentbranch ignore
-cp "$src/post-receive" hooks/post-recieve
-chmod +x hooks/post-receive
+test verbose = yes && echo "$0: Copying post-receive hook from $src" >&2
+rm -f hooks/post-receive
+if test $link = yes ; then
+	ln -s "$src/post-receive" hooks/post-receive
+else
+	cp "$src/post-receive" hooks/post-receive
+	chmod +x hooks/post-receive
+fi
 cat > hooks/pre-deploy <<EOF
 #! /bin/sh
 
@@ -49,3 +79,7 @@ exit 0
 
 EOF
 chmod +x hooks/post-deploy
+host=`hostname`
+short=`echo $host | cut -f1 -d.`
+echo "Your new deployment remote has been configured and can be added using:" >&2
+echo "git remote add $short $LOGNAME@$host:$base/repo.git" >&2

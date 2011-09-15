@@ -16,12 +16,9 @@
  */
 
 /**
- * @framework EregansuCore Eregansu Core Library
- * @author Mo McRoberts <mo.mcroberts@nexgenta.com>
- * @year 2010
- * @copyright Mo McRoberts
- * @include require_once('lib/common.php');
- * @sourcebase http://github.com/nexgenta/eregansu/blob/master/
+ * @package EregansuLib Eregansu Core Library
+ * @year 2009-2011
+ * @include require_once(dirname(__FILE__) . '/../eregansu/lib/common.php');
  * @since Available in Eregansu 1.0 and later. 
  */
 
@@ -48,14 +45,18 @@
  * Core Library may include lib/common.php as part of its initialisation.
  */
 
-/* In a future version, __EREGANSU__ will be defined to a release tag
+/**
+ * Indicates that the Eregansu framework is loaded.
+ *
+ * In a future version, __EREGANSU__ will be defined to a release tag
  * or commit hash, substituted by an installation script. The
  * percent-percent-version-percent-percent comment is a placeholder
  * to indicate which line should be replaced.
  */
 define('__EREGANSU__', 'master'); /* %%version%% */
 
-/* The ISerialisable interface is implemented by classes which can serialise
+/**
+ * The ISerialisable interface is implemented by classes which can serialise
  * themselves.
  */
 interface ISerialisable
@@ -69,14 +70,15 @@ if(defined('EREGANSU_MINIMAL_CORE'))
 }
 
 /**
- * @brief Determine whether an object or array is traversable as an array
+ * Determine whether an object or array is traversable as an array
  *
  * The \f{is_arrayish} function is analogous to PHP’s \f{is_array} function, except
  * that it also returns \c{true} if \p{$var} is an instance of a class implementing
  * the \c{Traversable} interface.
  *
+ * @type bool
  * @param[in] mixed $var A variable to test
- * @return bool \c{true} if \p{$var} can be traversed using \f{foreach}, \c{false} otherwise
+ * @return \c{true} if \p{$var} can be traversed using \f{foreach}, \c{false} otherwise
  */
 function is_arrayish($var)
 {
@@ -84,10 +86,11 @@ function is_arrayish($var)
 }
 
 /**
- * @brief Parse a string and return the boolean value it represents
+ * Parse a string and return the boolean value it represents
  *
+ * @type bool
  * @param[in] string $str a string representation of a boolean value
- * @return bool The boolean value \p{$str} represents
+ * @return The boolean value \p{$str} represents
  */
 function parse_bool($str)
 {
@@ -103,6 +106,7 @@ function parse_bool($str)
  * \f{e} accepts a string and outputs it after ensuring any characters which have special meaning
  * in XML or HTML documents are properly escaped.
  *
+ * @type void
  * @param[in] string $str The string to HTML-escape
  */
 function e($str)
@@ -117,8 +121,9 @@ function e($str)
  * in XML or HTML documents are properly escaped. The resultant string is suitable for inclusion
  * in attribute values or element contents.
  *
+ * @type string
  * @param[in] string $str The string to HTML-escape
- * @return string The escaped version of \p{$str}
+ * @return The escaped version of \p{$str}
  */
  
 function _e($str)
@@ -127,7 +132,9 @@ function _e($str)
 }
 
 /**
- * @brief Write text to the output stream, followed by a newline.
+ * Write text to the output stream, followed by a newline.
+ * @return void
+ * @varargs
  */
 
 function writeLn()
@@ -140,11 +147,12 @@ function writeLn()
 if(!function_exists('uses')) {
 
 	/**
-	 * @brief Include one or more Eregansu modules
+	 * Include one or more Eregansu modules
 	 *
 	 * The \f{uses} function loads one or more Eregansu modules. You can specify as
 	 * many modules as are needed, each as a separate parameter.
 	 *
+	 * @type void
 	 * @param[in] string $module,... The name of a module to require. For example, \l{base32}.
 	 */
 

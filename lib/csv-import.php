@@ -1,8 +1,6 @@
 <?php
 
-/* Eregansu: CSV Import
- *
- * Copyright 2005-2011 Mo McRoberts.
+/* Copyright 2005-2011 Mo McRoberts.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -15,6 +13,22 @@
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
+ */
+
+/**
+ * @package EregansuLib Eregansu Core Library
+ * @year 2005-2011
+ * @include uses('csv-import');
+ * @since Available in Eregansu 1.0 and later.
+ */
+
+/**
+ * Import data from a CSV file
+ *
+ * The \class{CSVImport} class provides the ability to import data from
+ * CSV files.
+ *
+ * @synopsis $importer = new CSVImport('/path/to/file.csv');
  */
 
 class CSVImport
@@ -30,7 +44,15 @@ class CSVImport
 	protected $prevLine = array();
 	protected $prevField = null;
 	protected $prevQ = false;
-	
+
+	/**
+	 * Initialise a \class{CSVImport} instance.
+	 *
+	 * @task Reading CSV files
+	 * @param[in] string $filename The path to the CSV file to read. If
+	 *   \p{$filename} ends in \x{.gz}, the file will be assumed to be
+	 *   gzipped and decompressed automatically as it is read.
+	 */
 	public function __construct($filename)
 	{
 		if(substr($filename, -3) == '.gz')
@@ -48,7 +70,10 @@ class CSVImport
 		}
 		$this->fields = array();
 	}
-	
+
+	/**
+	 * @internal
+	 */
 	public function __destruct()
 	{
 		switch($this->mode)
@@ -60,7 +85,14 @@ class CSVImport
 				fclose($this->file);
 		}
 	}
-	
+
+	/**
+	 * Read the list of field names from a CSV file.
+	 *
+	 * @task Reading CSV files
+	 * @type void
+	 * @param[in,optional] int $skipRows The Number of rows to skip before the header row.
+	 */
 	public function readFields($skipRows = 0)
 	{
 		$this->rewind();
@@ -79,6 +111,13 @@ class CSVImport
 		}
 	}
 
+	/**
+	 * Specify an explicit column-to-field mapping.
+	 *
+	 * @task Reading CSV files
+	 * @type void
+	 * @param[in] array $list An indexed array of field names
+	 */
 	public function setFields($list)
 	{
 		if($this->lowerCaseFields)
@@ -95,6 +134,12 @@ class CSVImport
 		}
 	}
 
+	/**
+	 * Move the file pointer back to the beginning of the file.
+	 *
+	 * @task Reading CSV files
+	 * @type void
+	 */
 	public function rewind()
 	{
 		switch($this->mode)
@@ -107,6 +152,14 @@ class CSVImport
 		}
 	}
 	
+	/**
+	 * Read a row from the CSV file without mapping columns to fields.
+	 *
+	 * @task Reading CSV files
+	 * @type array
+	 * @return An indexed array of values read from the file, or \c{null} if
+	 *   the end of file is reached.
+	 */
 	public function rowFlat()
 	{
 		return $this->getLine();
@@ -200,7 +253,19 @@ class CSVImport
 			}
 		}
 	}
-	
+
+	/**
+	 * Read a row from the CSV file.
+	 *
+	 * If a column-to-field mapping has either been provided or has been
+	 * read from a header row in the source file, the returned array will
+	 * be associative, otherwise it will be numerically-indexed.
+	 *
+	 * @task Reading CSV files
+	 * @type array
+	 * @return An array of values read from the file, or \c{null} if
+	 *   the end of file is reached.
+	 */
 	public function row()
 	{
 		do
