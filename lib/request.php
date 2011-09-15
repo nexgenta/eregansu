@@ -40,7 +40,7 @@
  *
  * @synopsis $request = Request::requestForSAPI();
  */
-abstract class Request
+abstract class Request implements IObservable
 {
 	public $sapi; /**< The name of the server API (SAPI) */
 	public $data = array(); /**< Application-defined per-request storage */
@@ -145,6 +145,7 @@ abstract class Request
 	protected function beginSession()
 	{
 		$this->session = Session::sessionForRequest($this);
+		Observers::invoke('sessionInitialised', $this, $this->session);
 		if($this->sessionInitialised)
 		{
 			call_user_func($this->sessionInitialised, $this, $this->session);
