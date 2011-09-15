@@ -2026,7 +2026,7 @@ class RDFInstance implements ArrayAccess
 	{
 		return $this->lang(
 			array(
-				'http://purl.org/ontology/po/medium',
+				'http://purl.org/ontology/po/medium_synopsis',
 				RDF::rdfs . 'comment',
 				'http://purl.org/ontology/po/short_synopsis',
 				'http://purl.org/ontology/po/long_synopsis',
@@ -2048,7 +2048,7 @@ class RDFInstance implements ArrayAccess
 	{
 		return $this->lang(
 			array(
-				'http://purl.org/ontology/po/medium',
+				'http://purl.org/ontology/po/medium_synopsis',
 				RDF::rdfs . 'comment',
 				), $langs, $fallbackFirst);
 	}
