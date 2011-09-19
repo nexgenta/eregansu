@@ -96,7 +96,7 @@ abstract class MIME
 			}
 		}
 		while(substr($ext, 0, 1) == '.') $ext = substr($ext, 1);
-		if(isset(self::$extMap[$ext])) return self::$map[$ext];
+		if(isset(self::$extMap[$ext])) return self::$extMap[$ext];
 		return null;
 	}
 	
