@@ -132,7 +132,6 @@ class RDFStore extends Store
 					{
 						if($v instanceof RDFURI && $primary->hasSubject($v))
 						{
-							echo "Adding " . $subj . "\n";
 							$set[] = $this->objectAsArray($subj);
 							break 2;
 						}
@@ -288,11 +287,7 @@ class RDFStoredObject extends RDFInstance
 						case 'literal':
 							if(isset($s['lang']) || isset($s['datatype']))
 							{
-								$l = RDFComplexLiteral::literal(isset($s['datatype']) ? $s['datatype'] : null, $s['value']);
-								if(isset($s['lang']))
-								{
-									$l->{RDF::xml . ' lang'}[] = $s['lang'];
-								}
+								$l = RDFComplexLiteral::literal(isset($s['datatype']) ? $s['datatype'] : null, $s['value'], isset($s['lang']) ? $s['lang'] : null);
 								$v[$pk] = $l;
 							}
 							else
