@@ -123,7 +123,7 @@ class URL
 		{
 			return $this->scheme . ':' . $this->path;
 		}
-		return (isset($this->scheme) ? ($this->scheme . '://' . $this->host . (isset($this->port) ? ':' . $this->port : null)) : '') . $this->path . (isset($this->query) ? '?' . $this->query : null) . (isset($this->fragment) ? '#' . $this->fragment : null);
+		return (isset($this->scheme) ? ($this->scheme . '://' . $this->host . (isset($this->port) ? ':' . $this->port : null)) : '') . str_replace("'", '%27', $this->path) . (isset($this->query) ? '?' . $this->query : null) . (isset($this->fragment) ? '#' . $this->fragment : null);
 	}
 
 	public static function register()
@@ -164,11 +164,13 @@ class URL
 	 */
 	public static function parseForOptions($url)
 	{
-		$default = array('scheme' => null, 'host' => null, 'user' => null, 'pass' => null, 'host' => null, 'port' => null, 'path' => null, 'query' => null, 'fragment' => null);
+		static $default = array('scheme' => null, 'host' => null, 'user' => null, 'pass' => null, 'host' => null, 'port' => null, 'path' => null, 'query' => null, 'fragment' => null);
 		if(!($url = self::parse($url)))
 		{
 			return null;
 		}
+		print_r($default);
+		print_r($url);
 		$url = array_merge($default, $url);
 		$url['options'] = array();
 		if(strlen($url['query']))
