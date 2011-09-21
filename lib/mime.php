@@ -157,6 +157,7 @@ abstract class MIME
 		'text/rtf' => array('rtf'),
 		'text/xml' => array('xml'),
 		'text/turtle' => array('ttl'),
+		'text/n3' => array('n3'),
 
 		'application/xml' => array('xml'),
 		'application/xhtml+xml' => array('xhtml'),
