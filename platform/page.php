@@ -51,7 +51,7 @@ class Page extends Proxy
 		return true;
 	}
 	
-	protected function perform_GET_HTML()
+	protected function perform_GET_HTML($type = 'text/html')
 	{
 		$templateName = $this->templateName;
 		if(!strlen($templateName))
