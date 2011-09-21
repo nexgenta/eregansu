@@ -710,6 +710,10 @@ class Store extends Model
 	 */
 	public function uuidForIri($iri)
 	{
+		if(!strncmp($iri, 'urn:uuid:', 9) && ($u = UUID::formatted($iri)) !== null)
+		{
+			return $u;
+		}
 		return $this->db->value('SELECT "uuid" FROM {' . $this->objects_iri . '} WHERE "iri" = ?', $iri);
 	}
 
