@@ -61,8 +61,11 @@ abstract class RDF extends XMLNS
 	{
 		$doc = new RDFDocument();
 		$doc->fileURI = $location;
-		$doc->fromDOM($dom);
-		return $doc;
+		if($doc->parse('application/rdf+xml', $dom))
+		{
+			return $doc;
+		}
+		return null;
 	}
 
 	/**
@@ -92,18 +95,13 @@ abstract class RDF extends XMLNS
 	 */
 	public static function documentFromXMLString($document, $location = null)
 	{
-		$xml = simplexml_load_string($document);
-		if(!is_object($xml))
+		$doc = new RDFDocument();
+		$doc->fileURI = $location;
+		if($doc->parse('application/rdf+xml', $document))
 		{
-			return null;
+			return $doc;
 		}
-		$dom = dom_import_simplexml($xml);
-		if(!is_object($dom))
-		{
-			return null;
-		}
-		$dom->substituteEntities = true;
-		return self::documentFromDOM($dom, $location);
+		return null;
 	}
 
 	/* Create a new RDFTripleSet given a string containing an RDF/XML document */
@@ -607,288 +605,6 @@ class RDFString extends RDFComplexLiteral
 	public function __construct($value, $lang = null, $world = null)
 	{
 		parent::__construct(null, $value, $lang, $world);
-	}
-}
-
-class RDFSet implements Countable
-{
-	protected $values = array();
-	
-	public static function setFromInstances($keys, $instances /* ... */)
-	{
-		$set = new RDFSet();
-		$instances = func_get_args();
-		array_shift($instances);
-		foreach($instances as $list)
-		{
-			if($list instanceof RDFInstance)
-			{
-				$list = array($list);
-			}
-			foreach($list as $instance)
-			{
-				if(is_array($instance) && isset($instance[0]))
-				{
-					$instance = $instance[0];
-				}
-				if(!is_object($instance))
-				{
-					throw new Exception('RDFSet::setFromInstances() invoked with a non-object instance');
-				}
-				if(!($instance instanceof RDFInstance))
-				{
-					throw new Exception('RDFSet::setFromInstances() invoked with a non-RDF instance');
-				}		
-				$set->add($instance->all($keys));
-			}
-		}
-		return $set;
-	}
-	
-	public function __construct($values = null)
-	{
-		if($values === null) return;
-		if(is_array($values))
-		{
-			$this->values = $values;
-		}
-		else
-		{
-			$this->values[] = $values;
-		}
-	}
-
-	/* Return a simple human-readable representation of the property values */
-	public function __toString()
-	{
-		return $this->join(', ');
-	}
-
-	/* Add one or more arrays-of-properties to the set. Call as, e.g.:
-	 *
-	 * $set->add($inst->{RDF::dc.'title'}, $inst->{RDF::rdfs.'label'});
-	 *
-	 * Any of the property arrays passed may already be an RDFSet instance, so that
-	 * you can do:
-	 *
-	 * $foo = $k->all(array(RDF::dc.'title', RDF::rdfs.'label'));
-	 * $set->add($foo); 
-	 */
-	public function add($property)
-	{
-		$props = func_get_args();
-		foreach($props as $list)
-		{
-			if($list instanceof RDFSet)
-			{
-				$list = $list->values;
-			}
-			foreach($list as $value)
-			{
-				$this->values[] = $value;
-			}
-		}
-	}
-
-	/* Remove objects matching the specified string from the set */
-	public function removeValueString($string)
-	{
-		foreach($this->values as $k => $v)
-		{
-			if(!strcmp($string, $v))
-			{
-				unset($this->values[$k]);
-				$this->values = array_values($this->values);
-				return;
-			}
-		}
-	}
-
-	/* Return all of the values as an array */
-	public function values()
-	{
-		return $this->values;
-	}
-
-	/* Return an array containing one value per language */
-	public function valuePerLanguage($asSet = false)
-	{
-		$langs = array();
-		$list = array();
-		foreach($this->values as $val)
-		{
-			if(!($val instanceof RDFComplexLiteral))
-			{
-				$l = '';
-			}
-			else
-			{
-				$l = $val->lang();
-			}
-			$val = strval($val);
-			if(!in_array($l, $langs))
-			{
-				$langs[] = $l;
-				$list[$l] = ($asSet ? new RDFString($val, $l) : $val);
-			}
-		}
-		if($asSet)
-		{
-			return new RDFSet($list);
-		}
-		return $list;
-	}
-	
-	/* Return a slice of the set */
-	public function slice($start, $count)
-	{
-		return new RDFSet(array_slice($this->values, $start, $count));
-	}
-
-	/* Return all of the values as an array of strings */
-	public function strings()
-	{
-		$list = array();
-		foreach($this->values as $v)
-		{
-			$list[] = strval($v);
-		}
-		return $list;
-	}
-
-	/* Return all of the values which are URIs (or instances) as an array
-	 * of RDFURI instances
-	 */
-	public function uris()
-	{
-		$list = array();
-		foreach($this->values as $v)
-		{
-			if($v instanceof RDFURI)
-			{
-				$list[] = $v;
-			}
-			else if($v instanceof RDFInstance)
-			{
-				$list[] = $v->subject();
-			}
-		}
-		return $list;
-	}
-	
-	/* Add the named properties from one or more instances to the set. As with
-	 * RDFInstance::all(), $keys may be an array. Multiple instances may be
-	 * supplied, either as additional arguments, or as array arguments, or
-	 * both.
-	 */
-	public function addInstance($keys, $instance)
-	{
-		$instances = func_get_args();
-		array_shift($instances);
-		foreach($instances as $list)
-		{
-			if(!is_array($list))
-			{
-				$list = array($list);
-			}
-			foreach($list as $instance)
-			{
-				$this->add($instance->all($keys));
-			}
-		}
-	}
-
-	/* Return the first value in the set */
-	public function first()
-	{
-		if(count($this->values))
-		{
-			return $this->values[0];
-		}
-		return null;
-	}
-	
-	/* Return a string joining the values with the given string */
-	public function join($by)
-	{
-		if(count($this->values))
-		{
-			return implode($by, $this->values);
-		}
-		return '';
-	}
-
-	/* Return the number of values held in this set; can be
-	 * called as count($set) instead of $set->count().
-	 */
-	public function count()
-	{
-		return count($this->values);
-	}
-	
-	/* Return the value matching the specified language. If $lang
-	 * is an array, it specifies a list of languages in order of
-	 * preference. if $fallbackFirst is true, return the first
-	 * value instead of null if no language match could be found.
-	 * $langs may be an array of languages, or a comma- or space-
-	 * separated list in a string.
-	 */
-	public function lang($langs = null, $fallbackFirst = false)
-	{
-		if($langs === null)
-		{
-			$langs = RDF::$langs;
-		}
-		if(!is_array($langs))
-		{
-			$langs = explode(',', str_replace(' ', ',', $langs));
-		}
-		foreach($langs as $lang)
-		{
-			$lang = trim($lang);
-			if(!strlen($lang)) continue;
-			foreach($this->values as $value)
-			{
-				if($value instanceof RDFComplexLiteral &&
-				   $value->lang() == $lang)
-				{
-					return strval($value);
-				}
-			}
-		}
-		foreach($this->values as $value)
-		{
-			if(is_string($value) || ($value instanceof RDFComplexLiteral && !strlen($value->lang())))
-			{
-				return strval($value);
-			}
-		}
-		if($fallbackFirst)
-		{
-			foreach($this->values as $value)
-			{
-				return strval($value);
-			}
-		}
-		return null;
-	}
-	
-	/* Return the values as an array of RDF/JSON-structured values */
-	public function asArray()
-	{
-		$list = array();
-		foreach($this->values as $value)
-		{
-			if(is_object($value))
-			{
-				$list[] = $value->asArray();
-			}
-			else
-			{
-				$list[] = array('type' => 'literal', 'value' => $value);
-			}
-		}
-		return $list;
 	}
 }
 
