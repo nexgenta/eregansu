@@ -169,8 +169,6 @@ class URL
 		{
 			return null;
 		}
-		print_r($default);
-		print_r($url);
 		$url = array_merge($default, $url);
 		$url['options'] = array();
 		if(strlen($url['query']))
