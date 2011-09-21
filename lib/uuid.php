@@ -206,6 +206,19 @@ abstract class UUID
 		}
 		return 'urn:uuid:' . substr($uuid, 0, 8) . '-' . substr($uuid, 8, 4) . '-' . substr($uuid, 12, 4) . '-' . substr($uuid, 16, 4) . '-' . substr($uuid, 20, 12);
 	}
+
+	/**
+	 * @brief Format a UUID in the traditional aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee form
+	 * @task Manipulating UUIDs
+	 */
+	public static function formatted($uuid, $prefix = null, $suffix = null)
+	{
+		if(!($uuid = self::canonical($uuid)))
+		{
+			return null;
+		}
+		return $prefix . substr($uuid, 0, 8) . '-' . substr($uuid, 8, 4) . '-' . substr($uuid, 12, 4) . '-' . substr($uuid, 16, 4) . '-' . substr($uuid, 20, 12) . $suffix;
+	}
 	
 	/**
 	 * @brief Parse a string containing a UUID and return an array representing its value.
