@@ -24,7 +24,8 @@ class RDFDocument implements ArrayAccess, ISerialisable
 	public static $parseableTypes = array(
 		'application/rdf+xml',
 		);
-	
+
+	public $rdfInstanceClass = 'RDFInstance';	
 	protected $subjects = array();
 	protected $keySubjects = array();
 	protected $namespaces = array();

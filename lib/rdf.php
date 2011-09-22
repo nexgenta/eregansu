@@ -392,38 +392,72 @@ abstract class RDF extends XMLNS
 
 	public static function instanceForClass($classUri, $lname = null)
 	{
-		if(strlen($lname))
+		if(is_array($classUri))
 		{
-			$ns = strval($classUri);
+			foreach($classUri as $uri)
+			{
+				$qname = strval($uri);
+				if(false !== ($p = strrpos($qname, '#')))
+				{
+					$ns = substr($qname, 0, $p + 1);
+					$lname = substr($qname, $p + 1);
+				}
+				else if(false !== ($p = strrpos($qname, ' ')))
+				{
+					$ns = substr($qname, 0, $p);
+					$lname = substr($qname, $p + 1);
+				}
+				else if(false !== ($p = strrpos($qname, '/')))
+				{
+					$ns = substr($qname, 0, $p + 1);
+					$lname = substr($qname, $p + 1);
+				}
+				else
+				{
+					continue;
+				}
+				if(isset(self::$ontologies[$ns]))
+				{
+					$className = self::$ontologies[$ns];
+					return call_user_func(array($className, 'rdfInstance'), $ns, $lname);
+				}
+			}
 		}
 		else
 		{
-			$qname = strval($classUri);
-			if(false !== ($p = strrpos($qname, '#')))
+			if(strlen($lname))
 			{
-				$ns = substr($qname, 0, $p + 1);
-				$lname = substr($qname, $p + 1);
-			}
-			else if(false !== ($p = strrpos($qname, ' ')))
-			{
-				$ns = substr($qname, 0, $p);
-				$lname = substr($qname, $p + 1);
-			}
-			else if(false !== ($p = strrpos($qname, '/')))
-			{
-				$ns = substr($qname, 0, $p + 1);
-				$lname = substr($qname, $p + 1);
+				$ns = strval($classUri);
 			}
 			else
 			{
-				return null;
+				$qname = strval($classUri);
+				if(false !== ($p = strrpos($qname, '#')))
+				{
+					$ns = substr($qname, 0, $p + 1);
+					$lname = substr($qname, $p + 1);
+				}
+				else if(false !== ($p = strrpos($qname, ' ')))
+				{
+					$ns = substr($qname, 0, $p);
+					$lname = substr($qname, $p + 1);
+				}
+				else if(false !== ($p = strrpos($qname, '/')))
+				{
+					$ns = substr($qname, 0, $p + 1);
+					$lname = substr($qname, $p + 1);
+				}
+				else
+				{
+					return null;
+				}
 			}
-		}
-		if(isset(self::$ontologies[$ns]))
-		{
-			$className = self::$ontologies[$ns];
-			return call_user_func(array($className, 'rdfInstance'), $ns, $lname);
-		}
+			if(isset(self::$ontologies[$ns]))
+			{
+				$className = self::$ontologies[$ns];
+				return call_user_func(array($className, 'rdfInstance'), $ns, $lname);
+			}
+		}		
 		return null;
 	}
 

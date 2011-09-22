@@ -519,6 +519,11 @@ abstract class RDFInstanceBase extends RedlandBase implements ArrayAccess
 		}
 	}
 
+	public function transform()
+	{
+		/* Placeholder method */
+	}
+
 	public function node()
 	{
 		return $this->subject;
@@ -534,11 +539,56 @@ abstract class RDFInstanceBase extends RedlandBase implements ArrayAccess
 		return array($this->subject->asUri());
 	}
 
+	public function predicates()
+	{
+		$list = array();
+		$query = librdf_new_statement_from_nodes($this->world->resource, $this->subject->resource, null, null);
+		$rs = librdf_model_find_statements($this->resource, $query);
+		if(!librdf_node_is_blank($this->subject->resource))
+		{
+			$list[] = RDF::rdf.'about';
+		}
+		while(!librdf_stream_end($rs))
+		{
+			$statement = librdf_stream_get_object($rs);
+			$predicate = librdf_statement_get_predicate($statement);
+			$pred = librdf_uri_to_string(librdf_node_get_uri($predicate));
+			if(!in_array($pred, $list))
+			{
+				$list[] = $pred;
+			}
+			librdf_stream_next($rs);
+		}
+		return $list;
+	}
+
 	public function add($predicate, $object)
 	{
 		if(!is_object($object))
 		{
 			$object = RedlandNode::literal($object, $this->world);
+		}
+		else if($object instanceof RDFSet)
+		{
+			if(is_string($predicate))
+			{
+				$predicate = new RDFURI($predicate);
+			}
+			if(!($predicate instanceof RedlandNode))
+			{
+				$predicate = $predicate->node();
+			}
+			$rs = librdf_model_as_stream($object->resource);
+			while(!librdf_stream_end($rs))
+			{
+				$statement = librdf_stream_get_object($stream);
+				$new = librdf_new_statement_from_statement($statement);
+				librdf_statement_set_subject($new, $this->subject->resource);
+				librdf_statement_set_predicate($new, $predicate->resource);
+				librdf_model_add_statement($this->model->resource, $new);
+				librdf_stream_next($rs);
+			}
+			return;
 		}
 		else if(!($object instanceof RedlandNode))
 		{
@@ -766,7 +816,7 @@ abstract class RDFInstanceBase extends RedlandBase implements ArrayAccess
 	public function offsetExists($offset)
 	{
 		$predicate = new RDFURI($this->translateQName($offset));
-		$query = librdf_new_statement_from_nodes($this->world->resource, $this->subject->resource, $predicate->resource, null);
+		$query = librdf_new_statement_from_nodes($this->world->resource, $this->subject->resource, $predicate->node()->resource, null);
 		$stream = librdf_model_find_statements($this->model->resource, $query);
 		while(!librdf_stream_end($stream))
 		{
@@ -855,6 +905,15 @@ abstract class RDFInstanceBase extends RedlandBase implements ArrayAccess
 	
 	public function __toString()
 	{
+		if(!$this->subject)
+		{
+			die('no subject');
+		}
+		if(!$this->subject->resource)
+		{
+			print_r($this->subject);
+			die('no subject *resource*');
+		}
 		return librdf_node_to_string($this->subject->resource);
 	}
 
@@ -969,6 +1028,7 @@ class RDFDocument extends RedlandModel implements ArrayAccess, ISerialisable
 
 	public $fileURI;
 	public $primaryTopic;
+	public $rdfInstanceClass = 'RDFInstance';
 
 	public function __construct($fileURI = null, $primaryTopic = null, $storage = null, $options = null, $world = null)
 	{
@@ -1287,41 +1347,100 @@ class RDFDocument extends RedlandModel implements ArrayAccess, ISerialisable
 
 	public function subject($uri, $type = null, $create = true)
 	{
-		$node = RedlandNode::uri($uri);
+		if(is_resource($uri))
+		{
+			$res = librdf_new_node_from_uri($this->world->resource, $uri);
+		}
+		else
+		{
+			$res = librdf_new_node_from_uri_string($this->world->resource, $uri);
+		}
+		$node = new RedlandNode($res, $this->world);
 		$setType = false;
 		if(!$create || $type !== null)
 		{
-			$query = librdf_new_statement_from_nodes($this->world->resource, $node->resource, null, null);
+			$query = librdf_new_statement_from_nodes($this->world->resource, $res, null, null);
 			$rs = librdf_model_find_statements($this->resource, $query);
 			if(librdf_stream_end($rs))
 			{
 				if(!$create)
 				{
+					error_log(' -- Not found');
 					return null;
 				}
 				$setType = true;
 			}
-		}		
-		$inst = new RDFInstance;
+		}
+		$query = librdf_new_statement_from_nodes($this->world->resource, $res, librdf_new_node_from_uri_string($this->world->resource, RDF::rdf.'type'), null);
+		$rs = librdf_model_find_statements($this->resource, $query);
+		$types = array();
+		while(!librdf_stream_end($rs))
+		{
+			$statement = librdf_stream_get_object($rs);
+			$object = librdf_statement_get_object($statement);
+			if(librdf_node_is_resource($object))
+			{
+				$types[] = librdf_uri_to_string(librdf_node_get_uri($object));
+			}
+			librdf_stream_next($rs);
+		}
+		$inst = RDF::instanceForClass($types, null);
+		if($inst === null)
+		{
+			$class = $this->rdfInstanceClass;
+			$inst = new $class();
+		}
 		$inst->model = $this;
+		if(!$node)
+		{
+			$node = new RedlandNode($res, $this->world);
+		}
 		$inst->subject = $node;
 		if($setType)
 		{
 			$inst->{RDF::rdf.'type'} = new RDFURI($type);
 		}
+		$inst->transform();			
 		return $inst;
 	}
 
-	public function subjects()
+	public function subjectUris()
 	{
+		error_log('==== subjectUris -- ' . $this->fileURI . '  ====');
 		$list = array();
-		$rs = librdf_model_as_stream($this->resource);
+		$subjects = array();
+		$rs = librdf_model_as_stream($this->resource);		
 		while(!librdf_stream_end($rs))
 		{
 			$statement = librdf_stream_get_object($rs);
-			$subject = librdf_statement_get_subject($statement);
-			$list[] = $this->subject(librdf_node_get_uri($subject), null, false);
+			$subject = librdf_node_get_uri(librdf_statement_get_subject($statement));
+			$k = librdf_uri_to_string($subject);
+			$subjects[$k] = $k;
 			librdf_stream_next($rs);
+		}
+		return $subjects;
+	}
+
+
+	public function subjects()
+	{
+		error_log('==== subjects -- ' . $this->fileURI . '  ====');
+		$list = array();
+		$subjects = array();
+		$rs = librdf_model_as_stream($this->resource);		
+		while(!librdf_stream_end($rs))
+		{
+			$statement = librdf_stream_get_object($rs);
+			$subject = librdf_node_get_uri(librdf_statement_get_subject($statement));
+			$k = librdf_uri_to_string($subject);
+			$subjects[$k] = $subject;
+			librdf_stream_next($rs);
+		}
+		error_log('have list of ' . count($subjects));
+		foreach($subjects as $subj)
+		{
+//			error_log('Will obtain subject: ' . librdf_uri_to_string($subj));
+			$list[] = $this->subject($subject, null, false);
 		}
 		return $list;
 	}
