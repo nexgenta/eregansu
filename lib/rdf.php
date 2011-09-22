@@ -477,14 +477,19 @@ abstract class RDF extends XMLNS
 
 }
 
-if(function_exists('librdf_new_world'))
-{
-	require_once(dirname(__FILE__) . '/redland.php');
+if(!defined('EREGANSU_RDF_IMPLEMENTATION'))
+{	
+	if(function_exists('librdf_new_world'))
+	{
+		define('EREGANSU_RDF_IMPLEMENTATION', 'redland');
+	}
+	else
+	{
+		define('EREGANSU_RDF_IMPLEMENTATION', 'phprdf');
+	}
 }
-else
-{
-	require_once(dirname(__FILE__) . '/phprdf.php');
-}
+
+require_once(dirname(__FILE__) . '/' . EREGANSU_RDF_IMPLEMENTATION . '.php');
 
 class RDFInstance extends RDFInstanceBase
 {
