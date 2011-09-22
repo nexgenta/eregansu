@@ -93,9 +93,23 @@ abstract class RDF extends XMLNS
 	 *   document.
 	 * @return On success, returns a new \class{RDFDocument} instance.
 	 */
-	public static function documentFromXMLString($document, $location = null)
+	public static function documentFromXMLString($document, $location = null, $curl = null)
 	{
 		$doc = new RDFDocument();
+		if($curl)
+		{
+			$info = $curl->info;
+			if(isset($info['url']))
+			{
+				$location = $info['url'];
+				if(isset($info['content_location']))
+				{
+					$u = new URL($info['content_location'], $location);
+					error_log('New content location is: ' . $u . ' (was ' . $location . ')');
+					$location = strval($u);
+				}
+			}
+		}
 		$doc->fileURI = $location;
 		if($doc->parse('application/rdf+xml', $document))
 		{
@@ -156,22 +170,22 @@ abstract class RDF extends XMLNS
 	}
 
 	/* Construct an RDFTripleSet from a URL */
-	public static function tripleSetFromURL($location)
+	public static function tripleSetFromURL($location, $curl = null)
 	{
 		$location = strval($location);
 		$ct = null;
-		$doc = self::fetch($location, $ct, 'application/rdf+xml');
+		$doc = self::fetch($location, $ct, 'application/rdf+xml', $curl);
 		if($doc === null)
 		{
 			return null;
 		}
 		if(self::isHTML($doc, $ct))
 		{
-			return self::tripleSetFromHTML($doc, $location);
+			return self::tripleSetFromHTML($doc, $location, $curl);
 		}
 		if(self::isXML($doc, $ct))
 		{
-			return self::tripleSetFromXMLString($doc, $location);
+			return self::tripleSetFromXMLString($doc, $location, $curl);
 		}
 		return null;
 	}
@@ -275,7 +289,7 @@ abstract class RDF extends XMLNS
 	}
 	
 	/* Wrapper around Curl to fetch a resource */
-	protected static function fetch($url, &$contentType, $accept = null, $curl = null)
+	protected static function fetch($url, &$contentType, $accept = null, &$curl)
 	{
 		require_once(dirname(__FILE__) . '/curl.php');
 		$url = strval($url);
