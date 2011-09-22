@@ -382,7 +382,7 @@ abstract class Request implements IObservable
 	}
 	
 	public function header($name, $value = null, $replace = true)
-	{	   
+	{
 		if($value === null)
 		{
 			if(function_exists('header_remove'))
