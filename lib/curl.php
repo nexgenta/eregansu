@@ -186,8 +186,10 @@ if(function_exists('curl_init'))
 		
 		protected $handle;
 		protected $options = array();
+		protected $info = null;
 
 		public $headers;
+		public $receivedHeaders = array();
 
 		public static function version()
 		{
@@ -210,6 +212,30 @@ if(function_exists('curl_init'))
 				$this->__set('verbose', true);
 			}
 			$this->headers = new CurlHeaders();
+			curl_setopt($this->handle, CURLOPT_HEADERFUNCTION, array($this, 'headerFunction'));
+		}
+
+		public function headerFunction($curl, $data)
+		{
+			$lines = explode("\n", $data);
+			foreach($lines as $line)
+			{
+				$line = rtrim($line, "\r");
+				if(!count($this->receivedHeaders))
+				{
+					if(strncmp($line, 'HTTP/', 5))
+					{
+						error_log("Received headers don't begin with HTTP response: $line");
+					}
+					$this->receivedHeaders['status'] = $line;
+				}
+				else
+				{
+					$header = explode(':', $line, 2);
+					$this->receivedHeaders[$header[0]] = ltrim(@$header[1]);
+				}
+			}
+			return strlen($data);
 		}
 		
 		public function close()
@@ -242,6 +268,7 @@ if(function_exists('curl_init'))
 				trigger_error('Curl::exec() - cannot execute a request which has been closed', E_USER_ERROR);
 				return false;
 			}
+			$this->receivedHeaders = array();
 			if(!isset($this->options['authData']))
 			{
 				if(null !== ($auth = $this->authDataForURL($this->options['url'])))
@@ -264,7 +291,17 @@ if(function_exists('curl_init'))
 					trigger_error('Curl::exec() - $this->headers is non-null but is not an array or a CurlHeaders instance', E_USER_NOTICE);
 				}
 			}
-			return curl_exec($this->handle);
+			$r = curl_exec($this->handle);
+			$this->info = curl_getinfo($this->handle);
+			$this->info['content_location'] = null;
+			foreach($this->receivedHeaders as $k => $v)
+			{
+				if(!strcasecmp($k, 'Content-Location'))
+				{
+					$this->info['content_location'] = $v;
+				}
+			}
+			return $r;
 		}
 		
 		public function __get($name)
@@ -288,7 +325,7 @@ if(function_exists('curl_init'))
 			}
 			if($name == 'info')
 			{
-				return curl_getinfo($this->handle);
+				return $this->info;
 			}
 			if($name == 'headers')
 			{
@@ -443,7 +480,7 @@ if(function_exists('curl_init'))
 			if($fetch)
 			{
 				$buf = parent::exec(false);
-				$info = curl_getinfo($this->handle);
+				$info = $this->info;
 				if($store && ($buf !== false || $this->cacheErrors))
 				{
 					$f = fopen($cacheFile, 'w');
