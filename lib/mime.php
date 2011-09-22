@@ -96,7 +96,7 @@ abstract class MIME
 			}
 		}
 		while(substr($ext, 0, 1) == '.') $ext = substr($ext, 1);
-		if(isset(self::$extMap[$ext])) return self::$map[$ext];
+		if(isset(self::$extMap[$ext])) return self::$extMap[$ext];
 		return null;
 	}
 	
@@ -157,6 +157,7 @@ abstract class MIME
 		'text/rtf' => array('rtf'),
 		'text/xml' => array('xml'),
 		'text/turtle' => array('ttl'),
+		'text/n3' => array('n3'),
 
 		'application/xml' => array('xml'),
 		'application/xhtml+xml' => array('xhtml'),

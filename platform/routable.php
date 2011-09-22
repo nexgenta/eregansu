@@ -678,6 +678,7 @@ class Proxy extends Router
 		case 'application/json':
 			return $this->perform_GET_JSON();
 		case 'application/x-rdf+json':
+		case 'application/rdf+json':
 			return $this->perform_GET_RDFJSON();
 		case 'application/rdf+xml':
 			return $this->perform_GET_RDF();
@@ -701,42 +702,44 @@ class Proxy extends Router
 			{
 				return $this->$methodName();
 			}
-		}		
-		if($this->object instanceof ISerialisable)
-		{
-			if($r == $this->object->serialise($type, false, $this->request))
-			{
-				return $r;
-			}
 		}
-		return $this->error(Error::METHOD_NOT_IMPLEMENTED, $this->request, null, 'No method found to perform a GET for ' . $type);
-	}
-	
-	protected function perform_GET_XML()
-	{
-		$type = 'text/xml';
-		if($this->object instanceof ISerialisable)
-		{
-			$this->object->serialise($type, false, $this->request);
-		}
-	}
-	
-	protected function perform_GET_Text()
-	{
-		$type = 'text/plain';
-		if($this->object instanceof ISerialisable)
-		{
-			$this->object->serialise($type, false, $this->request);
-		}
+		return $this->serialise($type);
 	}
 
-	protected function perform_GET_HTML()
+	protected function serialise($type, $returnBuffer = false, $sendHeaders = true, $reportError = true)
 	{
-		$type = 'text/html';
-		if($this->object instanceof ISerialisable)
+		if(!($this->object instanceof ISerialisable))
 		{
-			$this->object->serialise($type, false, $this->request);
+			if($reportError)
+			{
+				print_r($this->object);
+				$this->error(Error::METHOD_NOT_IMPLEMENTED, $this->request, null, 'Object is not serialisable');
+			}
+			return false;
+		}		
+		if(false === ($r = $this->object->serialise($type, $returnBuffer, $this->request, $sendHeaders)))
+		{
+			if($reportError)
+			{
+				$this->error(Error::METHOD_NOT_IMPLEMENTED, $this->request, null, 'Serialisable object does not support ' . $type);
+			}
 		}
+		return $r;
+	}
+	
+	protected function perform_GET_XML($type = 'text/xml')
+	{
+		return $this->serialise($type);
+	}
+	
+	protected function perform_GET_Text($type = 'text/plain')
+	{
+		return $this->serialise($type);
+	}
+
+	protected function perform_GET_HTML($type = 'text/html')
+	{
+		return $this->serialise($type);
 	}
 
 	protected function perform_GET_JSON()
@@ -791,7 +794,7 @@ class Proxy extends Router
 		}
 		else
 		{
-			$type = 'application/x-rdf+json';
+			$type = 'application/rdf+json';
 			$prefix = null;
 			$suffix = null;
 		}
@@ -811,40 +814,24 @@ class Proxy extends Router
 		echo $suffix;
 	}
 
-	protected function perform_GET_RDF()
+	protected function perform_GET_RDF($type = 'application/rdf+xml')
 	{
-		$type = 'application/rdf+xml';
-		if($this->object instanceof ISerialisable)
-		{
-			$this->object->serialise($type, false, $this->request, true);
-		}
+		return $this->serialise($type);
 	}
 
-	protected function perform_GET_Turtle()
+	protected function perform_GET_Turtle($type = 'text/turtle')
 	{
-		$type = 'text/turtle';
-		if($this->object instanceof ISerialisable)
-		{
-			$this->object->serialise($type, false, $this->request, true);
-		}
+		return $this->serialise($type);
 	}
 	
-	protected function perform_GET_YAML()
+	protected function perform_GET_YAML($type = 'application/x-yaml')
 	{
-		$type = 'application/x-yaml';
-		if($this->object instanceof ISerialisable)
-		{
-			$this->object->serialise($type, false, $this->request, true);
-		}
+		return $this->serialise($type);
 	}
 	
-	protected function perform_GET_Atom()
+	protected function perform_GET_Atom($type = 'application/atom+xml')
 	{
-		$type = 'application/atom+xml';
-		if($this->object instanceof ISerialisable)
-		{
-			$this->object->serialise($type, false, $this->request, true);
-		}
+		return $this->serialise($type);
 	}
 
 	protected function perform_POST($type)

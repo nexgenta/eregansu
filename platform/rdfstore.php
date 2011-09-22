@@ -119,26 +119,10 @@ class RDFStore extends Store
 		$data['kind'] = 'graph';
 		$data['iri'] = $uris;
 		$data['uuid'] = $uuid;
-		/* Include all of the entries which reference the primary topic */
-		$others = $doc->subjects();
-		$set = array();
-		foreach($doc->subjects as $subj)
+		$set = $doc->subjectsReferencing($primary);
+		foreach($set as $k => $subject)
 		{
-			foreach($subj as $prop => $value)
-			{
-				if(strpos($prop, ':') !== false && is_array($value))
-				{
-					foreach($value as $v)
-					{
-						if($v instanceof RDFURI && $primary->hasSubject($v))
-						{
-							echo "Adding " . $subj . "\n";
-							$set[] = $this->objectAsArray($subj);
-							break 2;
-						}
-					}
-				}
-			}
+			$set[$k] = $this->objectAsArray($subject);
 		}
 		if(count($set))
 		{
@@ -222,10 +206,6 @@ class RDFStoredObject extends RDFInstance
 		{
 			$className = 'RDFStoredObject';
 		}
-		if(!isset(self::$models[$className]))
-		{
-			self::$models[$className] = $model;
-		}
 		$inst = null;
 		if(isset($data[RDF::rdf.'type']))
 		{
@@ -273,6 +253,13 @@ class RDFStoredObject extends RDFInstance
 			if(!strcmp($k, 'refcount')) continue;
 			if(is_array($v))
 			{
+				/* $v must be an array in the RDF/JSON form:
+				 *   array(
+				 *     index => array('type' => 'whatever', 'value' => 'whatever' ... ),
+				 *     ...
+				 *   )
+				 */
+				$ov = $v;
 				foreach($v as $pk => $s)
 				{
 					if(is_array($s) && isset($s['type']))
@@ -292,11 +279,7 @@ class RDFStoredObject extends RDFInstance
 						case 'literal':
 							if(isset($s['lang']) || isset($s['datatype']))
 							{
-								$l = RDFComplexLiteral::literal(isset($s['datatype']) ? $s['datatype'] : null, $s['value']);
-								if(isset($s['lang']))
-								{
-									$l->{RDF::xml . ' lang'}[] = $s['lang'];
-								}
+								$l = RDFComplexLiteral::literal(isset($s['datatype']) ? $s['datatype'] : null, $s['value'], isset($s['lang']) ? $s['lang'] : null);
 								$v[$pk] = $l;
 							}
 							else
@@ -321,9 +304,16 @@ class RDFStoredObject extends RDFInstance
 							{
 								$v[$pk] = $s['value'];
 							}
-//							echo '<pre>'; print_r($v); echo '</pre>';
-							//throw new Exception('unhandled RDF/JSON type ' . $s['type']);
 						}
+					}
+					else if(strpos($k, ':') !== false && is_array($s))
+					{
+						/* The individual value is still an array, but doesn't have the
+						 * expected 'type' key.
+						 */
+						print_r($ov);
+						trigger_error('Malformed data in object for key ' . $k, E_USER_ERROR);
+						continue 2;
 					}
 				}
 			}

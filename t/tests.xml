@@ -7,6 +7,10 @@
   <test>uuid-gen-sha1.php</test>
   <test>uuid-nil.php</test>
   <test>uuid-version.php</test>
+  <test>uuid-isuuid.php</test>
+  <test>uuid-canonical.php</test>
+  <test>uuid-iri.php</test>
+  <test>uuid-formatted.php</test>
   <test>error-exception.php</test>
   <test>rdfdoc-arrayaccess-get.php</test>
   <test>rdfdoc-arrayaccess-pritopic.php</test>

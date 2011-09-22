@@ -206,6 +206,30 @@ abstract class UUID
 		}
 		return 'urn:uuid:' . substr($uuid, 0, 8) . '-' . substr($uuid, 8, 4) . '-' . substr($uuid, 12, 4) . '-' . substr($uuid, 16, 4) . '-' . substr($uuid, 20, 12);
 	}
+
+	/**
+	 * @brief Format a UUID in the traditional aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee form
+	 * @task Manipulating UUIDs
+	 *
+	 * \m{UUID::iri} converts a string representation of a UUID in the
+	 * traditional form.
+	 *
+	 * For example, the null UUID converted to an IRI would be \x{00000000-0000-0000-0000-000000000000}.
+	 *
+	 * @type string
+	 * @param[in] string $uuid A string representation of a UUID
+	 * @param[in,optional] $prefix An optional string to prepend to the formatted UUID.
+	 * @param[in,optional] $suffix An optional string to append to the formatted UUID.
+	 * @return The IRI representation of \p{$uuid}, or \c{null} if \p{$uuid} is not a valid UUID string.
+	 */
+	public static function formatted($uuid, $prefix = null, $suffix = null)
+	{
+		if(!($uuid = self::canonical($uuid)))
+		{
+			return null;
+		}
+		return $prefix . substr($uuid, 0, 8) . '-' . substr($uuid, 8, 4) . '-' . substr($uuid, 12, 4) . '-' . substr($uuid, 16, 4) . '-' . substr($uuid, 20, 12) . $suffix;
+	}
 	
 	/**
 	 * @brief Parse a string containing a UUID and return an array representing its value.
