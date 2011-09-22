@@ -1,7 +1,5 @@
 ## Synopsis
 
-<code>uses('rdf');</code>
-
 <code>public function <b>[[RDFSet]]::join</b>(<b>$by</b>)</code>
 
 ## Parameters

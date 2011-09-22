@@ -5,5 +5,6 @@
 * `[[XapianIndexer::__construct]]()`
 * `[[XapianIndexer::begin]]()`
 * `[[XapianIndexer::commit]]()`
+* `[[XapianIndexer::deleteDocument]]()`
 * `[[XapianIndexer::indexDocument]]()`
 

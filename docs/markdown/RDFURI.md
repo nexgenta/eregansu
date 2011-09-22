@@ -1,15 +1,13 @@
-`RDFURI` is a class derived from [[URL]].
+`RDFURI` is a class derived from [[RedlandBase]].
 
-## Synopsis
+## Public Static Methods
 
-```php
-uses('rdf');
-```
+* `[[RDFURI::fromNode]]()`
 
 ## Public Methods
 
 * `[[RDFURI::__construct]]()`
 * `[[RDFURI::__toString]]()`
 * `[[RDFURI::asArray]]()`
-* `[[RDFURI::asJSONLD]]()`
+* `[[RDFURI::node]]()`
 

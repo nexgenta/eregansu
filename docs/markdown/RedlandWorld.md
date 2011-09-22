@@ -3,7 +3,6 @@
 ## Public Methods
 
 * `[[RedlandWorld::__construct]]()`
-* `[[RedlandWorld::__destruct]]()`
 * `[[RedlandWorld::open]]()`
 * `[[RedlandWorld::getFeature]]()`
 

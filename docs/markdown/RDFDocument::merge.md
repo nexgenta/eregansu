@@ -1,8 +1,6 @@
 ## Synopsis
 
-<code>uses('rdf');</code>
-
-<code>public function <b>[[RDFDocument]]::merge</b>(<b>$subject</b>, <b>$pos</b> = null)</code>
+<code>public function <b>[[RDFDocument]]::merge</b>(<b>$inst</b>, <b>$post</b> = null)</code>
 
 ## Parameters
 
@@ -17,7 +15,7 @@
   </thead>
   <tbody>
     <tr>
-      <td><code>$subject</code>
+      <td><code>$inst</code>
       <td><i></i></td>
       <td></td>
       <td>
@@ -25,7 +23,7 @@
       </td>
     </tr>
     <tr>
-      <td><code>$pos</code>
+      <td><code>$post</code>
       <td><i></i></td>
       <td></td>
       <td>

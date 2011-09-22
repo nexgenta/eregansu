@@ -2,7 +2,7 @@
 
 <code>uses('rdf');</code>
 
-<code>public function <b>[[RDFString]]::__construct</b>(<b>$value</b>, <b>$lang</b> = null)</code>
+<code>public function <b>[[RDFString]]::__construct</b>(<b>$value</b>, <b>$lang</b> = null, <b>$world</b> = null)</code>
 
 ## Parameters
 
@@ -26,6 +26,14 @@
     </tr>
     <tr>
       <td><code>$lang</code>
+      <td><i></i></td>
+      <td></td>
+      <td>
+
+      </td>
+    </tr>
+    <tr>
+      <td><code>$world</code>
       <td><i></i></td>
       <td></td>
       <td>

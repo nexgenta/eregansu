@@ -1,8 +1,6 @@
 ## Synopsis
 
-<code>uses('rdf');</code>
-
-<code>public function <b>[[RDFSet]]::__construct</b>(<b>$values</b> = null)</code>
+<code>public function <b>[[RDFSet]]::__construct</b>(<b>$values</b> = null, <b>$world</b> = null)</code>
 
 ## Parameters
 
@@ -18,6 +16,14 @@
   <tbody>
     <tr>
       <td><code>$values</code>
+      <td><i></i></td>
+      <td></td>
+      <td>
+
+      </td>
+    </tr>
+    <tr>
+      <td><code>$world</code>
       <td><i></i></td>
       <td></td>
       <td>

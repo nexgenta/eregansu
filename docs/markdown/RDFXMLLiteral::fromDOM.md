@@ -1,7 +1,5 @@
 ## Synopsis
 
-<code>uses('rdf');</code>
-
 <code>public function <b>[[RDFXMLLiteral]]::fromDOM</b>(<b>$node</b>, <b>$pdoc</b> = null)</code>
 
 ## Parameters

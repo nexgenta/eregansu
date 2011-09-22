@@ -1,7 +1,5 @@
 ## Synopsis
 
-<code>uses('rdf');</code>
-
 <code>public function <b>[[RDFDocument]]::ns</b>(<b>$uri</b>, <b>$suggestedPrefix</b>)</code>
 
 ## Parameters

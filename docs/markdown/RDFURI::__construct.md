@@ -1,8 +1,6 @@
 ## Synopsis
 
-<code>uses('rdf');</code>
-
-<code>public function <b>[[RDFURI]]::__construct</b>(<b>$uri</b>, <b>$base</b> = null)</code>
+<code>public function <b>[[RDFURI]]::__construct</b>(<b>$uri</b>, <b>$world</b> = null)</code>
 
 ## Parameters
 
@@ -25,7 +23,7 @@
       </td>
     </tr>
     <tr>
-      <td><code>$base</code>
+      <td><code>$world</code>
       <td><i></i></td>
       <td></td>
       <td>

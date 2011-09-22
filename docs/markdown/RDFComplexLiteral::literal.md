@@ -1,8 +1,6 @@
 ## Synopsis
 
-<code>uses('rdf');</code>
-
-<code>public static function <b>[[RDFComplexLiteral]]::literal</b>(<b>$type</b> = null, <b>$value</b> = null)</code>
+<code>public static function <b>[[RDFComplexLiteral]]::literal</b>(<b>$type</b> = null, <b>$value</b> = null, <b>$lang</b> = null, <b>$world</b> = null)</code>
 
 ## Parameters
 
@@ -26,6 +24,22 @@
     </tr>
     <tr>
       <td><code>$value</code>
+      <td><i></i></td>
+      <td></td>
+      <td>
+
+      </td>
+    </tr>
+    <tr>
+      <td><code>$lang</code>
+      <td><i></i></td>
+      <td></td>
+      <td>
+
+      </td>
+    </tr>
+    <tr>
+      <td><code>$world</code>
       <td><i></i></td>
       <td></td>
       <td>

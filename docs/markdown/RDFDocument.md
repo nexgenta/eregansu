@@ -1,36 +1,26 @@
-An RDF document
-
-`RDFDocument` is a base class.
-
-## Synopsis
-
-```php
-uses('rdf');
-```
+`RDFDocument` is a class derived from [[RedlandModel]].
 
 ## Public Methods
 
 * `[[RDFDocument::__construct]]()`
+* `[[RDFDocument::parse]]()`
+* `[[RDFDocument::add]]()`
 * `[[RDFDocument::serialise]]()`
+* `[[RDFDocument::merge]]()`
 * `[[RDFDocument::offsetGet]]()`
 * `[[RDFDocument::offsetSet]]()`
 * `[[RDFDocument::offsetExists]]()`
 * `[[RDFDocument::offsetUnset]]()`
+* `[[RDFDocument::asXML]]()`
+* `[[RDFDocument::asTurtle]]()`
+* `[[RDFDocument::asN3]]()`
+* `[[RDFDocument::asJSON]]()`
+* `[[RDFDocument::asJSONTriples]]()`
 * `[[RDFDocument::promote]]()`
-* `[[RDFDocument::subject]]()`
-* `[[RDFDocument::merge]]()`
-* `[[RDFDocument::add]]()`
-* `[[RDFDocument::replace]]()`
 * `[[RDFDocument::resourceTopic]]()`
 * `[[RDFDocument::primaryTopic]]()`
-* `[[RDFDocument::ns]]()`
-* `[[RDFDocument::namespacedName]]()`
-* `[[RDFDocument::asTurtle]]()`
-* `[[RDFDocument::dump]]()`
-* `[[RDFDocument::asXML]]()`
-* `[[RDFDocument::asJSON]]()`
-* `[[RDFDocument::asJSONLD]]()`
-* `[[RDFDocument::fromDOM]]()`
-* `[[RDFDocument::__isset]]()`
-* `[[RDFDocument::__get]]()`
+* `[[RDFDocument::subject]]()`
+* `[[RDFDocument::subjectUris]]()`
+* `[[RDFDocument::subjects]]()`
+* `[[RDFDocument::subjectsReferencing]]()`
 

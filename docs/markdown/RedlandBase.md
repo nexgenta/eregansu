@@ -4,3 +4,7 @@
 
 * `[[RedlandBase::world]]()`
 
+## Public Methods
+
+* `[[RedlandBase::__call]]()`
+

@@ -3,7 +3,7 @@
 ## Public Methods
 
 * `[[RedlandSerializer::__construct]]()`
-* `[[RedlandSerializer::__destruct]]()`
 * `[[RedlandSerializer::serializeModelToString]]()`
 * `[[RedlandSerializer::serializeModelToFile]]()`
+* `[[RedlandSerializer::serializeStreamToString]]()`
 

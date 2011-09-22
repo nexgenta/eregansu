@@ -1,7 +1,5 @@
 ## Synopsis
 
-<code>uses('rdf');</code>
-
 <code>public function <b>[[RDFDocument]]::subject</b>(<b>$uri</b>, <b>$type</b> = null, <b>$create</b> = true)</code>
 
 ## Parameters

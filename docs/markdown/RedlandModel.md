@@ -3,6 +3,8 @@
 ## Public Methods
 
 * `[[RedlandModel::__construct]]()`
-* `[[RedlandModel::__destruct]]()`
+* `[[RedlandModel::addStatement]]()`
+* `[[RedlandModel::removeStatement]]()`
 * `[[RedlandModel::__get]]()`
+* `[[RedlandModel::serialiseToString]]()`
 

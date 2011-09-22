@@ -2,7 +2,7 @@
 
 <code>uses('rdfstore');</code>
 
-<code>public function <b>[[RDFStore]]::ingestRDF</b>(<b>$uri</b>, <b>$refresh</b> = false, <b>$realUri</b> = null, <b>$firstOnly</b> = false)</code>
+<code>public function <b>[[RDFStore]]::ingestRDF</b>(<b>$uri</b>, <b>$refresh</b> = false, <b>$canonicalUri</b> = null, <b>$firstOnly</b> = false, <b>$newUuid</b> = null)</code>
 
 ## Parameters
 
@@ -33,7 +33,7 @@
       </td>
     </tr>
     <tr>
-      <td><code>$realUri</code>
+      <td><code>$canonicalUri</code>
       <td><i></i></td>
       <td></td>
       <td>
@@ -42,6 +42,14 @@
     </tr>
     <tr>
       <td><code>$firstOnly</code>
+      <td><i></i></td>
+      <td></td>
+      <td>
+
+      </td>
+    </tr>
+    <tr>
+      <td><code>$newUuid</code>
       <td><i></i></td>
       <td></td>
       <td>

@@ -1,7 +1,5 @@
 ## Synopsis
 
-<code>uses('rdf');</code>
-
 <code>public function <b>[[RDFTriple]]::__construct</b>(<b>$subject</b>, <b>$predicate</b>, <b>$object</b>)</code>
 
 ## Parameters

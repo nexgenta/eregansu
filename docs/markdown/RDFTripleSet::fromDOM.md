@@ -1,7 +1,5 @@
 ## Synopsis
 
-<code>uses('rdf');</code>
-
 <code>public function <b>[[RDFTripleSet]]::fromDOM</b>(<b>$root</b>)</code>
 
 ## Parameters

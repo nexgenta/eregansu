@@ -1,7 +1,5 @@
 ## Synopsis
 
-<code>uses('rdf');</code>
-
 <code>public function <b>[[RDFComplexLiteral]]::fromDOM</b>(<b>$node</b>, <b>$doc</b> = null)</code>
 
 ## Parameters

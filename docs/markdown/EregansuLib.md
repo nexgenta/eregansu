@@ -15,6 +15,7 @@
 themselves.
 * `[[DataSet]]`
 * `[[IDBCore]]`
+* `[[IObservable]]`
 * `[[ISearchEngine]]`
 * `[[ISearchIndexer]]`
 
@@ -26,6 +27,7 @@ themselves.
 * `[[CSVImport]]`: Import data from a CSV file
 * `[[Curl]]`
 * `[[CurlCache]]`
+* `[[CurlHeaders]]`
 * `[[EregansuDateTime]]`
 * `[[LDAP]]`: LDAP database support.
 * `[[LDAPSet]]`
@@ -52,15 +54,17 @@ themselves.
 * `[[MIME]]`: The `MIME` class provides facilities for mapping file extensions to
 MIME types and vice versa and obtaining human-readable descriptions
 from MIME types.
-* `[[RDF]]`: Utility methods for instantiating RDF documents.
-* `[[RDFDocument]]`: An RDF document
-* `[[RDFSet]]`
+* `[[Observers]]`
+* `[[RDFDocument]]`
 * `[[RDFTripleSet]]`
 * `[[RDFTriple]]`
-* `[[RDFInstance]]`
+* `[[RDFInstanceBase]]`
 * `[[RDFComplexLiteral]]`
 * `[[RDFURI]]`
 * `[[RDFXMLLiteral]]`
+* `[[RDFSet]]`
+* `[[RDF]]`: Utility methods for instantiating RDF documents.
+* `[[RDFInstance]]`
 * `[[RDFDateTime]]`
 * `[[RDFString]]`
 * `[[RDFXMLStreamParser]]`
@@ -69,10 +73,15 @@ from MIME types.
 * `[[RedlandStorage]]`
 * `[[RedlandModel]]`
 * `[[RedlandParser]]`
-* `[[RedlandURI]]`
+* `[[RedlandRDFXMLParser]]`
+* `[[RedlandNode]]`
 * `[[RedlandSerializer]]`
+* `[[RedlandTurtleSerializer]]`
+* `[[RedlandN3Serializer]]`
+* `[[RedlandRDFXMLSerializer]]`
 * `[[RedlandJSONSerializer]]`
 * `[[RedlandJSONTriplesSerializer]]`
+* `[[RedlandNTriplesSerializer]]`
 * `[[Request]]`: Encapsulation of a request from a client.
 * `[[HTTPRequest]]`: Encapsulation of an HTTP request.
 * `[[DbpediaLiteSearch]]`

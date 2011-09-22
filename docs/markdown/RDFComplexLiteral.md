@@ -1,10 +1,4 @@
-`RDFComplexLiteral` is a base class.
-
-## Synopsis
-
-```php
-uses('rdf');
-```
+`RDFComplexLiteral` is a class derived from [[RedlandNode]].
 
 ## Public Static Methods
 
@@ -13,8 +7,7 @@ uses('rdf');
 ## Public Methods
 
 * `[[RDFComplexLiteral::__construct]]()`
-* `[[RDFComplexLiteral::asArray]]()`
-* `[[RDFComplexLiteral::asJSONLD]]()`
-* `[[RDFComplexLiteral::fromDOM]]()`
+* `[[RDFComplexLiteral::lang]]()`
+* `[[RDFComplexLiteral::type]]()`
 * `[[RDFComplexLiteral::__toString]]()`
 

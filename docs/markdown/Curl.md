@@ -7,6 +7,7 @@
 ## Public Methods
 
 * `[[Curl::__construct]]()`
+* `[[Curl::headerFunction]]()`
 * `[[Curl::close]]()`
 * `[[Curl::exec]]()`
 * `[[Curl::__get]]()`

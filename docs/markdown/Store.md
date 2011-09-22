@@ -22,6 +22,7 @@ uses('store');
 * `[[Store::dataForEntry]]()`
 * `[[Store::dataForUUID]]()`
 * `[[Store::objectForUUID]]()`
+* `[[Store::uuidForIri]]()`: Return the UUID of the object with the specified IRI, $iri.
 * `[[Store::dataForIri]]()`
 * `[[Store::objectForIri]]()`
 * `[[Store::setData]]()`

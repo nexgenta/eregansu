@@ -3,7 +3,6 @@
 ## Public Methods
 
 * `[[RedlandParser::__construct]]()`
-* `[[RedlandParser::__destruct]]()`
 * `[[RedlandParser::parseFileIntoModel]]()`
 * `[[RedlandParser::parseIntoModel]]()`
 * `[[RedlandParser::parseStringIntoModel]]()`

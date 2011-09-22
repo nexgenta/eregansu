@@ -1,7 +1,5 @@
 ## Synopsis
 
-<code>uses('rdf');</code>
-
 <code>public static function <b>[[RDFSet]]::setFromInstances</b>(<b>$keys</b>, <b>$instances</b>)</code>
 
 ## Parameters

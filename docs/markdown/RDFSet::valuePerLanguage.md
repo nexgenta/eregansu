@@ -1,7 +1,5 @@
 ## Synopsis
 
-<code>uses('rdf');</code>
-
 <code>public function <b>[[RDFSet]]::valuePerLanguage</b>(<b>$asSet</b> = false)</code>
 
 ## Parameters

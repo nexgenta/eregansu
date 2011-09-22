@@ -1,10 +1,4 @@
-`RDFSet` is a base class.
-
-## Synopsis
-
-```php
-uses('rdf');
-```
+`RDFSet` is a class derived from [[RedlandModel]].
 
 ## Public Static Methods
 
@@ -20,11 +14,12 @@ uses('rdf');
 * `[[RDFSet::valuePerLanguage]]()`
 * `[[RDFSet::slice]]()`
 * `[[RDFSet::strings]]()`
+* `[[RDFSet::join]]()`
 * `[[RDFSet::uris]]()`
 * `[[RDFSet::addInstance]]()`
 * `[[RDFSet::first]]()`
-* `[[RDFSet::join]]()`
 * `[[RDFSet::count]]()`
 * `[[RDFSet::lang]]()`
 * `[[RDFSet::asArray]]()`
+* `[[RDFSet::addStream]]()`
 
