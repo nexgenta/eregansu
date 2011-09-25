@@ -1508,6 +1508,7 @@ class RDFSet extends RedlandModel implements Countable
 	{
 		parent::__construct(null, null, $world);
 		$this->blank = librdf_new_node($this->world->resource);
+		$this->blankPredicate = librdf_new_node_from_uri_string($this->world->resource, 'http://example.com/blankPredicate');
 		if($values === null) return;
 		if(!is_array($values))
 		{
@@ -1565,13 +1566,13 @@ class RDFSet extends RedlandModel implements Countable
 		}
 		if($value instanceof RedlandNode)
 		{
-			$statement = librdf_new_statement_from_nodes($this->world->resource, $this->blank, $this->blank, $value->resource);
+			$statement = librdf_new_statement_from_nodes($this->world->resource, $this->blank, $this->blankPredicate, $value->resource);
 			librdf_model_add_statement($this->resource, $statement);
 			return;
 		}
 		if($value instanceof RDFURI)
 		{
-			$statement = librdf_new_statement_from_nodes($this->world->resource, $this->blank, $this->blank, $value->node()->resource);
+			$statement = librdf_new_statement_from_nodes($this->world->resource, $this->blank, $this->blankPredicate, $value->node()->resource);
 			librdf_model_add_statement($this->resource, $statement);
 			return;
 		}
@@ -1647,9 +1648,10 @@ class RDFSet extends RedlandModel implements Countable
 					if($asSet)
 					{
 						$list[$l] = new RDFString(librdf_node_get_literal_value($object), $l);
+						echo "list[$l] = " . $list[$l] . "\n";
 					}
 					else
-					{						
+					{
 						$list[$l] = librdf_node_get_literal_value($object);
 					}
 				}
@@ -1861,7 +1863,7 @@ class RDFSet extends RedlandModel implements Countable
 	{
 		$list = array();
 		$ser = new RedlandJSONSerializer();
-		$json = $this->serialiseToString($ser);
+		$json = $this->serialiseToString($ser, librdf_node_get_uri($this->blank));
 		$subjects = json_decode($json, true);
 		foreach($subjects as $predicates)
 		{
