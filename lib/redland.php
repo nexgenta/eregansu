@@ -76,6 +76,7 @@ abstract class RedlandBase
 		return $options;
 	}
 	
+	/* Return a librdf_uri for a given URI string or RDFURI instance */
 	protected static function parseURI($uri, $world = null)
 	{
 		if(is_resource($uri))
@@ -363,6 +364,7 @@ class RedlandNode extends RedlandBase
 class RDFURI extends RedlandBase
 {
 	protected $node;
+	protected $inner;
 
 	public function __construct($uri, $world = null)
 	{
@@ -408,6 +410,49 @@ class RDFURI extends RedlandBase
 			$this->node = new RedlandNode(librdf_new_node_from_uri($this->world->resource, $this->resource), $this->world);
 		}
 		return $this->node;
+	}
+
+	public function __get($prop)
+	{
+		if(!isset($this->internal))
+		{
+			$this->internal = new URL(librdf_uri_to_string($this->resource));
+		}
+		return $this->internal->{$prop};
+	}
+
+	public function __isset($prop)
+	{
+		if($prop == 'internal')
+		{
+			return false;
+		}
+		if(!isset($this->internal))
+		{
+			$this->internal = new URL(librdf_uri_to_string($this->resource));
+		}
+		return isset($this->internal->{$prop});
+	}		
+
+	public function __set($prop, $value)
+	{
+		if($prop == 'internal')
+		{
+			$this->internal = $value;
+			return;
+		}
+		if(!isset($this->internal))
+		{
+			$this->internal = new URL(librdf_uri_to_string($this->resource));
+		}
+		$str = librdf_uri_to_string($this->resource);
+		$this->internal->{$prop} = $value;
+		$u = strval($this->internal);
+		if(strcmp($str, $u))
+		{
+			$this->node = null;
+			$this->resource = librdf_new_uri($this->world->resource, $u);
+		}
 	}
 }
 
@@ -527,6 +572,17 @@ abstract class RDFInstanceBase extends RedlandBase implements ArrayAccess
 	public function node()
 	{
 		return $this->subject;
+	}
+
+	public function hasSubject($subject)
+	{
+		$subj = $this->parseURI($subject);
+		$me = librdf_node_get_uri($this->subject->resource);
+		if(librdf_uri_equals($subj, $me))
+		{
+			return true;
+		}
+		return false;
 	}
 
 	public function subject()
@@ -914,7 +970,8 @@ abstract class RDFInstanceBase extends RedlandBase implements ArrayAccess
 			print_r($this->subject);
 			die('no subject *resource*');
 		}
-		return librdf_node_to_string($this->subject->resource);
+		$uri = librdf_node_get_uri($this->subject->resource);
+		return librdf_uri_to_string($uri);
 	}
 
 	public function isA($type)
@@ -1004,7 +1061,7 @@ class RDFComplexLiteral extends RedlandNode
 
 	public function __toString()
 	{
-		return $this->value;
+		return strval($this->value);
 	}
 }
 
@@ -1648,7 +1705,6 @@ class RDFSet extends RedlandModel implements Countable
 					if($asSet)
 					{
 						$list[$l] = new RDFString(librdf_node_get_literal_value($object), $l);
-						echo "list[$l] = " . $list[$l] . "\n";
 					}
 					else
 					{
