@@ -217,6 +217,12 @@ function exception_handler($exception)
 	die(1);
 }
 
+function assertion_handler()
+{
+	throw new ErrorException('Assertion failed');
+	die(1);
+}
+
 umask(007);
 error_reporting(E_ALL|E_STRICT|E_RECOVERABLE_ERROR);
 ini_set('display_errors', 'On');
@@ -234,6 +240,9 @@ putenv('TZ=UTC');
 ini_set('date.timezone', 'UTC');
 set_error_handler('exception_error_handler');
 set_exception_handler('exception_handler');
+assert_options(ASSERT_QUIET_EVAL, true);
+assert_options(ASSERT_CALLBACK, 'assertion_handler');
+
 if(!defined('PUBLIC_ROOT'))
 {
 	define('PUBLIC_ROOT', defined('INSTANCE_ROOT') ? INSTANCE_ROOT : ((isset($_SERVER['SCRIPT_FILENAME']) ? dirname(realpath($_SERVER['SCRIPT_FILENAME'])) : realpath(dirname(__FILE__ ) . '/../../')) . '/'));
