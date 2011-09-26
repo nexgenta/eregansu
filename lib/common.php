@@ -193,10 +193,16 @@ function exception_error_handler($errno, $errstr, $errfile, $errline)
 {
 	$e = error_reporting();
 	if(!$errno || ($e & $errno) != $errno) return;
+	if(defined('EREGANSU_STRICT_ERROR_HANDLING') &&
+	   ($errno & (E_WARNING|E_USER_WARNING|E_NOTICE|E_USER_NOTICE)))
+	{
+		throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
+		exit(1);
+	}		
 	if($errno & (E_ERROR|E_PARSE|E_CORE_ERROR|E_COMPILE_ERROR|E_USER_ERROR|E_RECOVERABLE_ERROR))
 	{
 		throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
-		exit();
+		exit(1);
 	}
 	return false;
 }
