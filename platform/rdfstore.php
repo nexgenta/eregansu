@@ -125,7 +125,10 @@ class RDFStore extends Store
 		}
 		if(($x = $doc['resourceTopic']) !== null)
 		{
-			$set[] = $x;
+			if(strcmp($x, $primary))
+			{
+				$set[] = $this->objectAsArray($x);
+			}
 		}
 		if(count($set))
 		{
