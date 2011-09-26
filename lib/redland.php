@@ -784,6 +784,14 @@ abstract class RDFInstanceBase extends RedlandBase implements ArrayAccess
 			}
 			return true;
 		}
+		if($this->model === null)
+		{
+			return false;
+		}
+		if(!$this->model->resource)
+		{
+			trigger_error('Model is NULL but model resource is not', E_USER_ERROR);
+		}
 		if(is_string($predicate))
 		{
 			$predicate = new RDFURI($predicate);
@@ -1239,6 +1247,10 @@ class RDFDocument extends RedlandModel implements ArrayAccess, ISerialisable
 		{
 			return $this->primaryTopic();
 		}
+		if(!strcasecmp($key, 'resourceTopic'))
+		{
+			return $this->resourceTopic();
+		}
 		return $this->subject($key, null, false);
 	}
 
@@ -1422,7 +1434,7 @@ class RDFDocument extends RedlandModel implements ArrayAccess, ISerialisable
 			{
 				if(!$create)
 				{
-					error_log(' -- Not found');
+					error_log(' -- ' . $uri . ' - Not found');
 					return null;
 				}
 				$setType = true;
