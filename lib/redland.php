@@ -634,10 +634,14 @@ abstract class RDFInstanceBase extends RedlandBase implements ArrayAccess
 			{
 				$predicate = $predicate->node();
 			}
+			if($this->model === null)
+			{
+				$this->model = new RedlandModel(null, null, $this->world);
+			}			
 			$rs = librdf_model_as_stream($object->resource);
 			while(!librdf_stream_end($rs))
 			{
-				$statement = librdf_stream_get_object($stream);
+				$statement = librdf_stream_get_object($rs);
 				$new = librdf_new_statement_from_statement($statement);
 				librdf_statement_set_subject($new, $this->subject->resource);
 				librdf_statement_set_predicate($new, $predicate->resource);
@@ -1628,6 +1632,14 @@ class RDFSet extends RedlandModel implements Countable
 			librdf_model_add_statements($this->resource, librdf_model_as_stream($value->resource));
 			return;
 		}
+		if($value instanceof RDFURI)
+		{
+			die('about to add URI');
+			$statement = librdf_new_statement_from_nodes($this->world->resource, $this->blank, $this->blankPredicate, $value->node()->resource);
+			die('will add statement ' . librdf_statement_to_string($statement));
+			librdf_model_add_statement($this->resource, $statement);
+			return;
+		}
 		if($value instanceof RDFInstance)
 		{
 			librdf_model_add_statements($this->resource, librdf_model_as_stream($value->model->resource));
@@ -1636,12 +1648,6 @@ class RDFSet extends RedlandModel implements Countable
 		if($value instanceof RedlandNode)
 		{
 			$statement = librdf_new_statement_from_nodes($this->world->resource, $this->blank, $this->blankPredicate, $value->resource);
-			librdf_model_add_statement($this->resource, $statement);
-			return;
-		}
-		if($value instanceof RDFURI)
-		{
-			$statement = librdf_new_statement_from_nodes($this->world->resource, $this->blank, $this->blankPredicate, $value->node()->resource);
 			librdf_model_add_statement($this->resource, $statement);
 			return;
 		}
