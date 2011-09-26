@@ -198,6 +198,10 @@ if(function_exists('curl_init'))
 		
 		public function __construct($url = null)
 		{
+			if($url !== null)
+			{
+				$url = strval($url);
+			}
 			$this->handle = curl_init($url);
 			$this->options['url'] = $url;
 			$this->options['http200Aliases'] = $this->options['headers'] = $this->options['postQuote'] = $this->options['quote'] = array();
@@ -359,6 +363,10 @@ if(function_exists('curl_init'))
 			{
 				$this->options['httpGET'] = $this->options['httpPOST'] = $this->options['httpPUT'] = false;
 				$this->options['customRequest'] = null;
+			}
+			if(is_object($value))
+			{
+				$value = strval($value);
 			}
 			$this->options[$name] = $value;
 			if(isset(self::$boolProps[$name]))
