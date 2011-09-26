@@ -1813,7 +1813,7 @@ class RDFSet extends RedlandModel implements Countable
 		foreach($keys as $k => $key)
 		{
 			if(!is_resource($key))
-			{
+			{			   
 				$keys[$k] = librdf_new_node_from_uri($this->world->resource, librdf_new_uri($this->world->resource, $key));
 			}
 		}
@@ -1827,6 +1827,12 @@ class RDFSet extends RedlandModel implements Countable
 			{
 				foreach($keys as $k)
 				{
+					if(!strcmp(librdf_node_to_string($k), '<' . RDF::rdf.'about' . '>'))
+					{
+						$statement = librdf_new_statement_from_nodes($this->world->resource, $this->blank, $this->blankPredicate, librdf_new_node_from_uri_string($this->world->resource, $instance->subject()));
+						librdf_model_add_statement($this->resource, $statement);
+						continue;
+					}
 					$query = librdf_new_statement_from_nodes($this->world->resource, $instance->subject->resource, $k, null);
 					$rs = librdf_model_find_statements($instance->model->resource, $query);
 					librdf_model_add_statements($this->resource, $rs);
