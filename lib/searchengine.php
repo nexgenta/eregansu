@@ -112,6 +112,10 @@ class GenericWebSearch extends SearchEngine
 	{
 		uses('curl');
 		parent::__construct($uri);
+		if(!($uri instanceof URL))
+		{
+			$uri = new URL($uri);
+		}
 		if(!isset($uri->query))
 		{
 			$uri->query = 'q=%s';
