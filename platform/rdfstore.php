@@ -112,7 +112,6 @@ class RDFStore extends Store
 		$subj = $this->subjectOfObject($primary);
 		if(strlen($subj) && strncmp($subj, '#', 1) && strncmp($subj, '_:', 2) && !in_array($subj, $uris))
 		{
-			
 			$uris[] = strval($subj);
 		}
 		$data = $this->objectAsArray($primary);
@@ -123,6 +122,10 @@ class RDFStore extends Store
 		foreach($set as $k => $subject)
 		{
 			$set[$k] = $this->objectAsArray($subject);
+		}
+		if(($x = $doc['resourceTopic']) !== null)
+		{
+			$set[] = $x;
 		}
 		if(count($set))
 		{
