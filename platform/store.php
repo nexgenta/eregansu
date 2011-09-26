@@ -774,7 +774,8 @@ class Store extends Model
 	{
 		if(is_object($data))
 		{
-			$data = get_object_vars($data);
+			$data = $data->asArray();
+			$data = $data['value'];
 		}
 		else if(isset($data[0]))
 		{
@@ -782,7 +783,8 @@ class Store extends Model
 			{
 				if(is_object($entry))
 				{
-					$data[$k] = get_object_vars($data);
+					$entry = $entry->asArray();
+					$data[$k] = $entry['value'];
 				}
 			}
 			$object =& $data[0];
