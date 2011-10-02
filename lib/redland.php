@@ -597,9 +597,13 @@ abstract class RDFInstanceBase extends RedlandBase implements ArrayAccess
 
 	public function predicates()
 	{
+		if(!isset($this->model))
+		{
+			return array();
+		}
 		$list = array();
 		$query = librdf_new_statement_from_nodes($this->world->resource, $this->subject->resource, null, null);
-		$rs = librdf_model_find_statements($this->resource, $query);
+		$rs = librdf_model_find_statements($this->model->resource, $query);
 		if(!librdf_node_is_blank($this->subject->resource))
 		{
 			$list[] = RDF::rdf.'about';
@@ -973,22 +977,23 @@ abstract class RDFInstanceBase extends RedlandBase implements ArrayAccess
 	
 	public function __toString()
 	{
-		if(!$this->subject)
-		{
-			die('no subject');
-		}
-		if(!$this->subject->resource)
-		{
-			print_r($this->subject);
-			die('no subject *resource*');
-		}
+		assert($this->subject !== null);
+		assert($this->subject->resource !== null);
 		$uri = librdf_node_get_uri($this->subject->resource);
 		return librdf_uri_to_string($uri);
 	}
 
 	public function isA($type)
-	{			   
+	{
 		$type = $this->translateQName($type);
+		if(!strcmp($type, RDF::rdf.'Description'))
+		{
+			return true;
+		}
+		if($this->model === null)
+		{
+			return false;
+		}
 		$query = librdf_new_statement_from_nodes($this->world->resource,
 												 $this->subject->resource,
 												 librdf_new_node_from_uri($this->world->resource,
@@ -1231,13 +1236,11 @@ class RDFDocument extends RedlandModel implements ArrayAccess, ISerialisable
 
 	public function merge(RDFInstance $inst, $post = null)
 	{
-		if($inst->model === null)
-		{
-			print_r($inst);
-			die('attempt to merge instance with no model');
-			return;
-		}
-		$statements = librdf_model_as_stream($inst->model->resource);
+		assert($inst->model !== null);
+		assert($inst->model !== $this);
+		$subject = $inst->subject()->node();
+		$query = librdf_new_statement_from_nodes($this->world->resource, $subject->resource, null, null);
+		$statements = librdf_model_find_statements($inst->model->resource, $query);
 		librdf_model_add_statements($this->resource, $statements);
 		$inst->model = $this;
 		librdf_model_sync($this->resource);
@@ -1438,7 +1441,6 @@ class RDFDocument extends RedlandModel implements ArrayAccess, ISerialisable
 			{
 				if(!$create)
 				{
-					error_log(' -- ' . $uri . ' - Not found');
 					return null;
 				}
 				$setType = true;
@@ -1479,8 +1481,6 @@ class RDFDocument extends RedlandModel implements ArrayAccess, ISerialisable
 
 	public function subjectUris()
 	{
-		error_log('==== subjectUris -- ' . $this->fileURI . '  ====');
-		$list = array();
 		$subjects = array();
 		$rs = librdf_model_as_stream($this->resource);		
 		while(!librdf_stream_end($rs))
@@ -1490,14 +1490,13 @@ class RDFDocument extends RedlandModel implements ArrayAccess, ISerialisable
 			$k = librdf_uri_to_string($subject);
 			$subjects[$k] = $k;
 			librdf_stream_next($rs);
-		}
-		return $subjects;
+		}		
+		return array_values($subjects);
 	}
 
 
 	public function subjects()
 	{
-		error_log('==== subjects -- ' . $this->fileURI . '  ====');
 		$list = array();
 		$subjects = array();
 		$rs = librdf_model_as_stream($this->resource);		
@@ -1509,11 +1508,9 @@ class RDFDocument extends RedlandModel implements ArrayAccess, ISerialisable
 			$subjects[$k] = $subject;
 			librdf_stream_next($rs);
 		}
-		error_log('have list of ' . count($subjects));
 		foreach($subjects as $subj)
 		{
-//			error_log('Will obtain subject: ' . librdf_uri_to_string($subj));
-			$list[] = $this->subject($subject, null, false);
+			$list[] = $this->subject($subj, null, false);
 		}
 		return $list;
 	}
