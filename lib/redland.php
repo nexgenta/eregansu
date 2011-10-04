@@ -832,8 +832,8 @@ abstract class RDFInstanceBase extends RedlandBase implements ArrayAccess
 		{
 			return $this->subject->asUri();
 		}
-		$predicate = new RDFURI($this->translateQName($key));
-		$query = librdf_new_statement_from_nodes($this->world->resource, $this->subject->resource, $predicate->resource, null);
+		$predicate = new RDFURI($key);
+		$query = librdf_new_statement_from_nodes($this->world->resource, $this->subject->resource, $predicate->node()->resource, null);
 		$stream = librdf_model_find_statements($this->model->resource, $query);
 		while(!librdf_stream_end($stream))
 		{
