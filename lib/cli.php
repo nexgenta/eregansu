@@ -74,4 +74,9 @@ class CLIRequest extends Request
 			call_user_func($this->sessionInitialised, $this, $this->session);
 		}
 	}
+
+	public function header($name, $value = null, $replace = true)
+	{
+		/* Do nothing */
+	}
 }
