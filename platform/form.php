@@ -1,6 +1,6 @@
 <?php
 
-/* Copyright 2009, 2010 Mo McRoberts
+/* Copyright 2009-2011 Mo McRoberts
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
 /**
  * @framework EregansuCore Eregansu Core Library
  * @author Mo McRoberts <mo.mcroberts@nexgenta.com>
- * @year 2009, 2010
+ * @year 2009, 2010, 2011
  * @copyright Mo McRoberts
  * @include uses('form');
  * @sourcebase http://github.com/nexgenta/eregansu/blob/master/
@@ -34,6 +34,7 @@ class Form implements ArrayAccess
 	protected $fields = array(); /**< @internal */
 	protected $actions = array(); /**< @internal */
 	protected $name = 'form'; /**< @internal */
+	public $includeHiddenFields = null;
 	public $action = null;
 	public $errorCount = 0;
 	public $method = 'POST';
@@ -47,13 +48,34 @@ class Form implements ArrayAccess
 		$this->prefix = $name . '_';
 	}
 	
+	public function values()
+	{
+		$values = array();
+		foreach($this->fields as $k => $f)
+		{
+			if(isset($f['value']))
+			{
+				$values[$f['name']] = $f['value'];
+			}
+		}
+		return $values;
+	}
+
 	public function checkSubmission($req)
 	{
 		$this->action = null;
 		$this->errorCount = 0;
+		if($this->method == 'GET')
+		{
+			$data = $req->query;
+		}
+		else
+		{
+			$data = $req->postData;
+		}
 		foreach($this->actions as $act)
 		{
-			if(!empty($req->postData[$this->prefix . $act['name']]))
+			if(!empty($data[$this->prefix . $act['name']]))
 			{
 				$this->action = $act;
 				break;
@@ -61,12 +83,18 @@ class Form implements ArrayAccess
 		}
 		foreach($this->fields as $k => $f)
 		{
-			if(isset($req->postData[$this->prefix . $f['name']]))
+			if(isset($data[$this->prefix . $f['name']]))
 			{
-				$fv = trim($req->postData[$this->prefix . $f['name']]);
+				$fv = trim($data[$this->prefix . $f['name']]);
 				if(strlen($fv))
 				{
-					$this->fields[$k]['value'] = $fv;
+					$this->fields[$k]['rawValue'] = $fv;
+					if(!$this->process($fv, $this->fields[$k]))
+					{
+						$this->fields[$k]['error'] = true;
+						$this->errorCount++;
+					}
+					
 				}
 				else if(!empty($f['required']))
 				{
@@ -80,6 +108,42 @@ class Form implements ArrayAccess
 			return false;
 		}
 		return true;
+	}
+
+	protected function process($value, &$info)
+	{
+		$info['rawValue'] = $value;
+		$tvalue = trim($value);
+		$success = false;
+		if(!empty($info['trim']))
+		{
+			$value = $tvalue;
+		}
+		switch(@$info['type'])
+		{
+		case 'int':
+			if(!ctype_digit($tvalue))
+			{
+				$success = false;
+			}
+			$value = intval($tvalue);
+			break;
+		case 'float':
+			$value = floatval(trim($value));
+			break;
+		case 'checkbox':
+			if(!strcmp($value, $info['checkValue']))
+			{
+				$info['checked'] = true;
+			}
+			break;
+		case 'text':
+		case 'search':
+		case 'textarea':
+			break;
+		}
+		$info['value'] = $value;
+		return $success;
 	}
 	
 	public function field($info)
@@ -129,11 +193,18 @@ class Form implements ArrayAccess
 			}
 			$buf[] = '</ul>';
 		}
-		$buf[] = '<input type="hidden" name="__name[]" value="' . _e($this->name) . '" />';
-		$buf[] = '<input type="hidden" name="__method" value="' . _e($method) . '" />';
-		if(isset($req->session) && isset($req->session->fieldName))
+		if(($hidden = $this->includeHiddenFields) === null)
 		{
-			$buf[] = '<input type="hidden" name="' . _e($req->session->fieldName) . '" value="' . _e($req->session->sid) . '" />';
+			$hidden = ($this->method != 'GET');
+		}
+		if($hidden)
+		{			
+			$buf[] = '<input type="hidden" name="__name[]" value="' . _e($this->name) . '" />';
+			$buf[] = '<input type="hidden" name="__method" value="' . _e($method) . '" />';
+			if(isset($req->session) && isset($req->session->fieldName))
+			{
+				$buf[] = '<input type="hidden" name="' . _e($req->session->fieldName) . '" value="' . _e($req->session->sid) . '" />';
+			}
 		}
 		foreach($this->fields as $field)
 		{

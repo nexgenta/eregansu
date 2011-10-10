@@ -62,7 +62,7 @@ if(!function_exists('uses'))
 { 
 	function uses()
 	{
-		static $_lib_modules = array('asn1', 'base32', 'cli', 'curl', 'date', 'db', 'dbschema', 'execute', 'form', 'ldap', 'mime', 'observer', 'rdf', 'redland', 'request', 'session', 'url', 'uuid', 'xmlns', 'csv-import', 'xml', 'rdfxmlstream', 'searchengine');
+		static $_lib_modules = array('asn1', 'base32', 'cli', 'curl', 'date', 'db', 'dbschema', 'execute', 'ldap', 'mime', 'observer', 'rdf', 'redland', 'request', 'session', 'url', 'uuid', 'xmlns', 'csv-import', 'xml', 'rdfxmlstream', 'searchengine');
 		
 		$_modules = func_get_args();
 		foreach($_modules as $_mod)

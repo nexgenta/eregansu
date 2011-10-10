@@ -332,7 +332,6 @@ $AUTOLOAD = array(
 	'curlcache' => dirname(__FILE__) . '/curl.php',  
 	'dbcore' => dirname(__FILE__) . '/model.php',
 	'dbschema' => dirname(__FILE__) . '/dbschema.php',
-	'form' => dirname(__FILE__) . '/form.php',
 	'mime' => dirname(__FILE__) . '/mime.php',	
 	'rdf' => dirname(__FILE__) . '/rdf.php',
 	'rdfxmlstreamparser' => dirname(__FILE__) . '/rdfxmlstream.php',
