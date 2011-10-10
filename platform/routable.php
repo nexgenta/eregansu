@@ -136,10 +136,7 @@ class Routable implements IRequestProcessor
 	
 	protected function error($code, Request $req = null, $object = null, $detail = null)
 	{
-		$page = new Error($code);
-		$page->object = $object;
-		$page->detail = $detail;
-		return $page->process($req);
+		throw new Error($code, $object, $detail);
 	}
 }
 
@@ -470,10 +467,18 @@ class App extends Router
 	{
 		$this->parent = $req->app;
 		$req->app = $this;
-		$r = parent::process($req);
-		while(is_object($r) && $r instanceof IRequestProcessor)
+		try
 		{
-			$r = $r->process($req);
+			$r = parent::process($req);
+			while(is_object($r) && $r instanceof IRequestProcessor)
+			{
+				$r = $r->process($req);
+			}
+		}
+		catch(Error $e)
+		{
+			$e->process($req);
+			throw $e;
 		}
 		$req->app = $this->parent;
 		$this->parent = null;

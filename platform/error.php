@@ -25,11 +25,22 @@
 
 if(!defined('TEMPLATES_PATH')) define('TEMPLATES_PATH', 'templates');
 
-class TerminalErrorException extends Exception
+class TerminalErrorException extends Exception implements IRequestProcessor
 {
+	public $processed = false;
+
+	public function process(Request $req)
+	{
+		if($this->processed)
+		{
+			return false;
+		}
+		$this->processed = true;
+		return true;
+	}
 }
 
-class Error implements IRequestProcessor
+class Error extends TerminalErrorException
 {
 	const BAD_REQUEST = 400;
 	const AUTHORIZATION_REQUIRED = 401;
@@ -66,6 +77,8 @@ class Error implements IRequestProcessor
 	const NOT_EXTENDED = 509;
 	
 	public static $throw = false;
+
+	protected $backtrace = null;
 	
 	protected static $titles = array(
 		self::BAD_REQUEST => 'Bad request',
@@ -123,9 +136,12 @@ class Error implements IRequestProcessor
 	public $detail = null;
 	public $object = null;
 	
-	public static function backtrace($skip = 1)
+	public static function backtrace($skip = 1, $backtrace = null)
 	{
-		$backtrace = debug_backtrace();
+		if($backtrace === null)
+		{
+			$backtrace = debug_backtrace();
+		}
 		$list = array();
 		foreach($backtrace as $bt)
 		{
@@ -162,20 +178,31 @@ class Error implements IRequestProcessor
 		return $list;
 	}
 
-	public function __construct($aStatus = null)
+	public function __construct($aStatus = null, $object = null, $detail = null)
 	{
+		$this->backtrace = debug_backtrace();
 		if($aStatus && !is_object($aStatus))
 		{
 			$this->status = $aStatus;
+			$this->code = $this->status;
+			$this->message = $this->statusTitle($this->status);
 		}
+		$this->object = $object;
+		$this->detail = $detail;
 	}
 	
 	public function process(Request $req)
 	{	
+		if(!parent::process($req))
+		{
+			return;
+		}
 		$title = $this->statusTitle($this->status);
 		$desc = $this->statusDescription($this->status, $req);
 		error_log($this->status . ' [' . $title . '] ' . $req->method . ' ' . $req->uri . ' ' . $this->detail);
 		@header('HTTP/1.0 ' . floor($this->status) . ' ' . $title);
+		$this->message = $title;
+		$this->code = $this->status;
 		if(!isset($req->types) || (!isset($req->types['text/html']) && !isset($req->types['*'])))
 		{
 			@header('Content-type: text/plain');			
@@ -202,7 +229,7 @@ class Error implements IRequestProcessor
 					echo $this->detail . "\n";
 				}
 			}
-			if(self::$throw) throw new TerminalErrorException($title, $this->status);
+			if(self::$throw) throw $this;
 			if($req) $req->abort();
 			exit(1);
 		}
@@ -262,7 +289,6 @@ class Error implements IRequestProcessor
 				echo '<pre>' . _e($this->detail) . '</pre>';
 			}
 			echo "\t\t" . '<hr />' . "\n";
-			$backtrace = debug_backtrace();
 			echo "\t\t" . '<h2>Backtrace:</h2>' . "\n";
 			echo "\t\t" . '<table>' . "\n";
 			echo "\t\t\t" . '<thead>' . "\n";
@@ -273,7 +299,7 @@ class Error implements IRequestProcessor
 			echo "\t\t\t\t" . '</tr>' . "\n";
 			echo "\t\t\t" . '</thead>' . "\n";
 			echo "\t\t\t" . '<tbody>' . "\n";
-			foreach($backtrace as $bt)
+			foreach($this->backtrace as $bt)
 			{
 				if(isset($bt['function']))
 				{
