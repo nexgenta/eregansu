@@ -114,7 +114,7 @@ class Form implements ArrayAccess
 	{
 		$info['rawValue'] = $value;
 		$tvalue = trim($value);
-		$success = false;
+		$success = true;
 		if(!empty($info['trim']))
 		{
 			$value = $tvalue;
