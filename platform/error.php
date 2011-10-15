@@ -135,7 +135,8 @@ class Error extends TerminalErrorException
 	public $status = self::INTERNAL;
 	public $detail = null;
 	public $object = null;
-	
+	public $headers = array();
+
 	public static function backtrace($skip = 1, $backtrace = null)
 	{
 		if($backtrace === null)
@@ -201,6 +202,17 @@ class Error extends TerminalErrorException
 		$desc = $this->statusDescription($this->status, $req);
 		error_log($this->status . ' [' . $title . '] ' . $req->method . ' ' . $req->uri . ' ' . $this->detail);
 		@header('HTTP/1.0 ' . floor($this->status) . ' ' . $title);
+		foreach($this->headers as $name => $value)
+		{
+			if(is_numeric($name))
+			{
+				@header($value);
+			}
+			else
+			{
+				@header($name . ': ' . $value);
+			}
+		}
 		$this->message = $title;
 		$this->code = $this->status;
 		if(!isset($req->types) || (!isset($req->types['text/html']) && !isset($req->types['*'])))
