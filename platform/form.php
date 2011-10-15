@@ -85,8 +85,8 @@ class Form implements ArrayAccess
 		{
 			if(isset($data[$this->prefix . $f['name']]))
 			{
-				$fv = trim($data[$this->prefix . $f['name']]);
-				if(strlen($fv))
+				$fv = $data[$this->prefix . $f['name']];
+				if(is_array($fv) || strlen($fv))
 				{
 					$this->fields[$k]['rawValue'] = $fv;
 					if(!$this->process($fv, $this->fields[$k]))
@@ -110,10 +110,89 @@ class Form implements ArrayAccess
 		return true;
 	}
 
+	/* Process a field which consists of an array of values */	
+	protected function processArray(&$info)
+	{
+		$info['checked'] = array();
+		$info['error'] = array();
+		$info['value'] = array();
+		$success = true;
+		foreach($info['valuesAndLabels'] as $value => $label)
+		{
+			$x = $info;
+			unset($x['value']);
+			unset($x['array']);
+			unset($x['valuesAndLabels']);
+			unset($x['rawValue']);
+			unset($x['checked']);
+			unset($x['error']);
+			$x['label'] = $label;
+			$x['value'] = null;
+			$x['checkValue'] = $value;			
+			$rawValue = null;
+			if(!empty($info['ignoreKeys']))
+			{
+				if(in_array($value, $info['rawValue']))
+				{
+					$rawValue = $value;
+				}
+			}
+			else if(isset($info['rawValue'][$value]))
+			{
+				$rawValue = $info['rawValue'][$value];
+			}
+			$info['error'][$value] = !$this->process($rawValue, $x);
+			$info['checked'][$value] = !empty($x['checked']);
+			if($info['error'][$value])
+			{
+				$success = false;
+				$this->errorCount++;
+			}
+			if(!empty($info['ignoreKeys']))
+			{
+				if(isset($x['value']))
+				{
+					$info['value'][] = $x['value'];
+				}
+			}
+			else
+			{				
+				$info['value'][$value] = isset($x['value']) ? $x['value'] : null;
+			}
+			unset($x);
+		}
+		return $success;
+	}
+
 	protected function process($value, &$info)
 	{
 		$info['rawValue'] = $value;
-		$tvalue = trim($value);
+		if(is_array($value))
+		{
+			if(empty($info['array']))
+			{
+				$info['rawValue'] = null;
+				$value = null;
+				foreach($value as $v)
+				{
+					$info['rawValue'] = $v;
+					$tvalue = trim($v);
+				}
+			}
+			else
+			{
+				return $this->processArray($info);
+			}
+		}
+		else
+		{
+			if(!empty($info['array']))
+			{
+				$info['rawValue'] = array($value);
+				return $this->processArray($info);
+			}
+			$tvalue = trim($value);
+		}
 		$success = true;
 		if(!empty($info['trim']))
 		{
@@ -205,35 +284,10 @@ class Form implements ArrayAccess
 			{
 				$buf[] = '<input type="hidden" name="' . _e($req->session->fieldName) . '" value="' . _e($req->session->sid) . '" />';
 			}
-		}
+		}		
 		foreach($this->fields as $field)
 		{
-			$this->preprocess($field);
-			switch($field['type'])
-			{
-				case 'hidden':
-					$this->renderHidden($buf, $req, $field);
-					break;
-				case 'textarea':
-					$this->renderTextArea($buf, $req, $field);
-					break;
-				case 'password':
-					$this->renderPassword($buf, $req, $field);
-					break;
-				case 'label':
-					$this->renderLabel($buf, $req, $field);
-					break;
-				case 'select':
-					$this->renderSelect($buf, $req, $field);
-					break;
-				case 'checkbox':
-					$this->renderCheckbox($buf, $req, $field);
-					break;
-				default:
-					$this->renderText($buf, $req, $field);
-					break;
-					
-			}
+			$this->renderField($buf, $req, $field);
 		}
 		if(count($this->actions))
 		{
@@ -267,6 +321,74 @@ class Form implements ArrayAccess
 		if(!$multiple) $buf[] = '</form>';
 		return implode("\n", $buf);
 	}
+
+	protected function renderField(&$buf, $req, &$field)
+	{
+		if(!empty($field['array']))
+		{
+			if(isset($field['label']))
+			{
+				$x = $field;
+				unset($x['array']);
+				$x['type'] = 'label';
+				$x['value'] = $x['label'];
+				$x['label'] = null;
+				$this->renderField($buf, $req, $x);
+			}
+			foreach($field['valuesAndLabels'] as $k => $v)
+			{
+				$x = $field;
+				unset($x['array']);
+				unset($x['valuesAndLabels']);
+				unset($x['rawValue']);
+				if(!isset($field['value'][$k]))
+				{
+					$field['value'][$k] = null;
+				}
+				if(isset($x['type']) && $x['type'] == 'checkbox')
+				{
+					$x['checkValue'] = $k;
+				}
+				else
+				{
+					$x['defaultValue'] = $k;
+				}
+				$x['label'] = $v;
+				$x['index'] = $k;
+				$x['checked'] = !empty($field['checked'][$k]);
+				$x['error'] = !empty($field['error'][$k]);
+				$x['value'] = &$field['value'][$k];
+				$this->renderField($buf, $req, $x);
+			}
+			return;
+		}
+		$this->preprocess($field);
+		switch($field['type'])
+		{
+		case 'hidden':
+			$this->renderHidden($buf, $req, $field);
+			break;
+		case 'textarea':
+			$this->renderTextArea($buf, $req, $field);
+			break;
+		case 'password':
+			$this->renderPassword($buf, $req, $field);
+			break;
+		case 'label':
+			$this->renderLabel($buf, $req, $field);
+			break;
+		case 'select':
+			$this->renderSelect($buf, $req, $field);
+			break;
+		case 'checkbox':
+			$this->renderCheckbox($buf, $req, $field);
+			break;
+		default:
+			$this->renderText($buf, $req, $field);
+			break;
+			
+		}
+	}
 	
 	/**
 	 * @internal
@@ -286,10 +408,14 @@ class Form implements ArrayAccess
 		}
 		if(!isset($info['htmlName']))
 		{
-			$info['htmlName'] = htmlspecialchars($this->prefix . $info['name']);
-			if(isset($info['index']))
+			$info['htmlName'] = _e($this->prefix . $info['name']);
+			if(isset($info['index']) && !empty($info['ignoreKeys']))
 			{
-				$info['htmlName'] .= '[' . htmlspecialchars($info['index']) . ']';
+				$info['htmlName'] .= '[]';
+			}
+			else if(isset($info['index']))
+			{
+				$info['htmlName'] .= '[' . _e($info['index']) . ']';
 			}
 		}
 		if(!isset($info['id']))
@@ -302,7 +428,7 @@ class Form implements ArrayAccess
 		}
 		if(!isset($info['htmlId']))
 		{
-			$info['htmlId'] = htmlspecialchars($this->name . '-' . $info['id']);
+			$info['htmlId'] = _e($this->name . '-' . $info['id']);
 		}
 		if(!isset($info['suffix']))
 		{
@@ -340,7 +466,7 @@ class Form implements ArrayAccess
 			$pre = '<label for="' . $info['htmlId'] . '">';
 			if(empty($info['after']))
 			{
-				$pre .= htmlspecialchars($info['label']) . '&nbsp';
+				$pre .= _e($info['label']) . '&nbsp';
 			}
 			if(empty($info['contains']))
 			{
@@ -355,7 +481,7 @@ class Form implements ArrayAccess
 			}
 			if(!empty($info['after']))
 			{
-				$aft .= '&nbsp;' . htmlspecialchars($info['label']);
+				$aft .= '&nbsp;' . _e($info['label']);
 			}
 			$aft .= '</label>';
 		}
@@ -369,7 +495,7 @@ class Form implements ArrayAccess
 	 */	
 	protected function renderHidden(&$buf, $req, $info)
 	{
-		$buf[] = '<input id="' . $info['htmlId'] . '" type="hidden" name="' . $info['name'] . '" value="' . htmlspecialchars($info['value']) . '"' . $info['htmlSuffix'] . ' />';
+		$buf[] = '<input id="' . $info['htmlId'] . '" type="hidden" name="' . $info['name'] . '" value="' . _e($info['value']) . '"' . $info['htmlSuffix'] . ' />';
 	}
 	
 	/**
@@ -378,7 +504,7 @@ class Form implements ArrayAccess
 	protected function renderText(&$buf, $req, $info)
 	{
 		$this->renderVisible($buf, $req, $info,
-			'<input id="' . $info['htmlId'] . '" type="' . $info['type'] . '" name="' . $info['htmlName'] . '" value="' . htmlspecialchars($info['value']) . '"' . $info['htmlSuffix'] . ' />');
+			'<input id="' . $info['htmlId'] . '" type="' . $info['type'] . '" name="' . $info['htmlName'] . '" value="' . _e($info['value']) . '"' . $info['htmlSuffix'] . ' />');
 	}
 
 	/**
@@ -386,8 +512,7 @@ class Form implements ArrayAccess
 	 */
 	protected function renderCheckbox(&$buf, $req, $info)
 	{
-		if(!isset($info['checkValue'])) $info['checkValue'] = 1;
-		$checked = (strcmp($info['checkValue'], $info['value']) ? '' : ' checked="checked"');
+		$checked = empty($info['checked']) ? '' : ' checked="checked"';
 		$this->renderVisible($buf, $req, $info,
 			'<input id="' . $info['htmlId'] . '" type="checkbox" name="' . $info['htmlName'] . '" value="' . _e($info['checkValue']) . '"' . $checked . $info['htmlSuffix'] . ' />');
 	}
@@ -398,7 +523,7 @@ class Form implements ArrayAccess
 	protected function renderTextArea(&$buf, $req, $info)
 	{
 		$this->renderVisible($buf, $req, $info,
-			'<textarea id="' . $info['htmlId'] . '" type="text" name="' . $info['htmlName'] . '">' . htmlspecialchars($info['value']) . '</textarea>' . $info['htmlSuffix']);
+			'<textarea id="' . $info['htmlId'] . '" type="text" name="' . $info['htmlName'] . '">' . _e($info['value']) . '</textarea>' . $info['htmlSuffix']);
 	}
 
 	/**
@@ -407,7 +532,7 @@ class Form implements ArrayAccess
 	protected function renderPassword(&$buf, $req, $info)
 	{
 		$this->renderVisible($buf, $req, $info,
-			'<input id="' . $info['htmlId'] . '" type="password" name="' . $info['htmlName'] . '" value="' . htmlspecialchars($info['value']) . '"' . $info['htmlSuffix'] . ' />');
+			'<input id="' . $info['htmlId'] . '" type="password" name="' . $info['htmlName'] . '" value="' . _e($info['value']) . '"' . $info['htmlSuffix'] . ' />');
 	}
 
 	/**
@@ -416,7 +541,7 @@ class Form implements ArrayAccess
 	protected function renderLabel(&$buf, $req, $info)
 	{
 		$this->renderVisible($buf, $req, $info,
-			'<p>' . htmlspecialchars($info['value']) . '</p>');
+			'<p>' . _e($info['value']) . '</p>');
 	}
 	
 	/**
