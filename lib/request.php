@@ -692,7 +692,18 @@ class HTTPRequest extends Request
 		{
 			foreach($this->query as $k => $v)
 			{
-				$this->query[$k] = stripslashes($v);
+				if(is_array($v))
+				{
+					foreach($v as $k => $x)
+					{
+						$v[$k] = stripslashes($x);
+					}
+					$this->query[$k] = $v;
+				}
+				else
+				{
+					$this->query[$k] = stripslashes($v);
+				}
 			}
 		}
 		$this->uriArray = $this->arrayFromURI($this->uri);
