@@ -326,6 +326,15 @@ class Form implements ArrayAccess
 	{
 		if(!empty($field['array']))
 		{
+			if(!isset($field['id']))
+			{
+				$field['id'] = $field['name'];
+				if(isset($field['index']))
+				{
+					$field['id'] .= '-' . $field['index'];
+				}
+			}
+			$buf[] = '<div class="field-array" id="' . _e('fa-' . $this->name . '-' . $field['id']) . '">';
 			if(isset($field['label']))
 			{
 				$x = $field;
@@ -341,6 +350,9 @@ class Form implements ArrayAccess
 				unset($x['array']);
 				unset($x['valuesAndLabels']);
 				unset($x['rawValue']);
+				unset($x['id']);
+				unset($x['htmlId']);
+				unset($x['htmlName']);
 				if(!isset($field['value'][$k]))
 				{
 					$field['value'][$k] = null;
@@ -357,9 +369,10 @@ class Form implements ArrayAccess
 				$x['index'] = $k;
 				$x['checked'] = !empty($field['checked'][$k]);
 				$x['error'] = !empty($field['error'][$k]);
-				$x['value'] = &$field['value'][$k];
+				$x['value'] = &$field['value'][$k];				
 				$this->renderField($buf, $req, $x);
 			}
+			$buf[] = '</div>';
 			return;
 		}
 		$this->preprocess($field);
@@ -446,7 +459,6 @@ class Form implements ArrayAccess
 				$info['htmlSuffix'] = '';
 			}
 		}
-		
 	}
 	
 	/**
