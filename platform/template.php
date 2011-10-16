@@ -37,6 +37,11 @@ class Template
 	
 	public function __construct($req, $filename, $skin = null, $fallbackSkin = null)
 	{
+		if(!in_array('template+file', stream_get_wrappers()))
+		{
+			stream_wrapper_register('template+file', 'TemplateFileHandler');
+			stream_filter_register('template', 'TemplateFilter');
+		}
 		$this->request = $req;
 		if(!strlen($skin))
 		{
@@ -109,7 +114,14 @@ class Template
 		$__ot = !empty($_EREGANSU_TEMPLATE);
 		extract($this->vars, EXTR_REFS);
 		$_EREGANSU_TEMPLATE = true;
-		require($this->path);
+		if(!empty($this->vars['inhibitProcessing']))
+		{			
+			require($this->path);
+		}
+		else
+		{
+			require('template+file://' . realpath($this->path));
+		}
 		$_EREGANSU_TEMPLATE = $__ot;
 	}
 
@@ -220,3 +232,140 @@ class Template
 		}
 	}
 }
+
+class TemplateFilter extends php_user_filter
+{
+	function filter($in, $out, &$consumed, $closing)
+	{
+		while($bucket = stream_bucket_make_writeable($in))
+		{
+			if(($start = strpos($bucket->data, '<%')) !== false)
+			{
+				if(($end = strpos($bucket->data, '%>', $start + 2)) === false)
+				{
+					if($start)
+					{
+						$bucket->data = substr($bucket->data, $start);
+						$consumed += $start;
+						stream_bucket_append($out, $bucket);
+						continue;
+					}
+					return PSFS_FEED_ME;
+				}
+				$inner = substr($bucket->data, $start + 2, ($end - $start - 2));			   
+				$replacement = $this->process($inner);
+				$bucket->data = ($start ? substr($bucket->data, 0, $start) : '') . $replacement . substr($bucket->data, $end + 2);
+				$bucket->datalen = $bucket->datalen - strlen($inner) + strlen($replacement);
+			}
+			$consumed += $bucket->datalen;
+			stream_bucket_append($out, $bucket);
+		}
+		return PSFS_PASS_ON;
+	}
+
+	protected function process($tag)
+	{
+		$tag = trim($tag);
+		if(!strlen($tag))
+		{
+			return '';
+		}
+		if(substr($tag, 0, 1) == '=')
+		{
+			return '<?php e(' . substr($tag, 1) . ');?>';
+		}
+		return '<!--[INVALID TAG' . (defined('EREGANSU_DEBUG') ? (': ' . $tag) : '') . ']-->';
+	}
+}
+
+class TemplateFileHandler
+{
+	public $context;
+	protected $stream;
+	protected $prefix = 'template+file://';
+
+	public function stream_open($path, $mode, $options, &$opened_path)
+	{
+		if(strncmp($path, $this->prefix, strlen($this->prefix)))
+		{
+			trigger_error('TemplateFileHandler: Invalid URI passed to stream_open(): ' . $path);
+		}
+		$path = substr($path, strlen($this->prefix));
+		if(false === ($this->stream = fopen($path, $mode)))
+		{
+			if($options & STREAM_REPORT_ERRORS)
+			{
+				trigger_error('TemplateFileHandler: Unable to locate resource for ' . $path, E_USER_WARNING);
+			}
+			return false;
+		}
+		stream_filter_append($this->stream, 'template');
+		$opened_path = $path;
+		return true;
+	}
+
+	public function stream_close()
+	{
+		fclose($this->stream);
+	}
+
+	public function stream_cast($as)
+	{
+		return $this->stream;
+	}
+
+	public function stream_eof()
+	{
+		return feof($this->stream);
+	}
+
+	public function stream_flush()
+	{
+		return fflush($this->stream);
+	}
+
+	public function stream_lock($operation)
+	{
+		return flock($this->stream, $operation);
+	}
+
+	public function stream_read($count)
+	{
+		return fread($this->stream, $count);
+	}
+
+	public function stream_write($data)
+	{
+		return fwrite($this->stream, $data);
+	}
+
+	public function stream_seek($offset, $whence = SEEK_SET)
+	{
+		return fseek($this->stream, $offset, $whence);
+	}
+
+	public function stream_stat()
+	{
+		return fstat($this->stream);
+	}
+
+	public function stream_tell()
+	{
+		return ftell($this->stream);
+	}
+	
+	public function mkdir($path, $mode, $options)
+	{
+		if($options & STREAM_REPORT_ERRORS)
+		{
+			trigger_error('TemplateFileHandler: mkdir() cannot be used with template+file: URIs', E_USER_NOTICE);
+		}
+		return false;
+	}
+
+	public function readlink($path)
+	{
+		return readlink($path);
+	}
+}
+
