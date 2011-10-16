@@ -236,29 +236,59 @@ class Template
 class TemplateFilter extends php_user_filter
 {
 	function filter($in, $out, &$consumed, $closing)
-	{
+	{		
 		while($bucket = stream_bucket_make_writeable($in))
 		{
-			if(($start = strpos($bucket->data, '<%')) !== false)
+			$body = $bucket->data;
+			$bodylen = $bucket->datalen;
+			$bucket->data = '';
+			$bucket->datalen = 0;
+			while(($start = strpos($body, '<%')) !== false)
 			{
-				if(($end = strpos($bucket->data, '%>', $start + 2)) === false)
+				if($start)
 				{
-					if($start)
+					$rest = substr($body, $start);
+					$len = $bodylen - $start;
+					$bucket->data .= substr($body, 0, $start);
+					$bucket->datalen += $start;
+					$consumed += $start;
+				}
+				else
+				{
+					$rest = $body;
+					$len = $bodylen;
+				}
+				if(($end = strpos($rest, '%>', 2)) === false)
+				{
+					if($bucket->datalen)
 					{
-						$bucket->data = substr($bucket->data, $start);
-						$consumed += $start;
 						stream_bucket_append($out, $bucket);
-						continue;
 					}
+					$bucket->data = $rest;
+					$bucket->datalen = $len;
 					return PSFS_FEED_ME;
 				}
-				$inner = substr($bucket->data, $start + 2, ($end - $start - 2));			   
+				$consumed += $end + 2;
+				$inner = substr($rest, 2, ($end - 2));
 				$replacement = $this->process($inner);
-				$bucket->data = ($start ? substr($bucket->data, 0, $start) : '') . $replacement . substr($bucket->data, $end + 2);
-				$bucket->datalen = $bucket->datalen - strlen($inner) + strlen($replacement);
+				$bucket->data .= $replacement;
+				$bucket->datalen += strlen($replacement);
+				$next = substr($rest, $end + 2);
+				$nextlen = $len - ($end + 2);				
+				$body = $next;
+				$bodylen = $nextlen;
+				continue;
 			}
-			$consumed += $bucket->datalen;
-			stream_bucket_append($out, $bucket);
+			if($bodylen)
+			{
+				$consumed += $bodylen;
+				$bucket->data .= $body;
+				$bucket->datalen .= $bodylen;
+			}
+			if($bucket->datalen)
+			{
+				stream_bucket_append($out, $bucket);
+			}
 		}
 		return PSFS_PASS_ON;
 	}
@@ -274,7 +304,35 @@ class TemplateFilter extends php_user_filter
 		{
 			return '<?php e(' . substr($tag, 1) . ');?>';
 		}
-		return '<!--[INVALID TAG' . (defined('EREGANSU_DEBUG') ? (': ' . $tag) : '') . ']-->';
+		$tag = explode(' ', $tag, 2);
+		if(!isset($tag[1])) $tag[1] = null;
+		$tag[1] = trim($tag[1]);
+		switch($tag[0])
+		{
+		case 'include':
+		case 'require':
+		case 'include_once':
+		case 'require_once':
+			return '<?php ' . $tag[0] . '("template+file://" . realpath(' . $tag[1] . '));?>';
+		case 'if':
+			return '<?php if(' . $tag[1] . ') { ?>';
+		case 'else':
+			return '<?php } else { ?>';
+		case 'elseif':
+		case 'elif':
+			return '<?php } else if(' . $tag[1] . ') { ?>';
+		case 'while':
+			return '<?php while(' . $tag[1] . ') { ?>';			
+		case 'foreach':
+			return '<?php foreach(' . $tag[1] . ') { ?>';
+		case 'for':
+			return '<?php for(' . $tag[1] . ') { ?>';
+		case 'endif':
+		case 'endwhile':
+		case 'endfor':
+			return '<?php } ?>';
+		}
+		return '<!--[INVALID TAG' . (defined('EREGANSU_DEBUG') ? (': ' . $tag[0]) : '') . ']-->';
 	}
 }
 
