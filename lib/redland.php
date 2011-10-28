@@ -403,6 +403,11 @@ class RDFURI extends RedlandBase
 		return array('type' => 'uri', 'value' => librdf_uri_to_string($this->resource));
 	}
 
+	public function asJSONLD()
+	{
+		return array('@uri' => librdf_uri_to_string($this->resource));
+	}
+
 	public function node()
 	{
 		if($this->node === null)
@@ -974,6 +979,109 @@ abstract class RDFInstanceBase extends RedlandBase implements ArrayAccess
 			return array('type' => 'node', 'value' => $predicates);
 		}
 	}
+
+	/* Transform this instance into a native array which can itself be
+	 * serialised as JSON to result in JSON-LD.
+	 */
+	public function asJSONLD($doc)
+	{
+		$array = array('@context' => array(), '@subject' => null, '@type' => null);
+		$isArray = array();
+		$up = array();
+		$bareProps = RDF::barePredicates();
+		$uriProps = RDF::uriPredicates();
+		$props = $this->predicateObjectList();
+		$array['@subject'] = strval($this->subject->asUri());
+		foreach($props as $name => $values)
+		{
+			if(strpos($name, ':') === false) continue;
+			if(!is_array($values)) continue;
+			if(!strcmp($name, RDF::rdf.'about'))
+			{
+				$name = $kn = '@subject';
+			}
+			else if(!strcmp($name, RDF::rdf.'type'))
+			{
+				$name = $kn = '@type';
+			}
+			else if(($kn = array_search($name, $bareProps)) !== false)
+			{
+				if(!isset($array['@context'][$kn]))
+				{
+					$array['@context'][$kn] = $name;
+				}
+			}
+			else
+			{
+				$kn = $doc->namespacedName($name, true);
+				$x = explode(':', $kn, 2);
+				if(count($x) == 2 && !isset($array['@context'][$x[0]]))
+				{
+					$ns = array_search($x[0], $doc->namespaces);
+					$array['@context'][$x[0]] = $ns;
+				}
+			}
+			foreach($values as $v)
+			{				
+				if($v instanceof RDFURI)
+				{
+					$vn = $doc->namespacedName($v, false);				
+				}
+				if(is_object($v))
+				{
+					$value = $v->asJSONLD($doc);
+				}
+				else
+				{
+					$value = strval($v);
+				}
+				if(($kn == '@' || $kn == 'a' || in_array($name, $uriProps)) && is_array($value))
+				{
+					if($kn != '@' && $kn != 'a')
+					{
+						$up[$name] = $kn;
+					}
+					if(isset($value['@uri']))
+					{
+						$value = $value['@uri'];
+					}
+				}
+				if(isset($array[$kn]))
+				{
+					if(empty($isArray[$kn]))
+					{
+						$array[$kn] = array($array[$kn]);
+						$isArray[$kn] = true;
+					}
+					$array[$kn][] = $value;
+				}
+				else
+				{
+					$array[$kn] = $value;
+				}
+			}
+		}
+		if(count($up))
+		{
+			$array['@context']['@coerce']['xsd:anyURI'] = array();
+			foreach($uriProps as $uri)
+			{
+				if(isset($up[$uri]))
+				{
+					$array['@context']['@coerce']['xsd:anyURI'][] = $up[$uri];
+				}
+			}
+		}
+		if(!isset($array['@']))
+		{
+			unset($array['@']);
+		}
+		if(!isset($array['a']))
+		{
+			unset($array['a']);
+		}
+		return $array;
+	}
 	
 	public function __toString()
 	{
@@ -1080,6 +1188,26 @@ class RDFComplexLiteral extends RedlandNode
 	{
 		return strval($this->value);
 	}
+
+	public function asJSONLD()
+	{
+		$l = $this->lang();
+		$t = $this->type();
+		if(strlen($l) || strlen($t))
+		{
+			$a = array('@literal' => $this->value);
+			if(strlen($l))
+			{
+				$a['@language'] = $l;
+			}
+			if(strlen($t))
+			{
+				$a['@datatype'] = $t;
+			}
+			return $a;
+		}
+		return strval($this->value);
+	}
 }
 
 class RDFXMLLiteral extends RDFComplexLiteral
@@ -1103,6 +1231,9 @@ class RDFDocument extends RedlandModel implements ArrayAccess, ISerialisable
 	public $fileURI;
 	public $primaryTopic;
 	public $rdfInstanceClass = 'RDFInstance';
+	public $namespaces = array();
+	protected $qnames = array();
+	protected $positions = array();
 
 	public function __construct($fileURI = null, $primaryTopic = null, $storage = null, $options = null, $world = null)
 	{
@@ -1137,6 +1268,11 @@ class RDFDocument extends RedlandModel implements ArrayAccess, ISerialisable
 		if(($inst = $this->merge($inst, $pos)))
 		{
 			$this->promote($inst);
+			if($pos !== null)
+			{
+				$s = strval($inst->subject());
+				array_splice($this->positions, $pos, 0, array($s));
+			}
 		}
 		return $inst;		
 	}
@@ -1327,10 +1463,123 @@ class RDFDocument extends RedlandModel implements ArrayAccess, ISerialisable
 		$ser = new RedlandJSONSerializer('json-triples');
 		return $ser->serializeModelToString($this);
 	}
+
+	public function asJSONLD()
+	{
+		$array = array();
+		$subjects = array();
+		$rs = librdf_model_as_stream($this->resource);		
+		while(!librdf_stream_end($rs))
+		{
+			$statement = librdf_stream_get_object($rs);
+			$subject = librdf_node_get_uri(librdf_statement_get_subject($statement));
+			$k = librdf_uri_to_string($subject);
+			$subjects[$k] = $subject;
+			librdf_stream_next($rs);
+		}
+		$positions = $this->positions;
+		$done = array();
+		$i = 0;
+		while(true)
+		{
+			if(isset($positions[$i]))
+			{
+				$done[$positions[$i]] = true;
+				if(($obj = $this->subject($positions[$i], null, false)) !== null)
+				{
+					$array[] = $obj->asJSONLD($this);
+				}
+				unset($positions[$i]);
+				$i++;
+				continue;
+			}
+			$subj = array_shift($subjects);
+			if($subj === null)
+			{
+				break;
+			}
+			if(isset($done[$subj]))
+			{
+				continue;
+			}
+			if(($obj = $this->subject($subj, null, false)) !== null)
+			{
+				$array[] = $obj->asJSONLD($this);
+			}		
+			$i++;
+		}
+		foreach($positions as $subj)
+		{
+			if(($obj = $this->subject($subj, null, false)) !== null)
+			{
+				$array[] = $obj->asJSONLD($this);
+			}			
+		}			
+		return str_replace('\/', '/', json_encode($array));		
+	}
 	
 	public function promote($subject)
 	{
 		/* No-op */
+	}
+
+	/* Given a URI, generate a prefix:short form name */
+	public function namespacedName($qname, $generate = true)
+	{
+		RDF::ns();
+		$qname = strval($qname);
+		if(!isset($this->qnames[$qname]))
+		{
+			if(false !== ($p = strrpos($qname, '#')))
+			{
+				$ns = substr($qname, 0, $p + 1);
+				$lname = substr($qname, $p + 1);
+			}
+			else if(false !== ($p = strrpos($qname, ' ')))
+			{
+				$ns = substr($qname, 0, $p);
+				$lname = substr($qname, $p + 1);
+			}
+			else if(false !== ($p = strrpos($qname, '/')))
+			{
+				$ns = substr($qname, 0, $p + 1);
+				$lname = substr($qname, $p + 1);
+			}
+			else
+			{
+				return $qname;
+			}
+			if(!strcmp($ns, XMLNS::xml))
+			{
+				return 'xml:' . $lname;
+			}
+			if(!strcmp($ns, XMLNS::xmlns))
+			{
+				return 'xmlns:' . $lname;
+			}
+			if(!isset($this->namespaces[$ns]))
+			{
+				if(isset(RDF::$namespaces[$ns]))
+				{
+					$this->namespaces[$ns] = RDF::$namespaces[$ns];
+				}
+				else if($generate)
+				{
+					$this->namespaces[$ns] = 'ns' . count($this->namespaces);
+				}
+				else
+				{
+					return $qname;
+				}
+			}
+			if(!strlen($lname))
+			{
+				return $qname;
+			}
+			$pname = $this->namespaces[$ns] . ':' . $lname;
+			$this->qnames[$qname] = $pname;
+		}
+		return $this->qnames[$qname];		
 	}
 
 	/* Return the RDFInstance which is either explicitly or implicitly the
