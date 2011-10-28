@@ -772,7 +772,7 @@ class Proxy extends Router
 		if(isset($this->object))
 		{
 			if(!($this->object instanceof ISerialisable) || $this->object->serialise($type) === false)
-			{					
+			{
 				echo json_encode($this->object);
 			}
 		}
