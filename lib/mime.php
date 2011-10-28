@@ -246,5 +246,8 @@ abstract class MIME
 		'turtle' => 'Turtle',
 		'x-pem-file' => 'PEM',
 		'xml' => 'XML',
+		'ld+json' => 'JSON-LD',
+		'rdf+json' => 'RDF/JSON',
+		'x-rdf-json' => 'RDF/JSON',
 	);
 }
