@@ -54,6 +54,18 @@ abstract class MIME
 	 */
 	public static function extForType($type)
 	{
+		global $MIME_MAP;
+
+		if(isset($MIME_MAP) && is_array($MIME_MAP) && count($MIME_MAP))
+		{
+			foreach($MIME_MAP as $xt => $exts)
+			{
+				self::$map[$xt] = $exts;
+			}
+			unset($MIME_MAP);
+			self::$typeMap = null;
+			self::$extMap = null;
+		}
 		if(!self::$typeMap)
 		{
 			foreach(self::$map as $mime => $exts)
@@ -82,6 +94,18 @@ abstract class MIME
 	 */
 	public static function typeForExt($ext)
 	{
+		global $MIME_MAP;
+
+		if(isset($MIME_MAP) && is_array($MIME_MAP) && count($MIME_MAP))
+		{
+			foreach($MIME_MAP as $xt => $exts)
+			{
+				self::$map[$xt] = $exts;
+			}
+			unset($MIME_MAP);
+			self::$typeMap = null;
+			self::$extMap = null;
+		}
 		if(!self::$extMap)
 		{
 			foreach(self::$map as $mime => $exts)
@@ -147,6 +171,17 @@ abstract class MIME
 		}
 		return trim($prefix . ' ' . $suffix);
 	}
+
+	public static function register($type, $exts)
+	{
+		if(!is_array($exts))
+		{
+			$exts = array($exts);
+		}
+		self::$map[$type] = $exts;
+		self::$extMap = null;
+		self::$typeMap = null;
+	}
 	
 	/**
 	 * @internal
@@ -158,6 +193,7 @@ abstract class MIME
 		'text/xml' => array('xml'),
 		'text/turtle' => array('ttl'),
 		'text/n3' => array('n3'),
+		'text/javascript' => array('js'),
 
 		'application/xml' => array('xml'),
 		'application/xhtml+xml' => array('xhtml'),
