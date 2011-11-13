@@ -679,24 +679,26 @@ class Proxy extends Router
 		{
 		case 'text/xml':
 		case 'application/xml':
-			return $this->perform_GET_XML();
+			return $this->perform_GET_XML($type);
 		case 'application/json':
-			return $this->perform_GET_JSON();
+			return $this->perform_GET_JSON($type);
 		case 'application/x-rdf+json':
 		case 'application/rdf+json':
-			return $this->perform_GET_RDFJSON();
+			return $this->perform_GET_RDFJSON($type);
 		case 'application/rdf+xml':
-			return $this->perform_GET_RDF();
+			return $this->perform_GET_RDF($type);
 		case 'text/turtle':
-			return $this->perform_GET_Turtle();
+			return $this->perform_GET_Turtle($type);
 		case 'application/x-yaml':
-			return $this->perform_GET_YAML();
+			return $this->perform_GET_YAML($type);
 		case 'application/atom+xml':
-			return $this->perform_GET_Atom();
+			return $this->perform_GET_Atom($type);
 		case 'text/plain':
-			return $this->perform_GET_Text();		   
+			return $this->perform_GET_Text($type);
 		case 'text/html':
-			return $this->perform_GET_HTML();
+			return $this->perform_GET_HTML($type);
+		case 'text/javascript':
+			return $this->perform_GET_JS($type);
 		}
 		/* Try to construct a method name based on the MIME type */
 		$ext = preg_replace('![^A-Z]!', '_', strtoupper(MIME::extForType($type)));
@@ -711,17 +713,21 @@ class Proxy extends Router
 		return $this->serialise($type);
 	}
 
+	protected function perform_GET_JS($type = 'text/javascript')
+	{
+		return $this->perform_GET_JSON($type);
+	}
+
 	protected function serialise($type, $returnBuffer = false, $sendHeaders = true, $reportError = true)
 	{
 		if(!($this->object instanceof ISerialisable))
 		{
 			if($reportError)
 			{
-				print_r($this->object);
-				$this->error(Error::METHOD_NOT_IMPLEMENTED, $this->request, null, 'Object is not serialisable');
+				$this->error(Error::TYPE_NOT_SUPPORTED, $this->request, null, 'Object is not serialisable (requested ' . $type . ')');
 			}
 			return false;
-		}		
+		}
 		if(false === ($r = $this->object->serialise($type, $returnBuffer, $this->request, $sendHeaders)))
 		{
 			if($reportError)
@@ -747,7 +753,7 @@ class Proxy extends Router
 		return $this->serialise($type);
 	}
 
-	protected function perform_GET_JSON()
+	protected function perform_GET_JSON($type = 'application/json')
 	{
 		if(isset($this->request->query['jsonp']))
 		{
@@ -765,7 +771,6 @@ class Proxy extends Router
 		{
 			$prefix = null;
 			$suffix = null;
-			$type = 'application/json';
 		}
 		$this->request->header('Content-type', $type);
 		echo $prefix;
