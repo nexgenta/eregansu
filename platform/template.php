@@ -33,6 +33,7 @@ class Template
 	public $path;
 	public $request;
 	public $vars = array();
+	protected $filename;
 	protected $skin;
 	
 	public function __construct($req, $filename, $skin = null, $fallbackSkin = null)
@@ -60,6 +61,7 @@ class Template
 		}
 		$this->skin = $skin;
 		$this->reset();
+		$this->filename = $filename;
 		$this->path = $this->vars['skin_path'] . $filename;
 	}
 	
@@ -120,6 +122,10 @@ class Template
 		}
 		else
 		{
+			if(!file_exists($this->path))
+			{
+				trigger_error('Template ' . $this->skin . '/' . $this->filename . ' does not exist', E_USER_ERROR);
+			}
 			require('template+file://' . realpath($this->path));
 		}
 		$_EREGANSU_TEMPLATE = $__ot;
@@ -346,9 +352,15 @@ class TemplateFileHandler
 	{
 		if(strncmp($path, $this->prefix, strlen($this->prefix)))
 		{
-			trigger_error('TemplateFileHandler: Invalid URI passed to stream_open(): ' . $path);
+			trigger_error('TemplateFileHandler: Invalid URI passed to stream_open(): ' . $path, E_USER_ERROR);
+			return;
 		}
 		$path = substr($path, strlen($this->prefix));
+		if(!strlen($path))
+		{
+			trigger_error('Empty path passed to TemplateFileHandler', E_USER_ERROR);
+			return;
+		}
 		if(false === ($this->stream = fopen($path, $mode)))
 		{
 			if($options & STREAM_REPORT_ERRORS)
