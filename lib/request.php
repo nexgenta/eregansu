@@ -738,6 +738,14 @@ class HTTPRequest extends Request
 		$this->page = array();
 		$this->objects = array();
 		$this->pageUri = $this->root;
+		if($this->pageUri == '/')
+		{
+			$this->resource = '/index';
+		}
+		else
+		{
+			$this->resource = substr($this->pageUri, 0, -1);
+		}
 		if(!strncmp($this->root, $this->uri, strlen($this->root)))
 		{
 			$rel = substr($this->uri, strlen($this->root) - 1);
