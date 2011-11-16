@@ -662,7 +662,18 @@ class HTTPRequest extends Request
 	protected function init()
 	{
 		parent::init();
-	 	/* Use a single sapi value for all of the different HTTP-based PHP SAPIs */		
+		if(ini_get('expose_php'))
+		{
+			if(function_exists('header_remove'))
+			{
+				@header_remove('X-Powered-By');
+			}
+			else
+			{
+				@header('X-Powered-By: Eregansu');
+			}
+		}
+	 	/* Use a single sapi value for all of the different HTTP-based PHP SAPIs */
 		$this->sapi = 'http';
 		$this->protocol = @$_SERVER['SERVER_PROTOCOL'];
 		if(!strlen($this->protocol))
