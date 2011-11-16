@@ -44,17 +44,19 @@ abstract class Request implements IObservable
 {
 	public $sapi; /**< The name of the server API (SAPI) */
 	public $data = array(); /**< Application-defined per-request storage */
+	public $protocol; /**< The request protocol (e.g., HTTP/1.0) */
 	public $method; /**< The request method (e.g., GET, POST, PUT, etc). */
 	public $uri; /**< The URI of the request (for example, /foo) */
 	public $uriArray; /**< The value of the $uri property, exploded as an array of path components */
 	public $self; /**< The full path to the top-level PHP script (i.e., the same value as $_SERVER['PHP_SELF']) */
 	public $selfArray; /**< The value of the $self property, exploded as an array of path components */
-	public $root; /**< The URI of the application root */
-	public $params; /**< The array of parameters, if any, included in the request */
-	public $objects; /**< The array of objects, if any, included in the request */
+	public $root; /**< The URI of the application root, including trailing slash */
+	public $params; /**< The array of parameters, if any, included in the request (any path components following the current $base and $page) */
+	public $objects; /**< The array of objects, if any, included in the request (in the path, following "/-/") */
 	public $page; /**< The array of path elements which make up the current page relative to the application root */
-	public $base; /**< The URI of the current application base */
-	public $pageUri; /**< The URI of the current page */
+	public $base; /**< The URI of the current application base, with trailing slash */
+	public $pageUri; /**< The URI of the current page, with trailing slash */
+	public $resource; /**< The URI of the current page, without trailing slash; if $pageUri is '/', $resourceUri is '/index' */
 	public $types; /**< Accepted MIME types, in order of preference */
 	public $contentType; /**< MIME type of the body of the request, if any */
 	public $app; /**< The current application instance, if any */
@@ -269,7 +271,27 @@ abstract class Request implements IObservable
 		{
 			$this->pageUri = $this->base;
 		}
+		if($this->pageUri == '/')
+		{
+			$this->resource = '/index';
+		}
+		else
+		{
+			$this->resource = substr($this->pageUri, 0, -1);
+		}
 		return $p;
+	}
+
+	/* Return the first item from $this->params, if present, without shifting
+	 * it onto $this->page or $this->base
+	 */
+	public function peek()
+	{
+		if(isset($this->params[0]))
+		{
+			return $this->params[0];
+		}
+		return null;
 	}
 
 	/**
@@ -433,33 +455,12 @@ abstract class Request implements IObservable
 				return 405; /* Method Not Allowed */
 			}
 		}
-		/* XXX:
-		 *
-		 * 1. $contentTypes should be sorted according to the q-values of both
-		 *    it and $this->types
-		 *
-		 * 2. To do this, it should be possible for $contentTypes to be an
-		 *    array-of-arrays (e.g., array('type' => 'text/html', 'q' => 0.5))
-		 *
-		 * 3. If $contentTypes has come from Proxy::$supportedTypes, we really
-		 *    need to support it being an array anyway, as there are additional
-		 *    attributes (e.g., "hide") which would be useful to expose.
-		 */
-
 		/* Transform $contentTypes into a form we can use */
 		if($contentTypes !== null)
 		{
 			$match = array();
 			$alternates = array();
-			$uri = $this->uri;
-			while(substr($uri, -1) == '/')
-			{
-				$uri = substr($uri, 0, -1);
-			}
-			if(!strlen($uri))
-			{
-				$uri = '/index';
-			}
+			$uri = $this->resource;
 			foreach($contentTypes as $k => $value)
 			{
 				if(is_array($value))
@@ -663,13 +664,18 @@ class HTTPRequest extends Request
 		parent::init();
 	 	/* Use a single sapi value for all of the different HTTP-based PHP SAPIs */		
 		$this->sapi = 'http';
+		$this->protocol = @$_SERVER['SERVER_PROTOCOL'];
+		if(!strlen($this->protocol))
+		{
+			$this->protocol = 'HTTP/1.0';
+		}
 		$this->method = strtoupper($_SERVER['REQUEST_METHOD']);
 		if(strpos($this->method, '_') !== false) $this->method = 'GET';
 		$this->uri = $_SERVER['REQUEST_URI'];
 		/* On at least some lighttpd+fcgi setups, QUERY_STRING ends up
 		 * empty while REQUEST_URI contains ?query...
 		 */
-		if(($pos = strpos($this->uri, '?')))
+		if(($pos = strpos($this->uri, '?')) !== false)
 		{
 			$qs = substr($this->uri, $pos + 1);
 			$this->uri = substr($this->uri, 0, $pos);
@@ -679,6 +685,7 @@ class HTTPRequest extends Request
 		else if(isset($_SERVER['QUERY_STRING']))
 		{
 			$qs = $_SERVER['QUERY_STRING'];
+			/* Remove the query from $this->uri if it's there */
 			$l = strlen($qs);
 			$x = substr($this->uri, 0 - ($l + 1));
 			if(!strcmp($x, '?' . $qs))
@@ -688,6 +695,9 @@ class HTTPRequest extends Request
 			$qs = str_replace(';', '&', $qs);
 			parse_str($qs, $this->query);
 		}
+		/* Strip PHP's "magic quotes" from the query parameters, if they're
+		 * present.
+		 */
 		if(get_magic_quotes_gpc())
 		{
 			foreach($this->query as $k => $v)
