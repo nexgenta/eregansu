@@ -203,6 +203,7 @@ abstract class MIME
 		'application/rdf+xml' => array('rdf'),
 		'application/atom+xml' => array('atom'),		
 		'application/vnd.sun.wadl+xml' => array('wadl'),
+		'application/xrd+xml' => array('xrd'),
 
 		'application/json' => array('json'),
 		/* Note that application/x-jsonp is never sent; it's a pseudotype */
