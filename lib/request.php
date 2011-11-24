@@ -918,7 +918,20 @@ class HTTPRequest extends Request
 			echo '<html><head><meta http-equiv="Refresh" content="1;URL=' . htmlspecialchars($uri) . '" /></head><body><p style="font-family: \'Lucida Grande\', Arial, Helvetica; font-size: 10px;"><a style="color: #ccc;" href="' . htmlspecialchars($uri) . '">Please follow this link if you are not automatically redirected.</a></p></body></html>';
 			$this->complete();
 		}
-		$this->header('Status', 'HTTP/1.0 ' . $status . ' Moved');
+		$desc = 'Moved';
+		if($status == 301)
+		{
+			$desc = 'Moved Permanently';
+		}
+		else if($status == 302)
+		{
+			$desc = 'Moved Temporarily';
+		}
+		else if($status == 303)
+		{
+			$desc = 'See Other';
+		}
+		$this->header('Status', 'HTTP/1.0 ' . $status . ' ' . $desc);
 		$this->header('Location', $uri);
 		$this->flush();
 		$this->complete();
