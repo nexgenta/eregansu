@@ -567,7 +567,8 @@ class Proxy extends Router
 	protected $noFallThroughMethods = array('GET', 'HEAD', '__CLI__', '__MQ__');
 	protected $object = null;
 	protected $sessionObject = null;
-		
+	protected $sendNegotiateHeaders = true;
+
 	protected function unmatched(Request $req)
 	{
 		$this->request = $req;
@@ -583,9 +584,12 @@ class Proxy extends Router
 		if(is_array($r))
 		{
 			$type = $r['Content-Type'];
-			foreach($r as $k => $value)
+			if($this->sendNegotiatedHeaders)
 			{
-				$req->header($k, $value);
+				foreach($r as $k => $value)
+				{
+					$req->header($k, $value);
+				}
 			}
 		}
 		else
@@ -921,11 +925,19 @@ abstract class CommandLine extends Proxy implements ICommandLine
 	
 	protected function perform___CLI__()
 	{
-		if(0 == $this->main($this->args))
+		if(0 === ($r = $this->main($this->args)))
 		{
-			return true;
+			exit(0);
 		}
-		return false;
+		if($r === true)
+		{
+			exit(0);
+		}
+		if(!is_numeric($r) || $r < 0)
+		{
+			$r = 1;
+		}
+		exit($r);
 	}
 	
 	protected function checkargs(&$args)
@@ -1132,5 +1144,11 @@ abstract class CommandLine extends Proxy implements ICommandLine
 			return $this->optopt;
 		}
 		return -1;
+	}
+
+	protected function err($message)
+	{
+		$args = func_get_args();
+		$this->request->err('Error: ' . implode(' ', $args) . "\n");
 	}
 }
