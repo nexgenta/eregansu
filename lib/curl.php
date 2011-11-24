@@ -395,8 +395,10 @@ if(function_exists('curl_init'))
 
 	class CurlCache extends Curl
 	{
+		public $cacheFile = null;
 		public $cacheDir = null;
-		public $cacheTime = null;
+		public $cacheTime = null; /* Minimum time to cache for */
+		public $cacheMax = null; /* Maximum time to cache for */
 		public $cacheErrors = false;
 		protected $cachedInfo = null;
 
@@ -407,8 +409,10 @@ if(function_exists('curl_init'))
 			$store = true;
 			$dir = $this->cacheDir;
 			$time = $this->cacheTime;
-			$cacheFile = null;
+			$max = $this->cacheMax;
+			$cacheFile = $this->cacheFile;
 			$info = null;
+			$modifiedSince = null;
 			if($_applyHeaders_internal)
 			{
 				if(is_object($this->headers))
@@ -421,28 +425,39 @@ if(function_exists('curl_init'))
 				}
 				else if($this->headers !== null)
 				{
-					trigger_error('Curl::exec() - $this->headers is non-null but is not an array or a CurlHeaders instance', E_USER_NOTICE);
+					trigger_error('CurlCache::exec() - $this->headers is non-null but is not an array or a CurlHeaders instance', E_USER_NOTICE);
 				}
 			}
-			if(!strlen($dir))
+			$hash = md5(json_encode($this->options));
+			if(!strlen($cacheFile))
 			{
-				if(defined('CACHE_DIR'))
+				/* If no cache file was explicitly specified */
+				if(!strlen($dir))
 				{
-					$dir = CACHE_DIR;
-				}
-				else
-				{
-					if(defined('CURL_WARN_MISSING_CACHE'))
+					if(defined('CACHE_DIR'))
 					{
-						trigger_error('$this->cacheDir is not set and CACHE_DIR is not defined', E_USER_WARNING);
+						$dir = CACHE_DIR;
 					}
-					$fetch = true;
-					$store = false;
+					else
+					{
+						if(defined('CURL_WARN_MISSING_CACHE'))
+						{
+							trigger_error('$this->cacheDir is not set and CACHE_DIR is not defined', E_USER_WARNING);
+						}
+					}
 				}
+				if(substr($dir, -1) != '/')
+				{
+					$dir .= '/';
+				}
+				$cacheFile = $dir . $hash;
 			}
-			if(substr($dir, -1) != '/')
+			if(!strlen($cacheFile))
 			{
-				$dir .= '/';
+				/* If there's no cache file, there's nowhere to cache the
+				 * response.
+				 */
+				$store = false;
 			}
 			if($time === null)
 			{
@@ -452,45 +467,77 @@ if(function_exists('curl_init'))
 				}
 				else
 				{
-					$time = 600;
+					$time = 0;
 				}
 			}
 			else
 			{
 				$time = intval($time);
 			}
+			if($max === null)
+			{
+				if(defined('CACHE_MAX'))
+				{
+					if(CACHE_MAX !== null)
+					{
+						$max = intval(CACHE_MAX);
+					}
+				}
+			}
 			if(empty($this->options['httpGET']))
 			{
+				/* If it's not a GET request, always fetch */
 				$fetch = true;
 				$store = false;
 			}
-			if($fetch || $store)
-			{
-				$hash = md5(json_encode($this->options));
-				$cacheFile = $dir . $hash;
-			}
 			if(strlen($cacheFile) && file_exists($cacheFile) && file_exists($cacheFile . '.json'))
 			{
+				/* If the cache file exists, check the timestamp exceeds
+				 * the mininum cache time and determine what the
+				 * If-Modified-Since header would be.
+				 */
+				$info = stat($cacheFile);
+				$modifiedSince = strftime('%a, %e %b %Y %H:%M:%S UTC');
 				if($time > 0)
 				{
-					$info = stat($cacheFile);
 					if($info['mtime'] + $time > time())
 					{
+						/* The resource hasn't reached its minimum cache-time
+						 * threshold yet.
+						 */
 						$fetch = false;
 					}
 				}
-				if($fetch)
+			}
+			if($modifiedSince !== null && $_applyHeaders_internal)
+			{
+				if(!isset($this->headers['If-Modified-Since']))
 				{
-					unlink($cacheFile);
-					unlink($cacheFile . '.json');
+					$this->headers['If-Modified-Since'] = $modifiedSince;
+					if(is_object($this->headers))
+					{
+						$this->headers->apply($this->handle);
+					}
+					else if(is_array($this->headers))
+					{
+						curl_setopt($this->handle, CURLOPT_HTTPHEADER, $this->headers);
+					}					
 				}
 			}
 			if($fetch)
-			{
+			{				
 				$buf = parent::exec(false);
 				$info = $this->info;
-				if($store && ($buf !== false || $this->cacheErrors))
+				if($info['http_code'] == 304 && $modifiedSince !== null)
 				{
+					/* The document is unmodified */
+					$buf = file_get_contents($cacheFile);
+					$info = json_decode(file_get_contents($cacheFile . '.json'), true);
+					$info['cacheFile'] = $cacheFile;
+				}
+				else if($store && ($buf !== false || $this->cacheErrors))
+				{
+					/* Store the document in the cache file */
 					$f = fopen($cacheFile, 'w');
 					fwrite($f, $buf);
 					fclose($f);
@@ -502,12 +549,16 @@ if(function_exists('curl_init'))
 			}
 			else if(strlen($cacheFile))
 			{
+				/* We didn't need to fetch to begin with, just return the
+				 * cached resource.
+				 */
 				$buf = file_get_contents($cacheFile);
 				$info = json_decode(file_get_contents($cacheFile . '.json'), true);
 				$info['cacheFile'] = $cacheFile;
 			}
 			else
 			{
+				/* If all else fails, bail */
 				$buf = $info = null;
 			}
 			$this->cachedInfo = $info;
