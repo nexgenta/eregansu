@@ -507,6 +507,14 @@ if(function_exists('curl_init'))
 						 */
 						$fetch = false;
 					}
+					if($max !== null && $info['mtime'] + $time < time())
+					{
+						/* We've exceeded the maximum cache time, and so
+						   must refresh
+						*/
+						$modifiedSince = null;
+						$fetch = true;
+					}
 				}
 			}
 			if($modifiedSince !== null && $_applyHeaders_internal)
