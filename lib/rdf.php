@@ -370,6 +370,7 @@ abstract class RDF extends XMLNS
 			self::$namespaces[RDF::xsd] = 'xsd';
 			self::$namespaces[RDF::gn] = 'gn';
 			self::$namespaces[RDF::exif] = 'exif';
+			self::$namespaces[RDF::void] = 'void';
 		}
 		if(strlen($uri))
 		{
@@ -541,7 +542,7 @@ require_once(dirname(__FILE__) . '/' . EREGANSU_RDF_IMPLEMENTATION . '.php');
 
 class RDFInstance extends RDFInstanceBase
 {
-		/* Return a URI for a QName (used by all(), first(), etc. to translate predicate names) */
+	/* Return a URI for a QName (used by all(), first(), etc. to translate predicate names) */
 	protected function translateQName($qn)
 	{
 		if(!strcasecmp($qn, 'subject')) return RDF::rdf . 'about';
