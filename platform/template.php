@@ -319,7 +319,15 @@ class TemplateFilter extends php_user_filter
 		case 'require':
 		case 'include_once':
 		case 'require_once':
-			return '<?php ' . $tag[0] . '("template+file://" . realpath(' . $tag[1] . '));?>';
+			if(substr($tag[1], 0, 1) == '/')
+			{
+				$path = '"' . addslashes($tag[1]) . '"';
+			}
+			else
+			{
+				$path = 'dirname(__FILE__) . "/' . addslashes($tag[1]) . '"';
+			}
+			return '<?php ' . $tag[0] . '("template+file://" . realpath(' . $path . '));?>';
 		case 'if':
 			return '<?php if(' . $tag[1] . ') { ?>';
 		case 'else':
@@ -336,6 +344,11 @@ class TemplateFilter extends php_user_filter
 		case 'endif':
 		case 'endwhile':
 		case 'endfor':
+		case 'endforeach':
+		case '/if':
+		case '/while':
+		case '/for':
+		case '/foreach':
 			return '<?php } ?>';
 		}
 		return '<!--[INVALID TAG' . (defined('EREGANSU_DEBUG') ? (': ' . $tag[0]) : '') . ']-->';
