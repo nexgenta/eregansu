@@ -1,6 +1,6 @@
 <?php
 
-/* Copyright 2010 Mo McRoberts.
+/* Copyright 2010-2012 Mo McRoberts.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
  *  limitations under the License.
  */
  
-require_once(dirname(__FILE__) . '/db.php');
+require_once(dirname(__FILE__) . '/../db.php');
 
 class SQLite3DB extends DBCore
 {
