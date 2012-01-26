@@ -43,6 +43,7 @@ abstract class XMLNS
 	const xhv = 'http://www.w3.org/1999/xhtml/vocab#';
 	const gn = 'http://www.geonames.org/ontology#';
 	const exif = 'http://www.kanzaki.com/ns/exif#';
+	const void = 'http://rdfs.org/ns/void#';
 	
 	/**
 	 * Generate a fully-qualified URI for a namespace URI and local name.
