@@ -197,14 +197,14 @@ class RDFStoredObject extends RDFInstance
 {
 	protected static $models = array();
 
-	public static function objectForData($data, $model = null, $className = null)
+	public static function objectForData($data, $model = null, $className = null, $attachedTo = null)
 	{
 		if(isset($data[0]))
 		{
 			$list = array();
 			foreach($data as $k => $v)
 			{
-				$list[$k] = self::objectForData($v, $model, $className);
+				$list[$k] = self::objectForData($v, $model, $className, $attachedTo);
 			}
 			return $list;
 		}
@@ -234,16 +234,20 @@ class RDFStoredObject extends RDFInstance
 		{
 			$inst = new $className();
 		}
+		if($attachedTo !== null)
+		{
+			$inst->attachTo($attachedTo);
+		}
 		if(!isset(self::$models[$className]))
 		{
 			self::$models[$className] = $model;
 		}
-		self::applyProperties($inst, $data, $model);
+		self::applyProperties($inst, $data, $model, $attachedTo);
 		$inst->loaded();
 		return $inst;
 	}
 
-	protected static function applyProperties($inst, $data, $model)
+	protected static function applyProperties($inst, $data, $model, $attachedTo)
 	{
 		if(!is_arrayish($data))
 		{
@@ -301,7 +305,8 @@ class RDFStoredObject extends RDFInstance
 							$v[$pk] = new RDFURI($s['value']);
 							break;
 						case 'node':
-							$v[$pk] = RDFStoredObject::objectForData($s['value'], $model);
+							$v[$pk] = RDFStoredObject::objectForData($s['value'], $model, null, $inst);
+							
 							$v[$pk]->refcount++;
 							break;
 						default:

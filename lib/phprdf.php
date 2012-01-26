@@ -1117,6 +1117,11 @@ abstract class RDFInstanceBase implements ArrayAccess
 		$this->localId = new RDFURI('#' . uniqid());
 	}
 
+	public /*internal*/ function attachTo(RDFInstanceBase $inst)
+	{
+		/* No-op */
+	}
+
 	/* An instance's "value" is the URI  of its subject */
 	public function __toString()
 	{

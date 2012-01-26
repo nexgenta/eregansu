@@ -1,6 +1,6 @@
 <?php
 
-/* Copyright 2010, 2011 Mo McRoberts.
+/* Copyright 2010-2012 Mo McRoberts.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -550,6 +550,7 @@ abstract class RDFInstanceBase extends RedlandBase implements ArrayAccess
 {
 	public $subject;
 	public /*internal*/ $model;
+	public /*internal*/ $subsidiaries = array();
 
 	public function __construct($uri = null, $type = null, $world = null)
 	{
@@ -567,6 +568,17 @@ abstract class RDFInstanceBase extends RedlandBase implements ArrayAccess
 		{
 			$this->add(RDF::rdf.'type', new RDFURI($type));
 		}
+	}
+
+	public /*internal*/ function attachTo(RDFInstanceBase $inst)
+	{
+		$this->world = $inst->world;
+		if($inst->model == null)
+		{
+			$inst->model = new RedlandModel(null, null, $this->world);
+		}
+		$this->model = $inst->model;
+		$inst->subsidiaries[] = $this;
 	}
 
 	public function transform()
@@ -954,6 +966,105 @@ abstract class RDFInstanceBase extends RedlandBase implements ArrayAccess
 		$this->remove($offset);
 	}
 
+	public function asHTML($doc)
+	{
+		$buf = array();
+		$buf[] = '<table>';
+		$buf[] = '<caption>' . _e($this->subject()) . '</caption>';
+		$buf[] = '<thead>';
+		$buf[] = '<tr>';
+		$buf[] = '<th class="predicate" scope="col">Property</th>';
+		$buf[] = '<th class="object" scope="col">Value</th>';
+		$buf[] = '</tr>';
+		$buf[] = '</thead>';
+		$buf[] = '<tbody>';
+		$query = librdf_new_statement_from_nodes($this->world->resource, $this->subject->resource, null, null);
+		$rs = librdf_model_find_statements($this->model->resource, $query);
+		$values = array();
+		$prev = null;
+		while(!librdf_stream_end($rs))
+		{			
+			$st = librdf_stream_get_object($rs);
+			$predicate = librdf_uri_to_string(librdf_node_get_uri(librdf_statement_get_predicate($st)));
+			if($predicate !== $prev && count($values))
+			{
+				$this->writeHTMLRow($buf, $doc, $prev, $values);
+				$values = array();
+			}
+			$prev = $predicate;
+			$row = array();
+			$object = librdf_statement_get_object($st);			
+			$row[] = '<td class="object">';
+			if(librdf_node_is_literal($object))
+			{
+				$row[] = '<p><q class="literal">' . str_replace('<p><q class="literal"></q></p>', '', str_replace("\n", '</q></p><p><q class="literal">', _e(librdf_node_get_literal_value($object)))) . '</q>';
+				$lang = librdf_node_get_literal_value_language($object);
+				if(strlen($lang))
+				{
+					$row[] = '<span class="lang">[' . _e($lang) . ']</span>';
+				}
+				$dt = librdf_node_get_literal_value_datatype_uri($object);
+				if(is_resource($dt))
+				{
+					$dt = librdf_uri_to_string($dt);
+					$short = $doc->namespacedName($dt, false);
+					$row[] = '(<a href="' . _e($dt) . '">' . _e($short) . '</a>)';
+				}
+				$row[] = '</p>';
+			}
+			else if(librdf_node_is_resource($object))
+			{
+				$object = librdf_uri_to_string(librdf_node_get_uri($object));
+				$short = $doc->namespacedName($object, false);
+				$row[] = '<a href="' . _e($object) . '">' . _e($short) . '</a>';
+			}
+			$row[] = '</td>';
+			$values[] = implode("\n", $row);
+			librdf_stream_next($rs);
+		}
+		if(count($values))
+		{
+			$this->writeHTMLRow($buf, $doc, $prev, $values);
+		}
+		$buf[] = '</tbody>';
+		$buf[] = '</table>';
+		return implode("\n", $buf);
+	}
+
+	protected function writeHTMLRow(&$buf, $doc, $predicate, $values)
+	{
+		if(!strcmp($predicate, RDF::rdf.'about'))
+		{
+			$short = '@';
+		}
+		else if(!strcmp($predicate, RDF::rdf.'type'))
+		{
+			$short = 'a';
+		}
+		else
+		{
+			$short = $doc->namespacedName($predicate, true);
+		}
+		$buf[] = '<tr>';
+		$count = count($values);
+		if($count > 1)
+		{
+			$span = ' rowspan="' . $count . '"';
+		}
+		else
+		{
+			$span = '';
+		}
+		$buf[] = '<td class="predicate"' . $span . '><a href="' . _e($predicate) . '">' . $short . '</a></td>';
+		foreach($values as $val)
+		{
+			$buf[] = $val;
+			$buf[] = '</tr>';
+			$buf[] = '<tr>';
+		}
+		array_pop($buf);
+	}
+
 	public function asTurtle()
 	{
 		$ser = new RedlandTurtleSerializer();
@@ -961,7 +1072,7 @@ abstract class RDFInstanceBase extends RedlandBase implements ArrayAccess
 		$rs = librdf_model_find_statements($this->model->resource, $query);
 		return $ser->serializeStreamToString($rs, $this);
 	}
-	
+
 	public function asArray()
 	{
 		$ser = new RedlandJSONSerializer();
@@ -1091,8 +1202,24 @@ abstract class RDFInstanceBase extends RedlandBase implements ArrayAccess
 		return librdf_uri_to_string($uri);
 	}
 
-	public function isA($type)
+	public function isA($type = null)
 	{
+		$list = array();
+		if($type === null)
+		{
+			$query = librdf_new_statement_from_nodes($this->world->resource,
+													 $this->subject->resource,
+													 librdf_new_node_from_uri($this->world->resource,
+																			  librdf_new_uri($this->world->resource, RDF::rdf.'type')),
+													 null);
+			$rs = librdf_model_find_statements($this->model->resource, $query);
+			while(!librdf_stream_end($rs))
+			{
+				$list[] = RDFURI::fromNode(librdf_statement_get_object(librdf_stream_get_object($rs)));
+				librdf_stream_next($rs);
+			}
+			return $list;
+		}
 		$type = $this->translateQName($type);
 		if(!strcmp($type, RDF::rdf.'Description'))
 		{
@@ -1232,6 +1359,14 @@ class RDFDocument extends RedlandModel implements ArrayAccess, ISerialisable
 	public $primaryTopic;
 	public $rdfInstanceClass = 'RDFInstance';
 	public $namespaces = array();
+	public $xmlStylesheet = null;
+
+	public $htmlHead = null;
+	public $htmlPreBody = null;
+	public $htmlPostBody = null;
+	public $htmlLinks = array();
+	public $htmlTitle = null;
+
 	protected $qnames = array();
 	protected $positions = array();
 
@@ -1292,14 +1427,21 @@ class RDFDocument extends RedlandModel implements ArrayAccess, ISerialisable
 		{
 			ob_start();
 		}
-		if($type == 'text/turtle')
+		if($type == 'text/html')
+		{
+			if($sendHeaders)
+			{
+				$request->header('Content-type', 'text/html; charset=UTF-8');
+			}
+			$output = $this->asHTML();
+		}
+		else if($type == 'text/turtle')
 		{
 			if($sendHeaders)
 			{
 				$request->header('Content-type', $type);
 			}			
 			$output = $this->asTurtle();
-			echo is_array($output) ? implode("\n", $output) : $output;
 		}
 		else if($type == 'application/rdf+xml')
 		{
@@ -1308,7 +1450,6 @@ class RDFDocument extends RedlandModel implements ArrayAccess, ISerialisable
 				$request->header('Content-type', $type);
 			}			
 			$output = $this->asXML();
-			echo is_array($output) ? implode("\n", $output) : $output;
 		}
 		else if($type == 'application/json')
 		{
@@ -1317,7 +1458,6 @@ class RDFDocument extends RedlandModel implements ArrayAccess, ISerialisable
 				$request->header('Content-type', $type);
 			}
 			$output = $this->asJSONLD();
-			echo is_array($output) ? implode("\n", $output) : $output;
 		}
 		else if($type == 'application/ld+json')
 		{
@@ -1327,7 +1467,6 @@ class RDFDocument extends RedlandModel implements ArrayAccess, ISerialisable
 				$request->header('Content-type', $type);
 			}
 			$output = $this->asJSONLD();
-			echo is_array($output) ? implode("\n", $output) : $output;
 		}			
 		else if($type == 'application/rdf+json' || $type == 'application/x-rdf+json')
 		{
@@ -1337,15 +1476,6 @@ class RDFDocument extends RedlandModel implements ArrayAccess, ISerialisable
 				$request->header('Content-type', $type);
 			}
 			$output = $this->asJSON();
-			echo is_array($output) ? implode("\n", $output) : $output;
-		}
-		else if($type == 'text/turtle')
-		{
-			if($sendHeaders)
-			{
-				$request->header('Content-type', $type);
-			}
-			echo $this->asTurtle();
 		}
 		else if($type == 'text/n3')
 		{
@@ -1353,7 +1483,7 @@ class RDFDocument extends RedlandModel implements ArrayAccess, ISerialisable
 			{
 				$request->header('Content-type', $type);
 			}
-			echo $this->asN3();
+			$output = $this->asN3();
 		}
 		else
 		{
@@ -1362,7 +1492,8 @@ class RDFDocument extends RedlandModel implements ArrayAccess, ISerialisable
 				ob_end_clean();
 			}
 			return false;
-		}
+		}		
+		echo is_array($output) ? implode("\n", $output) : $output;
 		if($returnBuffer)
 		{
 			return ob_get_clean();
@@ -1372,10 +1503,22 @@ class RDFDocument extends RedlandModel implements ArrayAccess, ISerialisable
 
 	public function merge(RDFInstance $inst, $post = null)
 	{
-		assert($inst->model !== null);
-		assert($inst->model !== $this);
-		$subject = $inst->subject()->node();
-		$query = librdf_new_statement_from_nodes($this->world->resource, $subject->resource, null, null);
+		if($inst->model === null)
+		{
+			/* Doesn't contain anything yet */
+			return $inst;
+		}
+		if($inst->model === $this)
+		{
+			/* Already exists in this graph */
+			return $inst;
+		}
+		foreach($inst->subsidiaries as $sub)
+		{
+			$this->merge($sub);
+		}
+		$subject = $inst->subject->resource;
+		$query = librdf_new_statement_from_nodes($this->world->resource, $subject, null, null);
 		$statements = librdf_model_find_statements($inst->model->resource, $query);
 		librdf_model_add_statements($this->resource, $statements);
 		$inst->model = $this;
@@ -1433,12 +1576,117 @@ class RDFDocument extends RedlandModel implements ArrayAccess, ISerialisable
 		$ser = new RedlandRDFXMLSerializer();
 		$s = $ser->serializeModelToString($this);
 		$preamble = '<?xml version="1.0" encoding="utf-8"?>';
+		if(!strlen($leader) && isset($this->xmlStylesheet))
+		{
+			$leader = '<?xml version="1.0" encoding="UTF-8"?>' . "\n" .
+				'<?xml-stylesheet type="' . _e($this->xmlStylesheet['type']) . '" href="' . _e($this->xmlStylesheet['href']) . '" ?>' . "\n";
+		}
 		if($leader !== null && !strncmp($s, $preamble, strlen($preamble)))
 		{
 			return $leader . ltrim(substr($s, strlen($preamble)));
 		}
 		return $s;
 	}
+	
+	public function asHTML()
+	{		
+		$buf = array();
+		$buf[] = '<!DOCTYPE html>';
+		$buf[] = '<html>';
+		$buf[] = '<head>';
+		$buf[] = '<meta charset="UTF-8">';
+		if(isset($this->htmlTitle))
+		{
+			$buf[] = '<title>' . _e($this->htmlTitle) . '</title>';
+		}
+		if(isset($this->htmlLinks))
+		{
+			foreach($this->htmlLinks as $link)
+			{
+				$t = '<link';
+				foreach($link as $k => $v)
+				{
+					$t .= ' ' . $k . '="' . _e($v) . '"';
+				}
+				$t .= '>';
+				$buf[] = $t;
+			}
+		}
+		if(isset($this->htmlHead))
+		{
+			$buf[] = $this->htmlHead;
+		}
+		$buf[] = '</head>';
+		$buf[] = '<body>';
+		if(isset($this->htmlPreBody))
+		{
+			$buf[] = $this->htmlPreBody;
+		}
+		$array = array();
+		$subjects = array();
+		$rs = librdf_model_as_stream($this->resource);		
+		while(!librdf_stream_end($rs))
+		{
+			$statement = librdf_stream_get_object($rs);
+			$subject = librdf_statement_get_subject($statement);
+			if(($u = librdf_node_get_uri($subject)) !== null)
+			{
+				$k = librdf_uri_to_string($u);
+			}
+			else
+			{
+				$k = librdf_node_to_string($subject);
+			}
+			$subjects[$k] = $subject;
+			librdf_stream_next($rs);
+		}
+		$positions = $this->positions;
+		$done = array();
+		$i = 0;
+		while(true)
+		{
+			if(isset($positions[$i]))
+			{
+				$done[$positions[$i]] = true;
+				if(($obj = $this->subject($positions[$i], null, false, true)) !== null)
+				{
+					$buf[] = $obj->asHTML($this);
+				}
+				unset($positions[$i]);
+				$i++;
+				continue;
+			}
+			$subj = array_shift($subjects);
+			if($subj === null)
+			{
+				break;
+			}
+			if(isset($done[$subj]))
+			{
+				continue;
+			}
+			if(($obj = $this->subject($subj, null, false, true)) !== null)
+			{
+				$buf[] = $obj->asHTML($this);
+			}		
+			$i++;
+		}
+		foreach($positions as $subj)
+		{
+			if(($obj = $this->subject($subj, null, false, true)) !== null)
+			{
+				$buf[] = $obj->asHTML($this);
+			}
+		}
+		if(isset($this->htmlPostBody))
+		{
+			$buf[] = $this->htmlPostBody;
+		}
+		$buf[] = '</body>';
+		$buf[] = '</html>';
+		return $buf;
+	}
+	
 
 	public function asTurtle()
 	{
@@ -1670,9 +1918,13 @@ class RDFDocument extends RedlandModel implements ArrayAccess, ISerialisable
 		return $top;
 	}
 
-	public function subject($uri, $type = null, $create = true)
+	public function subject($uri, $type = null, $create = true, $isNode = false)
 	{
-		if(is_resource($uri))
+		if($isNode)
+		{
+			$res = $uri;
+		}
+		else if(is_resource($uri))
 		{
 			$res = librdf_new_node_from_uri($this->world->resource, $uri);
 		}
