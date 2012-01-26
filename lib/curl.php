@@ -219,6 +219,11 @@ if(function_exists('curl_init'))
 			curl_setopt($this->handle, CURLOPT_HEADERFUNCTION, array($this, 'headerFunction'));
 		}
 
+		public function __destruct()
+		{
+			curl_close($this->handle);
+		}
+
 		public function headerFunction($curl, $data)
 		{
 			$lines = explode("\n", $data);
@@ -446,11 +451,14 @@ if(function_exists('curl_init'))
 						}
 					}
 				}
-				if(substr($dir, -1) != '/')
+				if(strlen($dir))
 				{
-					$dir .= '/';
+					if(substr($dir, -1) != '/')
+					{
+						$dir .= '/';
+					}					
+					$cacheFile = $dir . $hash;
 				}
-				$cacheFile = $dir . $hash;
 			}
 			if(!strlen($cacheFile))
 			{
