@@ -2,7 +2,7 @@
 
 /* Eregansu: Encapsulation of a request
  *
- * Copyright 2001, 2010 Mo McRoberts.
+ * Copyright 2009-2012 Mo McRoberts.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@
  
 /**
  * @package EregansuLib Eregansu Core Library
- * @year 2009-2011
+ * @year 2009-2012
  * @include uses('request');
  * @since Available in Eregansu 1.0 and later.
  * @task Processing requests
