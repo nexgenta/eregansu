@@ -904,6 +904,10 @@ abstract class RDFInstanceBase extends RedlandBase implements ArrayAccess
 
 	public function offsetExists($offset)
 	{
+		if(!isset($this->model))
+		{
+			return false;
+		}
 		$predicate = new RDFURI($this->translateQName($offset));
 		$query = librdf_new_statement_from_nodes($this->world->resource, $this->subject->resource, $predicate->node()->resource, null);
 		$stream = librdf_model_find_statements($this->model->resource, $query);
