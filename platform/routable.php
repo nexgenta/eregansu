@@ -2,7 +2,7 @@
 
 /* Eregansu: Classes which can process requests
  *
- * Copyright 2009-2011 Mo McRoberts.
+ * Copyright 2009-2012 Mo McRoberts.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -18,8 +18,10 @@
  */
 
 /**
- * @year 2009-2011
+ * @year 2009-2012
+ * @include uses('routable');
  * @since Available in Eregansu 1.0 and later.
+ * @task Processing requests
  */
 
 /**
@@ -110,7 +112,7 @@ class Routable implements IRequestProcessor
 	 */
 	public function __construct()
 	{
-		if($this->modelClass)
+		if(strlen($this->modelClass))
 		{
 			$this->model = call_user_func(array($this->modelClass, 'getInstance'), $this->modelArgs);
 		}
@@ -584,7 +586,7 @@ class Proxy extends Router
 		if(is_array($r))
 		{
 			$type = $r['Content-Type'];
-			if($this->sendNegotiatedHeaders)
+			if($this->sendNegotiateHeaders)
 			{
 				foreach($r as $k => $value)
 				{
