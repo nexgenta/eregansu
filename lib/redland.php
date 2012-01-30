@@ -970,11 +970,45 @@ abstract class RDFInstanceBase extends RedlandBase implements ArrayAccess
 		$this->remove($offset);
 	}
 
+	protected function idForNode($node, $doc)
+	{
+		if($node instanceof RedlandNode)
+		{
+			$node = $node->resource;
+		}
+		$localId = 'local-' . md5(librdf_node_to_string($node));
+		if(librdf_node_is_resource($node))
+		{
+			$subj = librdf_uri_to_string(librdf_node_get_uri($node));
+			if(strlen($doc->fileURI) && !strncmp($subj, $doc->fileURI, strlen($doc->fileURI)))
+			{
+				$sub = substr($subj, strlen($doc->fileURI));
+				if(substr($sub, 0, 1) == '/')
+				{
+					$sub = substr($sub, 1);
+				}
+				if(substr($sub, 0, 1) == '#')
+				{
+					return substr($sub, 1);
+				}
+			}
+		}
+		return $localId;
+	}
+
 	public function asHTML($doc)
 	{
 		$buf = array();
-		$buf[] = '<table>';
-		$buf[] = '<caption>' . _e($this->subject()) . '</caption>';
+		$buf[] = '<table id="' . $this->idForNode($this->subject, $doc) . '">';
+		$subj = $this->subject();
+		if(librdf_node_is_resource($this->subject->resource))
+		{
+			$buf[] = '<caption><a href="' . _e($subj) . '">' . _e($subj) . '</a></caption>';
+		}
+		else
+		{
+			$buf[] = '<caption>' . _e($subj) . '</caption>';
+		}
 		$buf[] = '<thead>';
 		$buf[] = '<tr>';
 		$buf[] = '<th class="predicate" scope="col">Property</th>';
@@ -1018,10 +1052,19 @@ abstract class RDFInstanceBase extends RedlandBase implements ArrayAccess
 			}
 			else if(librdf_node_is_resource($object))
 			{
-				$object = librdf_uri_to_string(librdf_node_get_uri($object));
-				$short = $doc->namespacedName($object, false);
-				$row[] = '<a href="' . _e($object) . '">' . _e($short) . '</a>';
+				$target = $link = librdf_uri_to_string(librdf_node_get_uri($object));
+				if(isset($doc[$target]))
+				{
+					$link = '#' . $this->idForNode($object, $doc);
+				}
+				$short = $doc->namespacedName($target, false);
+				$row[] = '<a href="' . _e($link) . '">' . _e($short) . '</a>';
 			}
+			else if(librdf_node_is_blank($object))
+			{
+				$link = '#' . $this->idForNode($object, $doc);
+				$row[] = '<a href="' . _e($link) . '">' . _e(librdf_node_to_string($object)) . '</a>';
+			}				
 			$row[] = '</td>';
 			$values[] = implode("\n", $row);
 			librdf_stream_next($rs);
