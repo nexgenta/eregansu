@@ -433,7 +433,14 @@ if(function_exists('curl_init'))
 					trigger_error('CurlCache::exec() - $this->headers is non-null but is not an array or a CurlHeaders instance', E_USER_NOTICE);
 				}
 			}
-			$hash = md5(json_encode($this->options));
+			$hashedOptions = $this->options;
+			/* Exclude some options which don't affect the transfer itself
+			 * from the request fingerprinting.
+			 */
+			$hashedOptions['forbidReuse'] = false;
+			$hashedOptions['dnsUseGlobalCache'] = true;
+			$hashedOptions['verbose'] = false;
+			$hash = md5(json_encode($hashedOptions));
 			if(!strlen($cacheFile))
 			{
 				/* If no cache file was explicitly specified */
