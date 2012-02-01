@@ -1020,6 +1020,15 @@ abstract class RDFInstanceBase extends RedlandBase implements ArrayAccess
 		$rs = librdf_model_find_statements($this->model->resource, $query);
 		$values = array();
 		$prev = null;
+		if(librdf_node_is_resource($this->subject->resource))
+		{
+			$buf[] = '<tr><td>@</td><td><p><a href="' . _e($subj) . '">' . _e($subj) . '</a></p></td></tr>';
+		}
+		else
+		{
+			$buf[] = '<tr><td>@</td><td><p>' . _e($subj) . '</p></td>';
+		}
+
 		while(!librdf_stream_end($rs))
 		{			
 			$st = librdf_stream_get_object($rs);
