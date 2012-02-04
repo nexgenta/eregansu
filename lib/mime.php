@@ -135,7 +135,7 @@ abstract class MIME
 	 * @param[in] string $type The MIME type to obtain a description for
 	 * @return string A human-readable description for \p{$type}
 	 */
-	public static function description($type)
+	public static function description($type, $short = false)
 	{
 		if(!is_array($type)) $type = explode('/', $type);
 		switch($type[0])
@@ -168,6 +168,10 @@ abstract class MIME
 				default:
 					$prefix = '';
 			}
+		}
+		if($short)
+		{
+			return $prefix;
 		}
 		return trim($prefix . ' ' . $suffix);
 	}
