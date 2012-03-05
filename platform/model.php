@@ -2,7 +2,7 @@
 
 /* Eregansu: Data models
  *
- * Copyright 2009 Mo McRoberts.
+ * Copyright 2009-2012 Mo McRoberts.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -34,6 +34,7 @@ uses('db');
 class Model
 {
 	protected static $instances = array();
+	protected $databases = array('db');
 	public $db;
 	public $dbIri;
 	
@@ -65,9 +66,13 @@ class Model
 	public static function getInstance($args = null)
 	{
 		if(!isset($args['class'])) return null;
-		$key = $args['class'] . (isset($args['db']) ? ':' . $args['db'] : null);
-		$className = $args['class'];
 		if(!isset($args['db'])) $args['db'] = null;
+		if(!isset($args['instanceKey']))
+		{
+			$args['instanceKey'] = $args['db'];
+		}
+		$key = $args['class'] . isset($args['instanceKey']) ? (':' . $args['instanceKey']) : '';
+		$className = $args['class'];
 		if(!isset(self::$instances[$key]))
 		{
 			self::$instances[$key] = new $className($args);
@@ -86,10 +91,12 @@ class Model
 	 */
 	public function __construct($args)
 	{
-		if(strlen($args['db']))
+		foreach($this->databases as $key)
 		{
-			$this->dbIri = $args['db'];
-			$this->db = DBCore::connect($args['db']);
+			if(isset($args[$key]) && strlen($args[$key]) && !isset($this->{$key}))
+			{
+				$this->{$key} = DBCore::connect($args[$key]);
+			}
 		}
 	}
 }
