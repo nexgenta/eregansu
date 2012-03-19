@@ -19,7 +19,7 @@ class TestUses extends TestHarness
 {
 	public function main()
 	{
-		uses('harness', 'url', 'rdf');
+		uses('harness', 'uri', 'rdf');
 		
 		if(!class_exists('URL'))
 		{
