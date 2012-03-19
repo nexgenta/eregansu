@@ -2,6 +2,7 @@
 <tests>
   <test>constants.php</test>
   <test>uses.php</test>
+  <test>uri-contract.php</test>
   <test>uuid-gen.php</test>
   <test>uuid-gen-md5.php</test>
   <test>uuid-gen-sha1.php</test>

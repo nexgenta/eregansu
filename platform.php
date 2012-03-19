@@ -62,11 +62,13 @@ if(!function_exists('uses'))
 { 
 	function uses()
 	{
-		static $_lib_modules = array('asn1', 'base32', 'cli', 'curl', 'date', 'db', 'dbschema', 'execute', 'ldap', 'mime', 'observer', 'rdf', 'redland', 'request', 'session', 'url', 'uuid', 'xmlns', 'csv-import', 'xml', 'rdfxmlstream', 'searchengine');
+		static $_map = array('url' => 'uri', 'xmlns' => 'uri');
+		static $_lib_modules = array('asn1', 'base32', 'cli', 'curl', 'date', 'db', 'dbschema', 'execute', 'ldap', 'mime', 'observer', 'rdf', 'redland', 'request', 'session', 'uri', 'uuid', 'xmlns', 'csv-import', 'xml', 'rdfxmlstream', 'searchengine');
 		
 		$_modules = func_get_args();
 		foreach($_modules as $_mod)
 		{
+			$_mod = isset($_map[$_mod]) ? $_map[$_mod] : $_mod;
 			if(!strcmp($_mod, 'testsuite') || !strcmp($_mod, 'harness'))
 			{
 				require_once(PLATFORM_ROOT . 'testsuite/' . $_mod . '.php');
@@ -143,7 +145,7 @@ foreach($PLUGINS as $pluginName)
 /* Load the initial set of modules */
 require_once(PLATFORM_LIB . 'request.php');
 require_once(PLATFORM_LIB . 'session.php');
-require_once(PLATFORM_LIB . 'url.php');
+require_once(PLATFORM_LIB . 'uri.php');
 
 require_once(PLATFORM_PATH . 'routable.php');
 require_once(PLATFORM_PATH . 'page.php');
