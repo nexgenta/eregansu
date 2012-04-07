@@ -133,12 +133,20 @@ class Template
 
 	/* Libraries */
 
-	public function useJQuery($version = '1.4.1')
+	public function useJQuery($version = '1.7.2')
 	{
 		$root = $this->request->root;
 		if(defined('SCRIPTS_IRI')) $root = SCRIPTS_IRI;
 		if(defined('SCRIPTS_USE_GAPI')) $root = 'http://ajax.googleapis.com/ajax/libs/';
 		$this->vars['scripts']['jquery'] = $root . 'jquery/' . $version . '/jquery.min.js';
+	}
+
+	public function useRequireJS($version = '1.0.7')
+	{
+		$root = $this->request->root;
+		if(defined('SCRIPTS_IRI')) $root = SCRIPTS_IRI;
+		if(defined('SCRIPTS_USE_CDNJS')) $root = 'http://cdnjs.cloudflare.com/ajax/libs/';
+		$this->vars['scripts']['require.js'] = $root . 'require.js/' . $version . '/require.min.js';
 	}
 	
 	public function useGlitter($module)
