@@ -318,6 +318,12 @@ class URI implements ArrayAccess
 		return $url['scheme'] . '://' . $url['host'] . (isset($url['port']) ? ':' . $url['port'] : null) . $url['path'] . (isset($url['query']) ? '?' . $url['query'] : null) . (isset($url['fragment']) ? '#' . $url['fragment'] : null);
 	}
 	
+	/* Retrieve the list of registered namespace prefixes as a list of uri => prefix */
+	public static function namespaces()
+	{
+		return self::$namespaces;
+	}
+	
 	/* Register a new namespace prefix */
 	public static function registerPrefix($prefix, $uri, $overwrite = false)
 	{
@@ -387,7 +393,7 @@ class URI implements ArrayAccess
 		$s = explode(':', $uri, 2);
 		if(count($s) == 2)
 		{
-			$base = self::uriForPrefix($s[0]);
+			$base = self::uriForPrefix($s[0], true);
 			if($base !== null)
 			{
 				$last = substr($base, -1);
