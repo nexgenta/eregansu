@@ -57,6 +57,9 @@ abstract class Module extends Model
 	public $standalone = true;
 	/* A reference to the database schema instance */
 	protected $schema = null;
+	/* The database connection IRI */
+	public $dbIri = null;
+	
 	
 	public static function getInstance($args = null)
 	{
@@ -68,6 +71,14 @@ abstract class Module extends Model
 		if(isset($args['cli']))
 		{
 			$this->cli = $args['cli'];
+		}
+		if(isset($args['db']))
+		{
+			$this->dbIri = strval($args['db']);
+		}
+		if(!isset($this->moduleId))
+		{
+			throw new Exception('$this->moduleId is unset');
 		}
 		parent::__construct($args);
 	}
@@ -83,7 +94,7 @@ abstract class Module extends Model
 		{
 			if($this->standalone)
 			{
-				echo "Warning: skipping setup of " . $this->moduleId . " because it has no database\n";
+				echo "**** Skipping setup of " . $this->moduleId . " because it has no database\n";
 			}
 			return true;
 		}
