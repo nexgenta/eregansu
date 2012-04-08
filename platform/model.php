@@ -2,7 +2,7 @@
 
 /* Eregansu: Data models
  *
- * Copyright 2009 Mo McRoberts.
+ * Copyright 2009-2012 Mo McRoberts.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -34,8 +34,8 @@ uses('db');
 class Model
 {
 	protected static $instances = array();
+	protected $databases = array('db');
 	public $db;
-	public $dbIri;
 	
 	/**
 	 * Obtains an instance of one of \class{Model}'s descendants.
@@ -50,7 +50,7 @@ class Model
 	 * the name of the class if it's not set.
 	 *
 	 * Descendants should, if possible, ensure that \p{$args['db']} is set to
-	 * a database connection IRI which can be passed to \m{DBCore::connect}.
+	 * a database connection URI which can be passed to \m{DBCore::connect}.
 	 *
 	 * The combination of \p{$args['class']} and \p{$args['db']} are used to
 	 * construct a key into the shared instance list. When a new instance is
@@ -65,9 +65,13 @@ class Model
 	public static function getInstance($args = null)
 	{
 		if(!isset($args['class'])) return null;
-		$key = $args['class'] . (isset($args['db']) ? ':' . $args['db'] : null);
-		$className = $args['class'];
 		if(!isset($args['db'])) $args['db'] = null;
+		if(!isset($args['instanceKey']))
+		{
+			$args['instanceKey'] = $args['db'];
+		}
+		$key = $args['class'] . isset($args['instanceKey']) ? (':' . $args['instanceKey']) : '';
+		$className = $args['class'];
 		if(!isset(self::$instances[$key]))
 		{
 			self::$instances[$key] = new $className($args);
@@ -78,18 +82,16 @@ class Model
 	/**
 	 * Construct an instance of \class{Model}.
 	 *
-	 * If \p{$args['db']} is a string of nonzero length, \P{$dbIri} will be
-	 * set to its value, and \P{$db} will be assigned the result of passing
-	 * it to \m{DBCore::connect} in order to establish a database connection.
-	 *
 	 * @param[in] array $args Initialisation parameters.
 	 */
 	public function __construct($args)
 	{
-		if(strlen($args['db']))
+		foreach($this->databases as $key)
 		{
-			$this->dbIri = $args['db'];
-			$this->db = DBCore::connect($args['db']);
+			if(isset($args[$key]) && strlen($args[$key]) && !isset($this->{$key}))
+			{
+				$this->{$key} = Database::connect($args[$key]);
+			}
 		}
 	}
 }

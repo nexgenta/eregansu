@@ -20,7 +20,108 @@
  * @source http://github.com/nexgenta/eregansu/blob/master/lib/db.php
  */
 
-require_once(dirname(__FILE__) . '/url.php');
+require_once(dirname(__FILE__) . '/uri.php');
+
+URI::register('mysql', 'Database', array('file' => dirname(__FILE__) . '/db/mysql.php', 'class' => 'MySQL'));
+URI::register('sqlite3', 'Database', array('file' => dirname(__FILE__) . '/db/sqlite3.php', 'class' => 'SQLite3'));
+URI::register('ldap', 'Database', array('file' => dirname(__FILE__) . '/directory/ldap.php', 'class' => 'LDAP'));
+
+/***********************************************************************
+ *
+ * Interfaces
+ *
+ **********************************************************************/
+
+/* The interface that all types of database class must conform to */
+interface IDatabase
+{
+	public function query($query);
+}
+
+/* Transactional databases */
+interface ITransactional
+{
+	/* Begin a transaction */
+	public function begin();
+	/* Roll-back an in-progress transaction */
+	public function rollback();
+	/* Commit (complete) a transaction */
+	public function commit();
+	/* Perform the callback $function within a transaction, up to
+	 * $maxRetries attempts.
+	 */
+	public function perform($function, $data = null, $maxRetries = 10);
+}
+
+/* SQL Databases */
+interface ISQLDatabase extends IDatabase
+{
+	public function queryArray($query, $params);
+
+	public function insertInto($table, $values);
+
+	public function value($query);
+	public function valueArray($query, $params);
+
+	public function row($query);
+	public function rowArray($query, $params);
+
+	public function rows($query);
+	public function rowsArray($query, $params);
+		
+	public function exec($query);
+	public function execArray($query, $params);
+
+	public function alias($name, $table = null);
+	public function quoteObject($name);
+	public function quoteObjectRef(&$name);
+	public function quoteRef(&$value);
+	public function quote($value);
+
+	public function rowCount();
+	public function now();
+}
+
+/* Document-oriented content stores */
+interface IContentStore extends IDatabase
+{
+	/* Create */
+	public function insert($values);
+	public function insertId();
+	/* Read */
+	public function fetch($what);
+	/* Update */
+	public function update($what, $values);
+	/* Delete */
+	public function delete($what);
+}
+
+/* Directory services (e.g., LDAP) */
+
+interface IDirectoryService extends IDatabase
+{
+	public function insertAt($dn, $object);
+}
+
+interface IDataSet extends Iterator
+{
+}
+
+/* Deprecated */
+interface IDBCore extends ISQLDatabase, ITransactional
+{
+}
+/* Deprecated */
+interface DataSet extends IDataSet
+{
+}
+
+
+/***********************************************************************
+ *
+ * Exceptions
+ *
+ **********************************************************************/
 
 /**
  * Class encapsulating database-related exceptions.
@@ -87,10 +188,6 @@ class DBException extends Exception
 	}
 }
 
-interface DataSet extends Iterator
-{
-}
-
 /* Database errors relating to connection and configuration (rather than
  * malformed queries, data integrity, and so on. These exceptions may be
  * caught and considered transient in some circumstances, but should not
@@ -112,180 +209,149 @@ class DBRollbackException extends DBException
 {
 }
 
-interface IDBCore
-{
-	public function __construct($params);
-	public function vquery($query, $params);
-	public function query($query);
-	public function exec($query);
-	public function vexec($query, $params);
-	public function value($query);
-	public function row($query);
-	public function rows($query);
-	public function insert($table, $kv);
-	public function update($table, $kv, $clause);
-	public function quoteObject($name);
-	public function quoteObjectRef(&$name);
-	public function quoteRef(&$value);
-	public function quote($value);
-	public function insertId();
-	public function begin();
-	public function rollback();
-	public function commit();
-}
+/***********************************************************************
+ *
+ * Classes
+ *
+ **********************************************************************/
 
-abstract class DBCore implements IDBCore
+
+/* Abstract base class used to establish connections to databases. e.g.:
+ *
+ * $db = Database::connect('mysql://localhost/example');
+ */
+ 
+abstract class Database implements IDatabase
 {
 	protected static $stderr;
-	
-	protected $rsClass;
-	protected $params;
-	protected $schema;
-	protected $dbName;
-	protected $schemaName;
+
 	public $maxReconnectAttempts = 0;
 	public $reconnectDelay = 1;
 	public $dbms = 'unknown';
-	public $prefix = '';
-	public $suffix = '';
-	protected $transactionDepth;
-	protected $aliases = array();
 	
-	public static function connect($iristr)
+	protected $params;
+
+	protected $schema;
+	protected $dbName;
+	protected $schemaName;
+
+	public static function connect($uri)
 	{
-		$iri = self::parseIRI($iristr);
-		switch($iri['scheme'])
+		if(!is_object($uri))
 		{
-			case 'mysql':
-				require_once(dirname(__FILE__) . '/db/mysql.php');
-				return new MySQL($iri);
-			case 'ldap':
-				require_once(dirname(__FILE__) . '/db/ldap.php');
-				return new LDAP($iri);
-			case 'sqlite3':
-				require_once(dirname(__FILE__) . '/db/sqlite3.php');
-				return new SQLite3DB($iri);
-			default:
-				throw new DBException(0, 'Unsupported database connection scheme "' . $iri['scheme'] . '"', null);
+			$uri = new URI($uri);
 		}
-	}
-	
-	public static function parseIRI($iristr)
-	{
-		if(is_array($iristr))
+		$inst = URI::handlerForScheme($uri->scheme, 'Database', false, $uri);
+		if(!is_object($inst))
 		{
-			$iri = $iristr;
+			throw new DBException(0, 'Unsupported database connection scheme "' . $uri->scheme . '"', null);
 		}
-		else
-		{
-			$iri = URL::parse($iristr);
-		}
-		if(!isset($iri['user']))
-		{
-			$iri['user'] = null;
-		}
-		if(!isset($iri['pass']))
-		{
-			$iri['pass'] = null;
-		}
-		if(!isset($iri['host']))
-		{
-			$iri['host'] = null;
-		}
-		if(!isset($iri['path']))
-		{
-			$iri['path'] = null;
-		}		
-		if(!isset($iri['dbname']))
-		{
-			$iri['dbname'] = null;
-			$x = explode('/', $iri['path']);
-			foreach($x as $p)
-			{
-				if(strlen($p))
-				{
-					$iri['dbname'] = $p;
-					break;
-				}
-			}
-		}
-		if(!isset($iri['scheme']))
-		{
-			/* XXX if $iristr is already an array, this will fail */
-			throw new DBException(0, 'Connection IRI ' . $iristr . ' has no scheme', null);
-			return;
-		}
-		$iri['options'] = array();
-		if(isset($iri['query']) && strlen($iri['query']))
-		{
-			$q = explode(';', str_replace('&', ';', $iri['query']));
-			foreach($q as $qv)
-			{
-				$kv = explode('=', $qv, 2);
-				$iri['options'][urldecode($kv[0])] = urldecode($kv[1]);
-			}
-		}
-		return $iri;	
+		return $inst;
 	}
 	
 	public function __construct($params)
 	{
 		$this->params = $params;
-		if(isset($this->params['options']['autoconnect']))
+		if(!isset($this->params->dbName))
+		{			
+			$p = $this->params->path;
+			while(substr($p, 0, 1) == '/')
+			{
+				$p = substr($p, 1);
+			}
+			$x = explode('/', $p);
+			$this->params->dbName = $x[0];
+		}
+		if(isset($this->params->options['autoconnect']))
 		{
-			$this->params['options']['autoconnect'] = parse_bool($this->params['options']['autoconnect']);
+			$this->params->options['autoconnect'] = parse_bool($this->params->options['autoconnect']);
 		}
 		else
 		{
-			$this->params['options']['autoconnect'] = true;
+			$this->params->options['autoconnect'] = true;
 		}
-		if(isset($this->params['options']['autoreconnect']))
+		if(isset($this->params->options['autoreconnect']))
 		{
-			$this->params['options']['autoreconnect'] = parse_bool($this->params['options']['autoconnect']);
+			$this->params->options['autoreconnect'] = parse_bool($this->params->options['autoconnect']);
 		}
 		else
 		{
-			$this->params['options']['autoreconnect'] = php_sapi_name() == 'cli' ? true : false;
+			$this->params->options['autoreconnect'] = php_sapi_name() == 'cli' ? true : false;
 		}
-		if(isset($this->params['options']['reconnectquietly']))
+		if(isset($this->params->options['reconnectquietly']))
 		{
-			$this->params['options']['reconnectquietly'] = parse_bool($this->params['options']['autoconnect']);
+			$this->params->options['reconnectquietly'] = parse_bool($this->params->options['autoconnect']);
 		}
 		else
 		{
-			$this->params['options']['reconnectquietly'] = php_sapi_name() == 'cli' ? false : true;
+			$this->params->options['reconnectquietly'] = php_sapi_name() == 'cli' ? false : true;
 		}
-		if(isset($this->params['options']['prefix']))
+		if(isset($this->params->options['prefix']))
 		{
-			$this->prefix = $this->params['options']['prefix'];
+			$this->prefix = $this->params->options['prefix'];
 		}
-		if(isset($this->params['options']['suffix']))
+		if(isset($this->params->options['suffix']))
 		{
-			$this->suffix = $this->params['options']['suffix'];
+			$this->suffix = $this->params->options['suffix'];
 		}
-		if($this->params['options']['autoconnect'])
+		if($this->params->options['autoconnect'])
 		{
 			$this->autoconnect();
 		}
-		if(isset($this->params['options']['maxreconnectattempts']))
+		if(isset($this->params->options['maxreconnectattempts']))
 		{
-			$this->maxReconnectAttempts = $this->params['options']['maxreconnectattempts'];
+			$this->maxReconnectAttempts = $this->params->options['maxreconnectattempts'];
 		}
-		if(isset($this->params['options']['reconnectdelay']))
+		if(isset($this->params->options['reconnectdelay']))
 		{
-			$this->reconnectDelay = $this->params['options']['reconnectdelay'];
+			$this->reconnectDelay = $this->params->options['reconnectdelay'];
 		}
+	}
+	
+	public function &__get($name)
+	{
+		$nothing = null;
+		if($name == 'schema')
+		{
+			if(!$this->schema)
+			{
+				require_once(dirname(__FILE__) . '/dbschema.php');
+				$this->schema = DBSchema::schemaForConnection($this);
+			}
+			return $this->schema;
+		}
+		if($name == 'dbName')
+		{
+			return $this->dbName;
+		}
+		if($name == 'schemaName')
+		{
+			return $this->schemaName;
+		}
+		return $nothing;
+	}
 
+	protected function log()
+	{
+		if(!self::$stderr) self::$stderr = fopen('php://stderr', 'w');
+		$args = func_get_args();
+		fwrite(self::$stderr, '[' . strftime('%Y-%m-%d %H:%M:%S %z') . '] ' . implode(' ', $args) . "\n");
+	}
+
+	abstract protected function raiseError($query, $allowReconnect = true);
+	
+	protected function reportError($errcode, $errmsg, $sqlString, $class = 'DBException')
+	{
+		throw new $class($errcode, $errmsg, $sqlString);
 	}
 
 	protected function reconnect()
 	{
-		$dbname = $this->params['dbname'];
+		$dbname = @$this->params['dbname'];
 		if(!strlen($dbname)) $dbname = '(None)';
-		if(!$this->params['options']['reconnectquietly'])
+		if(!$this->params->options['reconnectquietly'])
 		{
-			if(!self::$stderr) self::$stderr = fopen('php://stderr', 'w');
-			fwrite(self::$stderr, '[' . strftime('%Y-%m-%d %H:%M:%S %z') . '] Lost connection to database ' . $dbname . ', attempting to reconnect...' . "\n");	
+			$this->log('Lost connection to database', $dbname, ', attempting to reconnect...');	
 		}
 		for($c = 0; !$this->maxReconnectAttempts || ($c < $this->maxReconnectAttempts); $c++)
 		{
@@ -293,9 +359,9 @@ abstract class DBCore implements IDBCore
 			{
 				if($this->autoconnect())
 				{
-					if(!$this->params['options']['reconnectquietly'])
+					if(!$this->params->options['reconnectquietly'])
 					{
-						fwrite(self::$stderr, '[' . strftime('%Y-%m-%d %H:%M:%S %z') . '] Connection to database ' . $dbname . ' re-established after ' . $c . ' attempts.' . "\n");
+						$this->log('Connection to database', $dbname, 're-established after', $c, 'attempts');
 					}
 					return true;
 				}
@@ -309,215 +375,44 @@ abstract class DBCore implements IDBCore
 			}
 			if($c && (($c < 100 && !($c % 10)) || !($c % 100)))
 			{
-				if(!$this->params['options']['reconnectquietly'])
+				if(!$this->params->options['reconnectquietly'])
 				{
-					fwrite(self::$stderr, '[' . strftime('%Y-%m-%d %H:%M:%S %z') . '] Unable to connect to database ' . $dbname . ' after ' . $c . ' attempts, still trying...' . "\n");
+					$this->log('Unable to connect to database', $dbname, 'after', $c, 'attempts, still trying...');
 				}
 			}
 		}
 		throw new DBNetworkException(0, 'Failed to reconnect to database ' . $dbname . ' after ' . $this->maxReconnectAttempts);
 	}
+}
+
+/* Abstract base class implementing ISQLDatabase */
+abstract class SQLDatabase extends Database implements ISQLDatabase, ITransactional
+{
+	protected $rsClass;
+	public $prefix = '';
+	public $suffix = '';
+	protected $transactionDepth;
+	protected $aliases = array();
 	
-	public function begin()
-	{
-		$this->execute('START TRANSACTION', false);
-		$this->transactionDepth++;
-	}
-	
-	public function rollback()
-	{
-		$this->execute('ROLLBACK', false);
-		if($this->transactionDepth)
-		{
-			$this->transactionDepth--;
-		}
-	}
+	/**** IDatabase support ****/
 
-	/* Execute any (parametized) query, expecting a resultset */	
-	public /*internal*/ function vquery($query, $params)
-	{
-		if(!is_array($params)) $params = array();
-		$query = preg_replace('/\{([^}]+)\}/e', "\$this->quoteTable(\"\\1\")", $query);
-		$sql = preg_replace('/\?/e', "\$this->quote(array_shift(\$params))", $query);
-		return $this->execute($sql, true);
-	}
-
-	/* Execute any (parametized) query, expecting a boolean result */	
-	public function vexec($query, $params)
-	{
-		if(!is_array($params)) $params = array();
-		$query = preg_replace('/\{([^}]+)\}/e', "\$this->quoteTable(\"\\1\")", $query);
-		$sql = preg_replace('/\?/e', "\$this->quote(array_shift(\$params))", $query);
-		return $this->execute($sql, false) ? true : false;
-	}
-	
-	public function queryArray($query, $params)
-	{
-		if(($r = $this->vquery($query, $params)))
-		{
-			return new $this->rsClass($this, $r, $query, $params);
-		}
-		return null;
-	}
-
-	public function rowArray($query, $params)
-	{
-		$row = null;
-		if(($r =  $this->vquery($query, $params)))
-		{
-			$rs = new $this->rsClass($this, $r, $query, $params);
-			$row = $rs->next();
-			$rs = null;
-		}
-		return $row;
-	}
-
-	public function valueArray($query, $params)
-	{
-		$row = null;
-		if(($r = $this->vquery($query, $params)))
-		{
-			$rs = new $this->rsClass($this, $r, $query, $params);
-			$row = $rs->next();
-			$rs = null;
-			if($row)
-			{
-				foreach($row as $v)
-				{
-					return $v;
-				}
-			}
-		}
-		return null;
-	}
-
-	public function rowsArray($query, $params)
-	{
-		$rows = null;
-		if(($r =  $this->vquery($query, $params)))
-		{
-			$rows = array();
-			$rs = new $this->rsClass($this, $r, $query, $params);
-			while(($row = $rs->next()))
-			{
-				$rows[] = $row;
-			}
-			$rs = null;
-		}
-		return $rows;
-	}
-
-	/* Invoke $function within a transaction which will be automatically re-tried
-	 * if necessary.
+	/* For compatibility, the arguments can be either way around. New
+	 * code should use insertInto() instead.
 	 */
-	public function perform($function, $data = null, $maxRetries = 10)
+	public function insert($table, $kv = null)
 	{
-		$count = 0;
-		while($maxRetries < 0 || $count < $maxRetries)
+		if($kv === null)
 		{
-			try
-			{
-				$this->begin();
-				if(call_user_func($function, $this, $data))
-				{
-					if($this->commit())
-					{
-						return true;
-					}
-					continue;
-				}
-				$this->rollback();
-				return false;
-			}
-			catch(DBRollbackException $e)
-			{
-				$count++;
-			}
+			throw new DBException(0, 'Destination relation not specified in SQLDatabase::insert()', null);
 		}
-		throw new DBRollbackException(0, 'Repeatedly failed to perform transaction (retried ' . $maxRetries . ' times)');
-	}
-
-	/* $rs = $inst->query('SELECT * FROM {sometable} WHERE "field" = ? AND "otherfield" = ?', $something, 27); */
-	public function query($query)
-	{
-		$params = func_get_args();
-		array_shift($params);
-		if(($r = $this->vquery($query, $params)))
+		if(is_array($table) && !is_array($kv))
 		{
-			return new $this->rsClass($this, $r, $query, $params);
+			return $this->insertInto($kv, $table);
 		}
-		return null;
-	}
-
-	public function exec($query)
-	{
-		$params = func_get_args();
-		array_shift($params);
-		if($this->vexec($query, $params))
-		{
-			return true;
-		}
-		return false;
-	}
-
-	public function value($query)
-	{
-		$params = func_get_args();
-		array_shift($params);
-		return $this->valueArray($query, $params);
-	}
-
-	public function row($query)
-	{
-		$params = func_get_args();
-		array_shift($params);	
-		return $this->rowArray($query, $params);
-	}
-
-	public function rows($query)
-	{
-		$params = func_get_args();
-		array_shift($params);
-		return $this->rowsArray($query, $params);
+		return $this->insertInto($table, $kv);
 	}
 	
-	protected function reportError($errcode, $errmsg, $sqlString, $class = 'DBException')
-	{
-		throw new $class($errcode, $errmsg, $sqlString);
-	}
-	
-	public function insert($table, $kv)
-	{
-		$keys = array_keys($kv);
-		$klist = array();
-		foreach($keys as $k)
-		{
-			if(substr($k, 0, 1) == '@')
-			{
-				$values[] = $kv[$k];
-				$klist[] = $this->quoteObject(substr($k, 1));
-			}
-			else
-			{
-				$klist[] = $this->quoteObject($k);
-				$values[] = $this->quote($kv[$k]);
-			}
-		}
-		$sql = 'INSERT INTO ' . $this->quoteTable($table) . ' (' . implode(',', $klist) . ') VALUES (' . implode(',', $values) . ')';
-		return $this->execute($sql, false);
-	}
-	
-	public function now()
-	{
-		return $this->quote(strftime('%Y-%m-%d %H:%M:%S'));
-	}
-
-	public function rowCount()
-	{
-		return null;
-	}
-
-	public function update($table, $kv, $clause)
+	public function update($table, $kv, $clause = null)
 	{
 		$sql = 'UPDATE ' . $this->quoteTable($table) . ' SET ';
 		$keys = array_keys($kv);
@@ -549,6 +444,165 @@ abstract class DBCore implements IDBCore
 		}
 		return $this->execute($sql, false);
 	}
+
+	public function fetch($what)
+	{
+		$params = func_get_args();
+		array_shift($params);	
+		return $this->rowArray($query, $params);
+	}
+
+	/**** ISQLDatabase support ****/
+	
+	/* Execute any (parametized) query, expecting a boolean result */
+	public function exec($query)
+	{
+		$params = func_get_args();
+		array_shift($params);
+		if($this->vexec($query, $params))
+		{
+			return true;
+		}
+		return false;
+	}
+
+	/* Execute any (parametized) query, expecting a boolean result */	
+	public function execArray($query, $params)
+	{
+		if(!is_array($params)) $params = array();
+		$query = preg_replace('/\{([^}]+)\}/e', "\$this->quoteTable(\"\\1\")", $query);
+		$sql = preg_replace('/\?/e', "\$this->quote(array_shift(\$params))", $query);
+		return $this->execute($sql, false) ? true : false;
+	}
+
+	/* $rs = $inst->query('SELECT * FROM {sometable} WHERE "field" = ? AND "otherfield" = ?', $something, 27); */
+	public function query($query)
+	{
+		$params = func_get_args();
+		array_shift($params);
+		if(($r = $this->vquery($query, $params)))
+		{
+			return new $this->rsClass($this, $r, $query, $params);
+		}
+		return null;
+	}
+
+	public function queryArray($query, $params)
+	{
+		if(($r = $this->vquery($query, $params)))
+		{
+			return new $this->rsClass($this, $r, $query, $params);
+		}
+		return null;
+	}
+	
+	public function row($query)
+	{
+		$params = func_get_args();
+		array_shift($params);	
+		return $this->rowArray($query, $params);
+	}
+
+	public function rowArray($query, $params)
+	{
+		$row = null;
+		if(($r =  $this->vquery($query, $params)))
+		{
+			$rs = new $this->rsClass($this, $r, $query, $params);
+			$row = $rs->next();
+			$rs = null;
+		}
+		return $row;
+	}
+	
+	public function rows($query)
+	{
+		$params = func_get_args();
+		array_shift($params);
+		return $this->rowsArray($query, $params);
+	}
+
+	public function rowsArray($query, $params)
+	{
+		$rows = null;
+		if(($r =  $this->vquery($query, $params)))
+		{
+			$rows = array();
+			$rs = new $this->rsClass($this, $r, $query, $params);
+			while(($row = $rs->next()))
+			{
+				$rows[] = $row;
+			}
+			$rs = null;
+		}
+		return $rows;
+	}
+	
+	public function value($query)
+	{
+		$params = func_get_args();
+		array_shift($params);
+		return $this->valueArray($query, $params);
+	}
+
+	public function valueArray($query, $params)
+	{
+		$row = null;
+		if(($r = $this->vquery($query, $params)))
+		{
+			$rs = new $this->rsClass($this, $r, $query, $params);
+			$row = $rs->next();
+			$rs = null;
+			if($row)
+			{
+				foreach($row as $v)
+				{
+					return $v;
+				}
+			}
+		}
+		return null;
+	}
+	
+	public function insertInto($table, $kv)
+	{
+		$keys = array_keys($kv);
+		$klist = array();
+		foreach($keys as $k)
+		{
+			if(substr($k, 0, 1) == '@')
+			{
+				$values[] = $kv[$k];
+				$klist[] = $this->quoteObject(substr($k, 1));
+			}
+			else
+			{
+				$klist[] = $this->quoteObject($k);
+				$values[] = $this->quote($kv[$k]);
+			}
+		}
+		$sql = 'INSERT INTO ' . $this->quoteTable($table) . ' (' . implode(',', $klist) . ') VALUES (' . implode(',', $values) . ')';
+		return $this->execute($sql, false);	
+	}
+	
+	public function alias($name, $table = null)
+	{
+		if(is_array($name))
+		{
+			foreach($name as $alias => $table)
+			{
+				$this->aliases[$alias] = $table;
+			}
+		}
+		else if(strlen($table))
+		{
+			$this->aliases[$name] = $table;
+		}
+		else
+		{
+			unset($this->aliases[$name]);
+		}
+	}
 	
 	public function quoteTable($name)
 	{
@@ -575,51 +629,97 @@ abstract class DBCore implements IDBCore
 		$name = '"' . $name . '"';
 	}
 
-	public function alias($name, $table = null)
+	public function now()
 	{
-		if(is_array($name))
+		return $this->quote(strftime('%Y-%m-%d %H:%M:%S'));
+	}
+
+	public function rowCount()
+	{
+		return null;
+	}
+
+	/**** ITransactional support ****/
+	
+	public function begin()
+	{
+		$this->execute('START TRANSACTION', false);
+		$this->transactionDepth++;
+	}
+	
+	public function rollback()
+	{
+		$this->execute('ROLLBACK', false);
+		if($this->transactionDepth)
 		{
-			foreach($name as $alias => $table)
-			{
-				$this->aliases[$alias] = $table;
-			}
-		}
-		else if(strlen($table))
-		{
-			$this->aliases[$name] = $table;
-		}
-		else
-		{
-			unset($this->aliases[$name]);
+			$this->transactionDepth--;
 		}
 	}
 	
-	public function &__get($name)
+	/* Invoke $function within a transaction which will be automatically re-tried
+	 * if necessary.
+	 */
+	public function perform($function, $data = null, $maxRetries = 10)
 	{
-		$nothing = null;
-		if($name == 'schema')
+		$count = 0;
+		while($maxRetries < 0 || $count < $maxRetries)
 		{
-			if(!$this->schema)
+			try
 			{
-				require_once(dirname(__FILE__) . '/dbschema.php');
-				$this->schema = DBSchema::schemaForConnection($this);
+				$this->begin();
+				if(call_user_func($function, $this, $data))
+				{
+					if($this->commit())
+					{
+						return true;
+					}
+					continue;
+				}
+				$this->rollback();
+				return false;
 			}
-			return $this->schema;
+			catch(DBRollbackException $e)
+			{
+				$count++;
+			}
 		}
-		if($name == 'dbName')
-		{
-			return $this->dbName;
-		}
-		if($name == 'schemaName')
-		{
-			return $this->schemaName;
-		}
-		return $nothing;
+		throw new DBRollbackException(0, 'Repeatedly failed to perform transaction (retried ' . $maxRetries . ' times)');
 	}
+
+	/* Execute any (parametized) query, expecting a resultset */	
+	public /*internal*/ function vquery($query, $params)
+	{
+		if(!is_array($params)) $params = array();
+		$query = preg_replace('/\{([^}]+)\}/e', "\$this->quoteTable(\"\\1\")", $query);
+		$sql = preg_replace('/\?/e', "\$this->quote(array_shift(\$params))", $query);
+		return $this->execute($sql, true);
+	}
+
+	/* Deprecated */
+	public function vexec($query, $params)
+	{
+		if(!is_array($params)) $params = array();
+		$query = preg_replace('/\{([^}]+)\}/e', "\$this->quoteTable(\"\\1\")", $query);
+		$sql = preg_replace('/\?/e', "\$this->quote(array_shift(\$params))", $query);
+		return $this->execute($sql, false) ? true : false;
+	}	
+}
+
+abstract class ContentStore extends Database implements IContentStore
+{
+}
+
+abstract class DirectoryService extends Database implements IDirectoryService
+{
+}
+
+/* Deprecated */
+abstract class DBCore extends SQLDatabase
+{
 }
 
 /* while(($row = $rs->next())) { ... } */
-class DBDataSet implements DataSet
+class DBDataSet implements IDataSet
 {
 	public $fields = array();
 	public $EOF = true;
@@ -650,6 +750,7 @@ class DBDataSet implements DataSet
 	
 	public function rewind()
 	{
+		throw new DBException(0, 'Dataset cannot be rewound', null);
 	}
 	
 	public function current()

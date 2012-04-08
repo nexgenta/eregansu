@@ -1,6 +1,6 @@
 <?php
 
-/* Copyright 2010 Mo McRoberts.
+/* Copyright 2010-2012 Mo McRoberts.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -49,7 +49,7 @@ class MySQLSchema extends DBSchema
 					$this->db->rollback();
 					break;
 				}
-				$this->db->insert('_version', array(
+				$this->db->insertInto('_version', array(
 					'ident' => $moduleId,
 					'version' => 0,
 					'@updated' => $this->db->now(),

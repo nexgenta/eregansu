@@ -1,6 +1,7 @@
 <?php
 
-/* Copyright 2011 Mo McRoberts.
+
+/* Copyright 2012 Mo McRoberts.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -15,24 +16,10 @@
  *  limitations under the License.
  */
 
-class TestUses extends TestHarness
-{
-	public function main()
-	{
-		uses('harness', 'uri', 'rdf');
-		
-		if(!class_exists('URL'))
-		{
-			echo "The URL class does not exist\n";
-			return;
-		}
-		if(!class_exists('RDFDocument'))
-		{
-			echo "The RDFDocument class does not exist\n";
-			return;
-		}
-		return true;
-	}
-}
+require_once(dirname(__FILE__) . '/../db.php');
+require_once(dirname(__FILE__) . '/../search.php');
 
-return 'TestUses';
+class RESTfulStore extends GenericWebSearchEngine implements IContentStore
+{
+
+}

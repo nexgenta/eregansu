@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <tests>
+  <preflight>preflight-mysql.php</preflight>
   <test>constants.php</test>
   <test>uses.php</test>
+  <test>uri-contract.php</test>
+  <test>uri-parse.php</test>
   <test>uuid-gen.php</test>
   <test>uuid-gen-md5.php</test>
   <test>uuid-gen-sha1.php</test>
@@ -15,4 +18,6 @@
   <test>rdfdoc-arrayaccess-get.php</test>
   <test>rdfdoc-arrayaccess-pritopic.php</test>
   <test>rdfdoc-arrayaccess-set.php</test>
+  <test>mysql-connect.php</test>
+  <postflight>postflight-mysql.php</postflight>
 </tests>

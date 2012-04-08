@@ -1,6 +1,6 @@
 <?php
 
-/* Copyright 2009-2011 Mo McRoberts.
+/* Copyright 2009-2012 Mo McRoberts.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -54,6 +54,12 @@
  * to indicate which line should be replaced.
  */
 define('__EREGANSU__', 'master'); /* %%version%% */
+
+if(!defined('PHP_VERSION_ID'))
+{
+    $php_version = explode('.', PHP_VERSION);
+    define('PHP_VERSION_ID', ($php_version[0] * 10000 + $php_version[1] * 100 + $php_version[2]));
+}
 
 /**
  * The ISerialisable interface is implemented by classes which can serialise
@@ -158,9 +164,12 @@ if(!function_exists('uses')) {
 
 	function uses($module)
 	{
+		static $_map = array('url' => 'uri', 'xmlns' => 'uri');
+
 		$_modules = func_get_args();
 		foreach($_modules as $_mod)
 		{
+			$_mod = isset($_map[$_mod]) ? $_map[$_mod] : $_mod;
 			require_once(dirname(__FILE__) . '/' . $_mod . '.php');
 		}	
 	}
@@ -340,10 +349,11 @@ $AUTOLOAD = array(
 	'session' => dirname(__FILE__) . '/session.php',
 	'searchengine' => dirname(__FILE__) . '/searchengine.php',
 	'searchindexer' => dirname(__FILE__) . '/searchengine.php',
-	'url' => dirname(__FILE__) . '/url.php',
+	'uri' => dirname(__FILE__) . '/uri.php',
+	'url' => dirname(__FILE__) . '/uri.php',
 	'uuid' => dirname(__FILE__) . '/uuid.php',
 	'xmlparser' => dirname(__FILE__) . '/xml.php',
-	'xmlns' => dirname(__FILE__) . '/xmlns.php',
+	'xmlns' => dirname(__FILE__) . '/uri.php',
 	);
 
 if(function_exists('spl_autoload_register'))

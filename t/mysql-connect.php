@@ -1,6 +1,6 @@
 <?php
 
-/* Copyright 2011 Mo McRoberts.
+/* Copyright 2012 Mo McRoberts.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -15,24 +15,27 @@
  *  limitations under the License.
  */
 
-class TestUses extends TestHarness
+uses('db');
+
+if(!defined('MYSQL_SOCKET')) define('MYSQL_SOCKET', realpath(dirname(__FILE__) . '/data/mysql.sock'));
+
+class TestMySQLConnect extends TestHarness
 {
 	public function main()
 	{
-		uses('harness', 'uri', 'rdf');
-		
-		if(!class_exists('URL'))
+		if(!defined('MYSQL_ROOT'))
 		{
-			echo "The URL class does not exist\n";
-			return;
+			return 'skip';
 		}
-		if(!class_exists('RDFDocument'))
+		$db = Database::connect('mysql://root@localhost/test?socket=' . urlencode(MYSQL_SOCKET));
+		$result = $db->rows('SHOW DATABASES');
+		if(count($result))
 		{
-			echo "The RDFDocument class does not exist\n";
-			return;
+			return true;
 		}
-		return true;
+		print_r($result);
+		return false;
 	}
 }
 
-return 'TestUses';
+return 'TestMySQLConnect';

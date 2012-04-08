@@ -1,6 +1,6 @@
 <?php
 
-/* Copyright 2011 Mo McRoberts.
+/* Copyright 2011-2012 Mo McRoberts.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ if(!defined('TESTSUITE_RUN_TESTS'))
 		 */
 		define('TESTSUITE_RUN_TESTS', true);
 
-		/* Don't attempt to load config.php and appconfig.php */
+		/* Don't attempt to load config.php and appconfig.php as part of normal setup */
 		define('EREGANSU_SKIP_CONFIG', true);
 	}
 	else
@@ -55,6 +55,12 @@ if(TESTSUITE_RUN_TESTS)
 		exit(1);
 	}
 	
+	/* If config.php exists in the current directory, load it now */
+	if(file_exists('./config.php'))
+	{
+		require('./config.php');
+	}
+
 	$className = require($argv[1]);
 	
 	if(strlen($className))
@@ -62,6 +68,10 @@ if(TESTSUITE_RUN_TESTS)
 		$inst = new $className();
 		if(($r = $inst->main()) !== true)
 		{
+			if($r === 'skip')
+			{
+				exit(126);
+			}
 			exit(empty($r) ? 1 : $r);
 		}
 	}

@@ -21,18 +21,17 @@
  */
 
 require_once(dirname(__FILE__) . '/date.php');
-require_once(dirname(__FILE__) . '/xmlns.php');
-require_once(dirname(__FILE__) . '/url.php');
+require_once(dirname(__FILE__) . '/uri.php');
 
 /**
  * Utility methods for instantiating RDF documents.
  */
-abstract class RDF extends XMLNS
+/* Extends URI to inherit the prefix constants; deprecated */
+
+abstract class RDF extends URI
 {
 	/* Registered ontology handlers */
 	public static $ontologies = array();
-	/* Registered namespaces */
-	public static $namespaces = array();
 	/* Preferred languages */
 	public static $langs = array('en');
 
@@ -375,43 +374,17 @@ abstract class RDF extends XMLNS
 
 	public static function ns($uri = null, $suggestedPrefix = null, $overwrite = false)
 	{
-		if(!count(self::$namespaces))
-		{
-			self::$namespaces = array();
-			self::$namespaces[RDF::rdf] = 'rdf';
-			self::$namespaces[RDF::rdfs] = 'rdfs';
-			self::$namespaces[RDF::owl] = 'owl';
-			self::$namespaces[RDF::foaf] = 'foaf';
-			self::$namespaces[RDF::skos] = 'skos';
-			self::$namespaces[RDF::time] = 'time';
-			self::$namespaces[RDF::dc] = 'dc';
-			self::$namespaces[RDF::dcterms] = 'dct';
-			self::$namespaces[RDF::rdfg] = 'rdfg';
-			self::$namespaces[RDF::geo] = 'geo';
-			self::$namespaces[RDF::frbr] = 'frbr';
-			self::$namespaces[RDF::xhtml] = 'xhtml';
-			self::$namespaces[RDF::xhv] = 'xhv';
-			self::$namespaces[RDF::dcmit] = 'dcmit';
-			self::$namespaces[RDF::xsd] = 'xsd';
-			self::$namespaces[RDF::gn] = 'gn';
-			self::$namespaces[RDF::exif] = 'exif';
-			self::$namespaces[RDF::void] = 'void';
-		}
 		if(strlen($uri))
 		{
-			if(strlen($suggestedPrefix) && ($overwrite || !isset(self::$namespaces[$uri])))
+			if(strlen($suggestedPrefix))
 			{
-				self::$namespaces[$uri] = $suggestedPrefix;
+				URI::registerPrefix($prefix, $uri, $overwrite);
 			}
-			return isset(self::$namespaces[$uri]) ? self::$namespaces[$uri] : null;
+			return URI::prefixForUri($uri);
 		}
 		if(strlen($suggestedPrefix))
 		{
-			$r = array_search($suggestedPrefix, self::$namespaces);
-			if($r !== false)
-			{
-				return $r;
-			}
+			return URI::uriForPrefix($suggestedPrefix);
 		}
 		return null;
 	}
@@ -570,32 +543,10 @@ class RDFInstance extends RDFInstanceBase
 	/* Return a URI for a QName (used by all(), first(), etc. to translate predicate names) */
 	protected function translateQName($qn)
 	{
-		if(!strcasecmp($qn, 'subject')) return RDF::rdf . 'about';
-
-		$s = explode(':', $qn, 2);
-		if(count($s) == 2)
-		{
-			switch($s[0])
-			{
-			case 'http':
-			case 'https':
-			case 'urn':
-			case 'tag':
-			case 'info':
-			case 'file':
-				return $qn;
-			case 'xml':
-				return RDF::xml . ' ' . $s[1];
-			default:
-				$base = RDF::ns(null, $s[0]);
-				if(strlen($base))
-				{
-					return $base . $s[1];
-				}			
-			}
-		}
-		return $qn;
+		if(!strcasecmp($qn, 'subject')) return URI::rdf . 'about';
+		return URI::expandUri($qn, true);
 	}
+
 	/* Equivalent to ->all($key, false)->lang($langs, $fallbackFirst) */
 	public function lang($key, $langs = null, $fallbackFirst = true)
 	{
@@ -604,7 +555,13 @@ class RDFInstance extends RDFInstanceBase
 
 	public function title($langs = null, $fallbackFirst = true)
 	{
-		return $this->lang(array(RDF::skos.'prefLabel', RDF::gn.'name', RDF::foaf.'name', RDF::rdfs.'label', RDF::dcterms.'title', RDF::dc.'title'), $langs, $fallbackFirst);
+		return $this->lang(array(
+			URI::skos.'prefLabel',
+			URI::gn.'name',
+			URI::foaf.'name',
+			URI::rdfs.'label',
+			URI::dcterms.'title',
+			URI::dc.'title'), $langs, $fallbackFirst);
 	}
 
 	public function description($langs = null, $fallbackFirst = true)
@@ -612,12 +569,12 @@ class RDFInstance extends RDFInstanceBase
 		return $this->lang(
 			array(
 				'http://purl.org/ontology/po/medium_synopsis',
-				RDF::rdfs . 'comment',
+				URI::rdfs . 'comment',
 				'http://purl.org/ontology/po/short_synopsis',
 				'http://purl.org/ontology/po/long_synopsis',
-				RDF::dcterms . 'description',
+				URI::dcterms . 'description',
 				'http://dbpedia.org/ontology/abstract',
-				RDF::dc . 'description',
+				URI::dc . 'description',
 				), $langs, $fallbackFirst);
 	}
 	
@@ -634,7 +591,7 @@ class RDFInstance extends RDFInstanceBase
 		return $this->lang(
 			array(
 				'http://purl.org/ontology/po/medium_synopsis',
-				RDF::rdfs . 'comment',
+				URI::rdfs . 'comment',
 				), $langs, $fallbackFirst);
 	}
 
@@ -643,9 +600,9 @@ class RDFInstance extends RDFInstanceBase
 		return $this->lang(
 			array(
 				'http://purl.org/ontology/po/long_synopsis',
-				RDF::dcterms . 'description',
+				URI::dcterms . 'description',
 				'http://dbpedia.org/ontology/abstract',
-				RDF::dc . 'description',
+				URI::dc . 'description',
 				), $langs, $fallbackFirst);
 	}
 

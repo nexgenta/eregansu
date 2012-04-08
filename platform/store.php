@@ -184,7 +184,7 @@ class Storable implements ArrayAccess
 /**
  * Base class for datasets whose rows are instances of \class{Storable}
  */
-abstract class StorableSet implements DataSet, Countable
+abstract class StorableSet implements IDataSet, Countable
 {
 	protected $model;
 	public $EOF = true;
@@ -437,7 +437,7 @@ class DBStorableSet extends StorableSet
 /**
  * Base class for complex object stores.
  */
-class Store extends Model
+class Store extends Model implements IContentStore
 {
 	protected $storableClass = 'Storable';
 	
