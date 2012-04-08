@@ -511,7 +511,7 @@ if(!defined('EREGANSU_RDF_IMPLEMENTATION'))
 	}
 }
 
-require_once(dirname(__FILE__) . '/' . EREGANSU_RDF_IMPLEMENTATION . '.php');
+require_once(dirname(__FILE__) . '/rdf/' . EREGANSU_RDF_IMPLEMENTATION . '.php');
 
 class RDFInstance extends RDFInstanceBase
 {

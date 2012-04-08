@@ -476,7 +476,8 @@ class RedlandSerializer extends RedlandBase
 	
 	public function serializeModelToString(RedlandModel $model, $baseURI = null)
 	{
-		foreach(RDF::$namespaces as $uri => $prefix)
+		$ns = URI::namespaces();
+		foreach($ns as $uri => $prefix)
 		{
 			librdf_serializer_set_namespace($this->resource, librdf_new_uri($this->world->resource, $uri), $prefix);
 		}
@@ -485,7 +486,8 @@ class RedlandSerializer extends RedlandBase
 
 	public function serializeModelToFile(RedlandModel $model, $fileName, $baseURI = null)
 	{
-		foreach(RDF::$namespaces as $uri => $prefix)
+		$ns = URI::namespaces();
+		foreach($ns as $uri => $prefix)
 		{
 			librdf_serializer_set_namespace($this->resource, librdf_new_uri($this->world->resource, $uri), $prefix);
 		}
@@ -1828,62 +1830,9 @@ class RDFDocument extends RedlandModel implements ArrayAccess, ISerialisable
 	}
 
 	/* Given a URI, generate a prefix:short form name */
-	public function namespacedName($qname, $generate = true)
+	public function namespacedName($uri, $generate = true)
 	{
-		RDF::ns();
-		$qname = strval($qname);
-		if(!isset($this->qnames[$qname]))
-		{
-			if(false !== ($p = strrpos($qname, '#')))
-			{
-				$ns = substr($qname, 0, $p + 1);
-				$lname = substr($qname, $p + 1);
-			}
-			else if(false !== ($p = strrpos($qname, ' ')))
-			{
-				$ns = substr($qname, 0, $p);
-				$lname = substr($qname, $p + 1);
-			}
-			else if(false !== ($p = strrpos($qname, '/')))
-			{
-				$ns = substr($qname, 0, $p + 1);
-				$lname = substr($qname, $p + 1);
-			}
-			else
-			{
-				return $qname;
-			}
-			if(!strcmp($ns, XMLNS::xml))
-			{
-				return 'xml:' . $lname;
-			}
-			if(!strcmp($ns, XMLNS::xmlns))
-			{
-				return 'xmlns:' . $lname;
-			}
-			if(!isset($this->namespaces[$ns]))
-			{
-				if(isset(RDF::$namespaces[$ns]))
-				{
-					$this->namespaces[$ns] = RDF::$namespaces[$ns];
-				}
-				else if($generate)
-				{
-					$this->namespaces[$ns] = 'ns' . count($this->namespaces);
-				}
-				else
-				{
-					return $qname;
-				}
-			}
-			if(!strlen($lname))
-			{
-				return $qname;
-			}
-			$pname = $this->namespaces[$ns] . ':' . $lname;
-			$this->qnames[$qname] = $pname;
-		}
-		return $this->qnames[$qname];		
+		return URI::contractUri($uri, $generate);
 	}
 
 	/* Return the RDFInstance which is either explicitly or implicitly the
