@@ -71,6 +71,7 @@ class URI implements ArrayAccess
 	const gn = 'http://www.geonames.org/ontology#';
 	const exif = 'http://www.kanzaki.com/ns/exif#';
 	const void = 'http://rdfs.org/ns/void#';
+	const olo = 'http://purl.org/ontology/olo/core#';
 
 	protected static $schemes;
 	
@@ -277,7 +278,8 @@ class URI implements ArrayAccess
 		self::$namespaces[self::xsd] = 'xsd';
 		self::$namespaces[self::gn] = 'gn';
 		self::$namespaces[self::exif] = 'exif';
-		self::$namespaces[self::void] = 'void';		
+		self::$namespaces[self::void] = 'void';
+		self::$namespaces[self::olo] = 'olo';		
 	}
 	
 	public static function merge($url, $base, $onlyIfNonEmpty = false)
