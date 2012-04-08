@@ -253,6 +253,14 @@ class RedlandRDFXMLParser extends RedlandParser
 	}
 }
 
+class RedlandTurtleParser extends RedlandParser
+{
+	public function __construct($name = 'turtle', $mime = null, $type = null, $world = null)
+	{
+		parent::__construct($name, $mime, $type, $world);
+	}
+}
+
 class RedlandNode extends RedlandBase
 {
 	public static function blank($world = null)
