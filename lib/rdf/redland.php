@@ -1603,6 +1603,11 @@ class RDFDocument extends RedlandModel implements ArrayAccess, ISerialisable
 		{
 			return $this->resourceTopic();
 		}
+		$key = strval($key);
+		if(!strlen($key))
+		{
+			return null;
+		}
 		return $this->subject($key, null, false);
 	}
 
