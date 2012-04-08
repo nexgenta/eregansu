@@ -59,15 +59,15 @@ class CliSetup extends CommandLine
 
 		if(!isset($SETUP_MODULES) || !is_array($SETUP_MODULES) || !count($SETUP_MODULES))
 		{
-			echo "setup: No modules are configured, nothing to do.\n";
+			echo "*** No modules are configured, nothing to do.\n";
 			exit(0);
 		}
 		foreach($SETUP_MODULES as $mod)
 		{
 			$this->load($mod);
 		}
-		$this->load(array('file' => PLATFORM_PATH . 'id-module.php', 'class' => 'IdentityModule'), null);
-		$this->load(array('file' => PLATFORM_PATH . 'store-module.php', 'class' => 'StoreModule'), null);		
+		$this->load(array('name' => 'id', 'file' => PLATFORM_PATH . 'id-module.php', 'class' => 'IdentityModule'), null);
+		$this->load(array('name' => 'store', 'file' => PLATFORM_PATH . 'store-module.php', 'class' => 'StoreModule'), null);		
 		foreach($this->modules as $k => $mod)
 		{
 			$this->processSetup($k);
@@ -141,6 +141,10 @@ class CliSetup extends CommandLine
 			exit(1);
 		}
 		$key = $module->moduleId . '-' . $module->dbIri;
+		if(defined('EREGANSU_DEBUG'))
+		{
+			echo "--> Loaded " . $mod['name'] . " from class " . get_class($module) . " with key " . $key . "\n";
+		}
 		if(!isset($this->modules[$key]))
 		{
 			$mod['key'] = $key;
