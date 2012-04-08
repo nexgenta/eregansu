@@ -1,14 +1,6 @@
 <?php
 
-/**
- * @year 2010
- * @include uses('uuid');
- * @since Available in Eregansu 1.0 and later. 
- * @example examples/uuids.php
- * @package EregansuLib Eregansu Core Library
- */
-
-/* Copyright 2010 Mo McRoberts.
+/* Copyright 2010-2012 Mo McRoberts.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.

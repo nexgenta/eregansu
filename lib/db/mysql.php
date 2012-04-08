@@ -1,6 +1,6 @@
 <?php
 
-/* Copyright 2009, 2010 Mo McRoberts.
+/* Copyright 2009-2012 Mo McRoberts.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -34,17 +34,36 @@ class MySQL extends DBCore
 
 	protected function autoconnect()
 	{
-		if(!($this->mysql = mysql_connect($this->params['host'], $this->params['user'], $this->params['pass'], $this->forceNewConnection)))
+		if(isset($this->params->options['socket']))
+		{
+			$socket = $this->params->options['socket'];
+		}
+		else
+		{
+			$socket = null;
+		}
+		$host = $this->params['host'];
+		if(!strlen($host) || !strcmp($host, 'localhost'))
+		{
+			if(strlen($socket))
+			{
+				$host = ':' . $socket;
+			}
+		}
+		else if(!empty($this->params['port']))
+		{
+			$host .= ':' . $this->params['port'];
+		}
+		if(!($this->mysql = mysql_connect($host, $this->params['user'], $this->params['pass'], $this->forceNewConnection)))
 		{
 			return $this->raiseError(null, false);
 		}
-		if(strlen($this->params['dbname']))
+		if(strlen($this->params->dbName))
 		{
-			if(!mysql_select_db($this->params['dbname'], $this->mysql))
+			if(!mysql_select_db($this->params->dbName, $this->mysql))
 			{
 				return $this->raiseError(null, false);
 			}
-			$this->dbName = $this->params['dbname'];
 		}
 		$this->execute("SET NAMES 'utf8'", false);
 		$this->execute("SET sql_mode='ANSI_QUOTES,IGNORE_SPACE,PIPES_AS_CONCAT'", false);
@@ -59,7 +78,6 @@ class MySQL extends DBCore
 		{
 			return $this->raiseError(null);
 		}
-		$this->dbName = $name;		
 	}
 	
 	protected function execute($sql, $expectResult = false)
@@ -80,6 +98,10 @@ class MySQL extends DBCore
 	
 	protected function raiseError($query, $allowReconnect = true)
 	{
+		/* See:
+		 *   http://dev.mysql.com/doc/refman/5.5/en/error-messages-server.html
+		 *   http://dev.mysql.com/doc/refman/5.5/en/error-messages-client.html
+		 */
 		static $neterrors = array(1042, 1043, 1044, 1045, 1129, 1130, 1133, 1152, 1153, 1154, 1155, 1156, 1157, 1158, 1159, 1160, 1162, 1184, 1370, 1203, 1226, 1227, 1251, 1275, 1301, 1317, 1637, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2009, 2010, 2011, 2012, 2013, 2015, 2020, 2021, 2024, 2025, 2027, 2028, 2036, 2037, 2038, 2039, 2040, 2041, 2042, 2043, 2044, 2045, 2046, 2049, 2055);
 		static $syserrors = array(1000, 1001, 1004, 1005, 1006, 1009, 1010, 1011, 1012, 1013, 1014, 1015, 1016, 1017, 1018, 1019, 1021, 1023, 1024, 1025, 1026, 1030, 1033, 1035, 1037, 1039, 1041, 1053, 1078, 1080, 1081, 1082, 1085, 1086, 1098, 1126, 1127, 1135, 1187, 1189, 1190, 1194, 1197, 1199, 1200, 1201, 1202, 1218, 1219, 1236, 1254, 1255, 1256, 1257, 1258, 1259, 1274, 1282, 1285, 1289, 1290, 1296, 1297, 1340, 1341, 1342, 1343, 1344, 1346, 1371, 1374, 1375, 1376, 1377, 1378, 1379, 1380, 1383, 1388, 1389, 1430, 1431, 1432, 1436, 1501, 1524, 1528, 1529, 1533, 1541, 1545, 1547, 1549, 1570, 1573, 1602, 1623, 1627, 1639, 1640);
 		static $rollbackerrors = array(1205, 1213);
@@ -216,9 +238,9 @@ class MySQL extends DBCore
 
 	public function quoteTable($name)
 	{
-		if(!$this->dbName) $this->autoconnect();
+		if(!$this->params->dbName) $this->autoconnect();
 		if(isset($this->aliases[$name])) $name = $this->aliases[$name];
-		return '"' . $this->dbName . '"."' . $this->prefix . $name . $this->suffix . '"';
+		return '"' . $this->params->dbName . '"."' . $this->prefix . $name . $this->suffix . '"';
 	}
 }
 

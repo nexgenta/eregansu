@@ -33,7 +33,8 @@ class XapianSearch extends SearchEngine
 	public $db;
 	public $stemmer;
 	public $prefixes = array();
-
+	protected $defaultLanguage = 'english';
+	
 	protected $path;
 
 	const BOOL = 0;
@@ -47,8 +48,9 @@ class XapianSearch extends SearchEngine
 		{
 			self::$databases[$uri->path] = array(null, false);
 		}
+		$lang = isset($uri->options['language']) ? $uri->options['language'] : $this->defaultLanguage;
 		$this->db =& self::$databases[$uri->path];
-		$this->stemmer = new XapianStem('english');
+		$this->stemmer = new XapianStem($lang);
 	}
 
 	protected function reopen()
@@ -286,8 +288,20 @@ class XapianIndexer extends SearchIndexer
 		$this->db[0]->delete_document('Q' . $identifier);		
 	}
    
-	public function indexDocument($identifier, $fullText, $attributes = null)
+	public function indexDocument($identifier, $fullText = null, $attributes = null)
 	{
+		if($identifier instanceof IIndexable)
+		{
+			if(!isset($fullText))
+			{
+				$fullText = $identifier->indexBody();
+			}
+			if(!isset($attributes))
+			{
+				$attributes = $identifier->indexAttributes();
+			}
+			$identifer = $identifer->indexIdentifier();
+		}
 		$this->begin();
 		$doc = new XapianDocument();
 		if(is_array($attributes))

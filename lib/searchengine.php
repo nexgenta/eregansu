@@ -1,6 +1,6 @@
 <?php
 
-/* Copyright 2011 Mo McRoberts.
+/* Copyright 2011-2012 Mo McRoberts.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -15,20 +15,31 @@
  *  limitations under the License.
  */
 
-require_once(dirname(__FILE__) . '/url.php');
+require_once(dirname(__FILE__) . '/uri.php');
+
+URI::register('http', 'SearchEngine', array('class' => 'GenericWebSearch'));
+URI::register('https', 'SearchEngine', array('class' => 'GenericWebSearch'));
+URI::register('dbplite', 'SearchEngine', array('file' => dirname(__FILE__) . '/search/dbpedialite.php', 'class' => 'DbpediaLiteSearch'));
+URI::register('xapian+file', 'SearchEngine', array('file' => dirname(__FILE__) . '/search/xapiansearch.php', 'class' => 'XapianSearch'));
+URI::register('xapian+file', 'SearchIndexer', array('file' => dirname(__FILE__) . '/search/xapiansearch.php', 'class' => 'XapianSearch'));
 
 interface ISearchEngine
 {
-	public function __construct($uri);
 	public function query($args);
 }
 
 interface ISearchIndexer
 {
-	public function __construct($uri);
 	public function begin();
-	public function indexDocument($identifier, $text, $attributes = null);
+	public function indexDocument($identifier, $text = null, $attributes = null);
 	public function commit();
+}
+
+interface IIndexable
+{
+	public function indexIdentifier();
+	public function indexBody();
+	public function indexAttributes();
 }
 	
 abstract class SearchEngine implements ISearchEngine
@@ -41,25 +52,11 @@ abstract class SearchEngine implements ISearchEngine
 		{
 			$uri = new URL($uri);
 		}
-		switch($uri->scheme)
+		$inst = URI::handlerForScheme($uri->scheme, 'SearchEngine', false, $uri);
+		if(!is_object($inst))
 		{
-		case 'http':
-		case 'https':
-			$class = 'GenericWebSearch';
-			break;
-		case 'dbplite':
-			require_once(dirname(__FILE__) . '/search/dbpedialite.php');
-			$class = 'DbpediaLiteSearch';
-			break;
-		case 'xapian+file':
-			require_once(dirname(__FILE__) . '/search/xapiansearch.php');
-			$class = 'XapianSearch';
-			break;
-		default:
-			trigger_error('Unsupported search engine scheme "' . $uri->scheme . '"', E_USER_ERROR);
-			return null;
+			throw new DBException(0, 'Unsupported search engine connection scheme "' . $uri->scheme . '"', null);
 		}
-		$inst = new $class($uri);
 		return $inst;
 	}
 
@@ -79,17 +76,11 @@ abstract class SearchIndexer implements ISearchIndexer
 		{
 			$uri = new URL($uri);
 		}
-		switch($uri->scheme)
+		$inst = URI::handlerForScheme($uri->scheme, 'SearchIndexer', false, $uri);
+		if(!is_object($inst))
 		{
-		case 'xapian+file':
-			require_once(dirname(__FILE__) . '/search/xapiansearch.php');
-			$class = 'XapianIndexer';
-			break;
-		default:
-			trigger_error('Unsupported search indexer scheme "' . $uri->scheme . '"', E_USER_ERROR);
-			return null;
+			throw new DBException(0, 'Unsupported search indexer connection scheme "' . $uri->scheme . '"', null);
 		}
-		$inst = new $class($uri);
 		return $inst;
 	}
 

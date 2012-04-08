@@ -35,9 +35,13 @@
  */
 
 /* Compatibility -- older code may use $VFS instead of $URI_SCHEMES */
-if(isset($URI_SCHEMES) && isset($VFS))
+if(!isset($URI_SCHEMES) && isset($VFS))
 {
 	$URI_SCHEMES =& $VFS;
+}
+
+interface IVFS
+{
 }
 
 class URI implements ArrayAccess
@@ -68,6 +72,8 @@ class URI implements ArrayAccess
 	const exif = 'http://www.kanzaki.com/ns/exif#';
 	const void = 'http://rdfs.org/ns/void#';
 
+	protected static $schemes;
+	
 	protected static $registered = false;
 	protected static $namespaces = array();
 
@@ -125,6 +131,105 @@ class URI implements ArrayAccess
 		return $url;
 	}
 	
+	/* Attempt to return an instance of a handler supporting the
+	 * specified interface for a given scheme	 
+	 */
+	public static function handlerForScheme($scheme, $handlerType = 'VFS', $returnName = false, $args = null)
+	{
+		/* If the scheme is a string, it's the name of a URI scheme which must be
+		 * looked up.
+		 */
+		if(is_string($scheme))
+		{
+			self::registerSchemes();
+			if(!isset(self::$schemes[$scheme]))
+			{
+				return null;
+			}
+			$info = self::$schemes[$scheme];
+		}
+		else
+		{
+			/* Otherwise, it's assumed to be an array containing scheme handler
+			 * information.
+			 */
+			$info = $scheme;
+		}
+		/* If the member is just a string, it's a single class name */
+		if(is_string($info))
+		{		
+			$className = $info;	
+		}
+		else if(strlen($handlerType) && isset($info[$handlerType]))
+		{
+			/* Otherwise, it's an array of the form ('VFS' => ..., 'Database' => ...,
+			 * 'SearchEngine' => ...)
+			 */
+			$info = $info[$handlerType];
+			/* For each handler-type-specific entry, the value can be an array with
+			 * 'file' and 'class' members, or a string just specifying the name of
+			 * a class.
+			 */
+			if(is_array($info) && isset($info['file']))
+			{
+				require_once($info['file']);
+			}
+			if(is_array($info))
+			{
+				$className = $info['class'];
+			}
+			else
+			{
+				$className = $info;
+			}
+		}
+		/* If the handler-type is specified, the class must conform to its matching
+		 * interface.
+		 */
+		if(strlen($handlerType))
+		{
+			if(PHP_VERSION_ID >= 50309)
+			{
+				if(!is_subclass_of($className, 'I' . $handlerType, false))
+				{
+					return null;
+				}
+			}
+			else
+			{
+				if(!is_subclass_of($className, 'I' . $handlerType))
+				{
+					return null;
+				}
+			}
+			
+		}
+		if($returnName)
+		{
+			return $className;
+		}
+		return new $className($args);
+	}
+	
+	/* Register a URI scheme */
+	public static function register($scheme, $kind, $classInfo, $overwrite = false)
+	{
+		if(!is_array($classInfo))
+		{
+			$classInfo = array('class' => $classInfo);
+		}
+		if(isset(self::$schemes[$scheme][$kind]) && !$overwrite)
+		{
+			return false;
+		}
+		self::$schemes[$scheme][$kind] = $classInfo;
+		if($kind == 'VFS')
+		{
+			stream_wrapper_class_register($scheme, $classInfo['class'], STREAM_IS_URL);
+		}
+		return true;
+	}
+	
 	/* Register all of the schemes in $URI_SCHEMES */
 	public static /*internal*/ function registerSchemes()
 	{
@@ -134,6 +239,8 @@ class URI implements ArrayAccess
 		{
 			return;
 		}
+		self::$registered = true;		
+		self::$schemes =& $URI_SCHEMES;
 		if(isset($URI_SCHEMES) && is_array($URI_SCHEMES))
 		{
 			foreach($URI_SCHEMES as $scheme => $class)
@@ -141,7 +248,6 @@ class URI implements ArrayAccess
 				stream_wrapper_register($scheme, $class, STREAM_IS_URL);
 			}
 		}
-		self::$registered = true;		
 	}
 	
 	/* Register all of the known URI prefixes */
@@ -422,7 +528,12 @@ class URI implements ArrayAccess
 	{
 		if(!property_exists($this, $key))
 		{
-			throw new Exception('Property ' . $key . ' does not exist');
+			trigger_error('Undefined property: URI::$' . $key, E_USER_NOTICE);
+			return null;
+		}
+		if(!isset($this->{$key}))
+		{
+			return null;
 		}
 		return $this->{$key};
 	}

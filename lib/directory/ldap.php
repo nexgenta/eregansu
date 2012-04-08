@@ -1,6 +1,6 @@
 <?php
 
-/* Copyright 2009 Mo McRoberts.
+/* Copyright 2009-2012 Mo McRoberts.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -15,23 +15,13 @@
  *  limitations under the License.
  */
 
-/**
- * @framework EregansuCore Eregansu Core Library
- * @author Mo McRoberts <mo.mcroberts@nexgenta.com>
- * @year 2010
- * @copyright Mo McRoberts
- * @include uses('db');
- * @sourcebase http://github.com/nexgenta/eregansu/blob/master/
- * @since Available in Eregansu 1.0 and later. 
- */
-
-require_once(dirname(__FILE__) . '/db.php');
+require_once(dirname(__FILE__) . '/../db.php');
 
 /**
- * LDAP database support.
+ * LDAP directory service support.
  */
 
-class LDAP extends DBCore
+class LDAP extends DirectoryService
 {
 	protected $rsClass = 'LDAPSet';
 	protected $server;
@@ -61,9 +51,18 @@ class LDAP extends DBCore
 		$this->baseDn = $dn[0];
 	}
 	
-	public function vquery($base, $params)
+	public function query($params)
 	{
 		if(!is_array($params)) $params = array();
+		if(isset($params['base']))
+		{
+			$base = $params['base'];
+			unset($params['base']);
+		}
+		else
+		{
+			unset($params['base']);
+		}
 		$attrs = array_shift($params);
 		$query = array_shift($params);
 //		$query = preg_replace('/\{([^}]+)\}/e', "\$this->quoteTable(\"\\1\")", $query);
@@ -109,12 +108,7 @@ class LDAP extends DBCore
 	{
 		return null;
 	}
-	
-	public function commit()
-	{
-		return true;
-	}
-	
+		
 	public function insert($dn, $object)
 	{
 		$dn .= ',' . $this->baseDn;

@@ -1,6 +1,6 @@
 <?php
 
-/* Copyright 2009-2011 Mo McRoberts.
+/* Copyright 2009-2012 Mo McRoberts.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -54,6 +54,12 @@
  * to indicate which line should be replaced.
  */
 define('__EREGANSU__', 'master'); /* %%version%% */
+
+if(!defined('PHP_VERSION_ID'))
+{
+    $php_version = explode('.', PHP_VERSION);
+    define('PHP_VERSION_ID', ($php_version[0] * 10000 + $php_version[1] * 100 + $php_version[2]));
+}
 
 /**
  * The ISerialisable interface is implemented by classes which can serialise
