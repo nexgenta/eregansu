@@ -74,6 +74,9 @@ abstract class Request implements IObservable
 	public $publicKey;
 	public $publicKeyHash;
 
+	/* Information identifying the peer performing the request */
+	public $peerIdentification = array();
+
 	protected $session;
 	
 	/**
@@ -642,6 +645,10 @@ abstract class Request implements IObservable
 					if($entry['type'] == 'BIT-STRING')
 					{
 						$this->publicKeyHash = openssl_digest(base64_decode($entry['value']), 'SHA1');
+						$this->peerIdentification['x509://' . $this->publicKeyHash] = array(
+							'authenticated' => true,
+							'authData' => $this->publicKey,
+						);
 						break;
 					}
 				}
@@ -786,6 +793,13 @@ class HTTPRequest extends Request
 		if(isset($_SERVER['CONTENT_TYPE']))
 		{
 			$this->contentType = $_SERVER['CONTENT_TYPE'];
+		}
+		if(isset($_SERVER['PHP_AUTH_USER']) && strlen($_SERVER['PHP_AUTH_USER']))
+		{
+			$this->peerIdentification['http-basic:///' . $_SERVER['PHP_AUTH_USER']] = array(
+				'authData' => @$_SERVER['PHP_AUTH_PW'],
+				'authenticated' => false,
+			);
 		}
 		$this->processRequestPayload();
 		if($this->method == 'POST' && is_array($this->postData) && isset($this->postData['__method']))

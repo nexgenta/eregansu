@@ -41,6 +41,10 @@ class CLIRequest extends Request
 		parent::init();
 		$this->method = '__CLI__';
 		$this->params = $_SERVER['argv'];
+		$uri = 'posix:///?uid=' . getmyuid() . ';gid=' . getmygid();
+		$this->peerIdentification[$uri] = array(
+			'authenticated' => true,
+		);
 		array_shift($this->params);
 		if(isset($this->params[0]) && substr($this->params[0], 0, 1) == '@')
 		{
