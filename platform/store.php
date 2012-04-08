@@ -365,6 +365,7 @@ class DBStorableSet extends StorableSet
 			$this->storableClass = $args['storableClass'];
 		}		
 		$this->total = $this->rs->total;
+		$this->count = count($this->rs);
 		if(isset($args['offset'])) $this->offset = $args['offset'];
 		if(isset($args['limit'])) $this->limit = $args['limit'];
 		$this->rewind();
@@ -377,7 +378,6 @@ class DBStorableSet extends StorableSet
 		{
 			if($this->data['uuid'] != $this->key)
 			{
-				$this->count++;
 				$this->key = $this->data['uuid'];
 				if(!isset($this->data['data']))
 				{
@@ -423,14 +423,13 @@ class DBStorableSet extends StorableSet
 	
 	public function rewind()
 	{	
-		$this->count = 0;		
 		$this->rs->rewind();
 		$this->updateCurrent();
 	}
 	
 	public function count()
 	{
-		return $this->count;
+		return count($this->rs);
 	}
 }
 
@@ -457,6 +456,8 @@ class Store extends Model implements IContentStore
 	 * important, performance will improve without it.
 	 */
 	protected $queriesGroupByUuid = true;
+	
+	protected $insertedUuid = null;
 	
 	public static function getInstance($args = null)
 	{
@@ -766,6 +767,31 @@ class Store extends Model implements IContentStore
 		return call_user_func(array($this->storableClass, 'objectForData'), $data, $this, $this->storableClass);
 	}
 
+	public function /* IContentStore::*/insert($data)
+	{
+		return $this->setData($data);
+	}
+
+	public function /* IContentStore::*/update($what, $data)
+	{
+		$data['uuid'] = $what;
+		return $this->setData($data);
+	}
+
+	public function /* IContentStore::*/insertId()
+	{
+		return $this->insertedUuid;
+	}
+	
+	public function /* IContentStore::*/fetch($what)
+	{
+		return $this->objectForUuid($what);
+	}
+	
+	public function /* IContentStore::*/delete($what)
+	{
+	}
+	
 	/* Store an object, which may be in associative array or instance form,
 	 * or may be an (indexed) array of the same. In the latter case, the
 	 * keys MUST begin at zero.
@@ -801,6 +827,7 @@ class Store extends Model implements IContentStore
 		{
 			$uuid = UUID::generate();
 		}
+		$this->insertedUuid = $uuid;
 		$user_scheme = $user_uuid = null;
 		$uuid = strtolower($uuid);
 		if(isset($user))
@@ -1071,6 +1098,10 @@ class Store extends Model implements IContentStore
 			{
 				$qstr .= ' LIMIT ' . $limit;
 			}
+		}
+		if(defined('EREGANSU_DEBUG_STORE_QUERY'))
+		{
+			error_log($qstr);
 		}
 		if(($rs = $this->db->query($qstr)))
 		{
