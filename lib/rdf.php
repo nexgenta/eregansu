@@ -153,10 +153,28 @@ abstract class RDF extends XMLNS
 	{
 		$location = strval($location);
 		$ct = null;
-		$doc = self::fetch($location, $ct, 'application/rdf+xml', $curl);
+		if(defined('EREGANSU_DEBUG'))
+		{
+			error_log('RDF::documentFromURL(): Fetching ' . $location);
+		}
+		$doc = self::fetch($location, $ct, RDFDocument::$parseableTypes, $curl);
 		if($doc === null)
 		{
+			error_log('RDF::documentFromURL(): Failed to fetch ' . $location);
 			return null;
+		}
+		if(defined('EREGANSU_DEBUG'))
+		{
+			error_log('RDF::documentFromURL(): Fetched ' . $location . ' with content type ' . $ct);
+		}
+		if(in_array($ct, RDFDocument::$parseableTypes))
+		{
+			$d = new RDFDocument($location);
+			if($d->parse($ct, $doc))
+			{
+				return $d;
+			}
+			error_log('RDF::documentFromURL(): RDFDocument::parse() failed for ' . $location . ' with type '. $ct);
 		}
 		if(self::isHTML($doc, $ct))
 		{
@@ -166,6 +184,7 @@ abstract class RDF extends XMLNS
 		{
 			return self::documentFromXMLString($doc, $location, $curl);
 		}
+		error_log('RDF::documentFromURL(): Unable to parse ' . $location . ' with type ' . $ct);
 		return null;
 	}
 
@@ -280,7 +299,8 @@ abstract class RDF extends XMLNS
 			}
 			$href .= '.rdf';
 		}
-		$doc = self::fetch($href, $ct, 'application/rdf+xml', $curl);
+		/* XXX This should obtain the list of acceptable types from RDFDocument */
+		$doc = self::fetch($href, $ct, RDFDocument::$parseableTypes, $curl);
 		if(self::isXML($doc, $ct))
 		{
 			return self::documentFromXMLString($doc, $href);
@@ -329,14 +349,19 @@ abstract class RDF extends XMLNS
 				$accept = array();
 			}
 		}
-		$accept[] = '*/*';
+		$accept[] = '*/*;q=0.5';
 		$curl->headers['Accept'] = implode(',', $accept);
 		$buf = $curl->exec();
 		$info = $curl->info;
 		$curl->headers = $headers;
 		if(intval($info['http_code']) > 399)
 		{
+			error_log('RDF::fetch(): Fetching ' . $url . ': HTTP status ' . $info['http_code']);
+/*			echo '<pre>';
+			print_r($curl);
+			echo '</pre>';
 			echo "RDF::fetch(): HTTP status " . $info['http_code'] . "\n";
+			throw new Exception($curl->receivedHeaders['status'], $info['http_code']); */
 			return null;
 		}
 		$c = explode(';', $info['content_type']);
