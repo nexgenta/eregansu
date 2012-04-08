@@ -70,7 +70,7 @@ class Model
 		{
 			$args['instanceKey'] = $args['db'];
 		}
-		$key = $args['class'] . isset($args['instanceKey']) ? (':' . $args['instanceKey']) : '';
+		$key = $args['class'] . (isset($args['instanceKey']) ? (':' . $args['instanceKey']) : '');
 		$className = $args['class'];
 		if(!isset(self::$instances[$key]))
 		{
