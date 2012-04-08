@@ -49,12 +49,48 @@ abstract class ModuleInstaller
 		fwrite($file, '/* define(\'' . $constant . '\', \'' . $dbtype . '://username:password@localhost/' . $dbname . $options . '\'); */' . "\n");
 	}
 	
-	public function writeAppConfig($file)
+	protected function writeWebRoute($file, $isSole = false, $routeClass = null, $routeFile = 'app.php', $routeName = null, $moduleName = null)
+	{
+		if(!strlen($routeClass))
+		{
+			$routeClass = $this->name . 'App';
+		}
+		if(!strlen($routeName))
+		{
+			$routeName = $this->name;
+		}
+		if(!strlen($moduleName))
+		{
+			$moduleName = $this->name;
+		}
+		if($isSole)
+		{
+			fwrite($file, "define('HTTP_MODULE_NAME', '" . $routeName . "');\n");
+			fwrite($file, "define('HTTP_MODULE_CLASS_PATH', '" . $routeFile . "');\n");
+			fwrite($file, "define('HTTP_MODULE_CLASS', '" . $routeClass . "');\n");
+		}
+		else
+		{
+			fwrite($file, "\$HTTP_ROUTES['" . $routeName . "'] = array('name' => '" . $routeName . "', 'file' => '" . $routeFile . "', 'class' => '" . $routeClass . "', 'adjustBase' => true);\n");
+		}
+	}
+	
+	public function writeAppConfig($file, $isSoleWebModule = false, $chosenSoleWebModule = null)
 	{
 	}
 	
 	public function writeInstanceConfig($file)
 	{
+	}
+	
+	public function canBeSoleWebModule()
+	{
+		return false;
+	}
+	
+	public function canCoexistWithSoleWebModule()
+	{
+		return false;
 	}
 	
 	public function createLinks()
