@@ -415,7 +415,7 @@ class App extends Router
 			}
 			if(defined($prefix . '_MODULE_CLASS_PATH'))
 			{
-				require_once($MODULE_ROOT . constant('_MODULE_CLASS_PATH'));
+				require_once($MODULE_ROOT . constant($prefix . '_MODULE_CLASS_PATH'));
 			}
 			$appClass = constant($prefix . '_MODULE_CLASS');
 			self::$initialApp[$sapi] = $inst = new $appClass;
