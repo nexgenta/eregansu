@@ -614,13 +614,18 @@ class Installer
 			{
 				if(file_exists(MODULES_ROOT . $de . '/install.php'))
 				{
-					include_once(MODULES_ROOT . $de . '/install.php');
-					if(!class_exists($de . 'ModuleInstall'))
+					$result = include_once(MODULES_ROOT . $de . '/install.php');
+					
+					$className = $de . 'ModuleInstall';
+					if(is_string($result))
 					{
-						echo '*** ' . MODULES_ROOT . $de . '/install.php exists but does not define a class named ' . $de . 'ModuleInstall; skipping' . "\n";
+						$className = $result;
+					}					
+					if(!class_exists($className))
+					{
+						echo '*** ' . MODULES_ROOT . $de . '/install.php exists but does not define a class named ' . $className . '; skipping' . "\n";
 						continue;
 					}
-					$className = $de . 'ModuleInstall';
 					$inst = new $className($this, $de, MODULES_ROOT . $de . '/');
 					$k = sprintf('%04d-%04d', $inst->moduleOrder, $c);
 					echo " +> Found module " . $inst->name . "\n";
@@ -650,7 +655,9 @@ class Installer
 		{
 			if($this->appconfigCreated)
 			{
+				fwrite($appConfig, "/* Application configuration for the '" . $inst->name. "' module */\n");
 				$inst->writeAppConfig($appConfig);
+				fwrite($appConfig, "\n");
 			}
 			if($this->configCreated)
 			{
