@@ -1842,10 +1842,15 @@ class RDFDocument extends RedlandModel implements ArrayAccess, ISerialisable
 		/* No-op */
 	}
 
-	/* Given a URI, generate a prefix:short form name */
+	/* Given a URI, generate a prefix:short form name; return $uri if unable to contract */
 	public function namespacedName($uri, $generate = true)
 	{
-		return URI::contractUri($uri, $generate);
+		$result = URI::contractUri($uri, $generate);
+		if(!strlen($result))
+		{
+			return $uri;
+		}
+		return $result;
 	}
 
 	/* Return the RDFInstance which is either explicitly or implicitly the
