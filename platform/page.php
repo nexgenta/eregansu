@@ -2,7 +2,7 @@
 
 /* Eregansu: (HTML) pages
  *
- * Copyright 2009-2011 Mo McRoberts.
+ * Copyright 2009-2012 Mo McRoberts.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -18,8 +18,8 @@
  */
 
 /**
- * @year 2009-2011
- * @include uses('auth');
+ * @year 2009-2012
+ * @include uses('page');
  * @since Available in Eregansu 1.0 and later. 
  */
 
@@ -36,6 +36,8 @@ class Page extends Proxy
 	protected $vars = array();
 	protected $skin = null;
 	protected $defaultSkin = null;
+	protected $theme = null;
+	protected $defaultTheme = null;
 	protected $supportedTypes = array('text/html');
 	protected $scripts = array();
 	protected $forms = array();
@@ -66,16 +68,9 @@ class Page extends Proxy
 			}
 		}
 		$this->request->header('Content-type', 'text/html; charset=UTF-8');
-		$skin = $this->skin;
-		if($skin === null && isset($this->request->data['skin']))
-		{
-			$skin = $this->request->data['skin'];
-		}
-		if($skin === null && $this->request->app && $this->request->app->skin !== null)
-		{
-			$skin = $this->request->app->skin;
-		}
-		$this->tpl = new Template($this->request, $templateName, $skin, $this->defaultSkin);
+		$skin = $this->inheritProperty('skin');
+		$theme = $this->inheritProperty('theme');
+		$this->tpl = new Template($this->request, $templateName, $skin, $this->defaultSkin, $theme, $this->defaultTheme);
 		$this->vars = array_merge($this->request->data, $this->tpl->vars);
 		$this->vars['scripts'] =& $this->scripts;
 		$this->vars['links'] =& $this->links;
@@ -87,6 +82,23 @@ class Page extends Proxy
 		$this->tpl->process();
 		$this->tpl->reset();
 		$this->tpl = null;
+	}
+	
+	protected function inheritProperty($propertyName)
+	{
+		if(strlen($this->{$propertyName}))
+		{
+			return $this->{$propertyName};
+		}
+		if(isset($this->request->data[$propertyName]))
+		{
+			return $this->request->data[$propertyName];
+		}
+		if(isset($this->request->app) && strlen($this->request->app->{$propertyName}))
+		{
+			return $this->request->app->{$propertyName};
+		}
+		return null;
 	}
 	
 	protected function assignTemplate()

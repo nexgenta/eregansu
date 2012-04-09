@@ -2,7 +2,7 @@
 
 /* Eregansu: Template engine
  *
- * Copyright 2009-2011 Mo McRoberts.
+ * Copyright 2009-2012 Mo McRoberts.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
  */
 
 /**
- * @year 2009-2011
+ * @year 2009-2012
  * @include uses('template');
  * @since Available in Eregansu 1.0 and later. 
  */
@@ -35,8 +35,8 @@ class Template
 	public $vars = array();
 	protected $filename;
 	protected $skin;
-	
-	public function __construct($req, $filename, $skin = null, $fallbackSkin = null)
+		
+	public function __construct(Request $req, $filename, $skin = null, $fallbackSkin = null, $theme = null, $fallbackTheme = null)
 	{
 		if(!in_array('template+file', stream_get_wrappers()))
 		{
@@ -44,25 +44,22 @@ class Template
 			stream_filter_register('template', 'TemplateFilter');
 		}
 		$this->request = $req;
-		if(!strlen($skin))
-		{
-			if(defined('DEFAULT_SKIN'))
-			{
-				$skin = DEFAULT_SKIN;
-			}
-			else if(strlen($fallbackSkin))
-			{
-				$skin = $fallbackSkin;
-			}
-			else
-			{
-				$skin = 'default';
-			}
-		}
-		$this->skin = $skin;
+		$this->skin = $this->fallback($skin, defined('DEFAULT_SKIN') ? DEFAULT_SKIN : '', $fallbackSkin, 'default');
+		$this->theme = $this->fallback($theme, defined('DEFAULT_THEME') ? DEFAULT_THEME : '', $fallbackTheme, 'default');
 		$this->reset();
 		$this->filename = $filename;
 		$this->path = $this->vars['skin_path'] . $filename;
+	}
+	
+	protected function fallback(/*...*/)
+	{
+		$args = func_get_args();
+		do
+		{
+			$s = array_shift($args);
+		}
+		while(!strlen($s) && count($args));
+		return $s;
 	}
 	
 	/* Merge the contents of $vars with the existing template variables */
@@ -82,30 +79,36 @@ class Template
 		$this->vars = array();
 		$this->vars['templates_path'] = $this->request->siteRoot . TEMPLATES_PATH . '/';
 		$this->vars['templates_iri'] = (defined('STATIC_IRI') ? STATIC_IRI : $this->request->root . TEMPLATES_PATH . '/');
-		if(substr($this->skin, 0, 1) == '/')
+		$this->setTemplatePathVars('skin', $this->skin);
+		$this->setTemplatePathVars('theme', $this->theme);
+	}
+	
+	protected function setTemplatePathVars($prefix, $path)
+	{
+		if(substr($path, 0, 1) == '/')
 		{
 			if(substr($this->skin, -1) != '/') $this->skin .= '/';
-			$this->vars['skin_path'] = $this->skin;			
-			$this->vars['skin'] = basename($this->skin);
+			$this->vars[$prefix . '_path'] = $this->skin;			
+			$this->vars[$prefix] = basename($this->skin);
 			if(!strncmp($this->skin, $this->vars['templates_path'], strlen($this->vars['templates_path'])))
 			{
-				$this->vars['skin_iri'] = $this->vars['templates_iri'] . substr($this->skin, strlen($this->vars['templates_path']));
+				$this->vars[$prefix . '_iri'] = $this->vars['templates_iri'] . substr($path, strlen($this->vars['templates_path']));
 			}
-			else if(!strncmp($this->skin, $this->request->siteRoot, strlen($this->request->siteRoot)))
+			else if(!strncmp($path, $this->request->siteRoot, strlen($this->request->siteRoot)))
 			{
-				$this->vars['skin_iri'] = $this->request->root . substr($this->skin, strlen($this->request->siteRoot));
+				$this->vars[$prefix . '_iri'] = $this->request->root . substr($path, strlen($this->request->siteRoot));
 			}
 			else
 			{
-				$this->vars['skin_iri'] = $this->vars['templates_iri'] . $this->skin;
+				$this->vars[$prefix . '_iri'] = $this->vars['templates_iri'] . $path;
 			}
 		}
 		else
 		{
-			$this->vars['skin_path'] = $this->vars['templates_path'] . $this->skin . '/';
-			$this->vars['skin_iri'] = $this->vars['templates_iri'] . $this->skin . '/';
-			$this->vars['skin'] = $this->skin;
-		}
+			$this->vars[$prefix . '_path'] = $this->vars['templates_path'] . $path . '/';
+			$this->vars[$prefix . '_iri'] = $this->vars['templates_iri'] . $path . '/';
+			$this->vars[$prefix] = $path;
+		}	
 	}
 	
 	/* Render a template */

@@ -391,6 +391,7 @@ class App extends Router
 {
 	public $parent;
 	public $skin;
+	public $theme;
 
 	protected static $initialApp = array();
 
