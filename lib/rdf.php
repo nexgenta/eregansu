@@ -378,7 +378,7 @@ abstract class RDF extends URI
 		{
 			if(strlen($suggestedPrefix))
 			{
-				URI::registerPrefix($prefix, $uri, $overwrite);
+				URI::registerPrefix($suggestedPrefix, $uri, $overwrite);
 			}
 			return URI::prefixForUri($uri);
 		}
